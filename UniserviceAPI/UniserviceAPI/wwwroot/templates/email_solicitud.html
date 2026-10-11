@@ -1,0 +1,71 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;padding:0;background-color:#031424;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#031424;">
+        <tr>
+            <td align="center" style="padding:20px 0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:500px;margin:0 auto;background-color:#051a2d;border-radius:16px;overflow:hidden;border:1px solid #10304a;">
+                    <!-- Logo Section -->
+                    <tr>
+                        <td align="center" style="padding:36px 40px 20px 40px;">
+                            <img src="cid:logo_uniservice" alt="UniService Logo" style="width:300px;height:auto;display:block;margin:0 auto;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding:0;">
+                            <div style="height:1px;background:#10304a;margin:0 40px;"></div>
+                        </td>
+                    </tr>
+                    <!-- Content Section -->
+                    <tr>
+                        <td align="left" style="padding:28px 40px 20px 40px;">
+                            <h2 style="color:#4ac7b6;font-size:22px;font-weight:700;margin:0 0 12px 0;letter-spacing:-0.5px;">¡Hola, {{nombreProveedor}}!</h2>
+                            <p style="color:#ffffff;font-size:15px;line-height:1.7;margin:0 0 20px 0;opacity:0.85;">
+                                <strong style="color:#4ac7b6;">{{nombreCliente}}</strong> ha enviado una solicitud para tu servicio:
+                            </p>
+                            
+                            <!-- Card de Detalle -->
+                            <div style="background-color:#031424;border-radius:14px;padding:24px;margin-bottom:28px;border:1px solid #10304a;">
+                                <h3 style="color:#4ac7b6;font-size:18px;margin:0 0 15px 0;">{{tituloServicio}}</h3>
+                                
+                                <table width="100%" cellspacing="0" cellpadding="0" border="0" style="color:#ffffff;font-size:14px;line-height:2;">
+                                    <tr>
+                                        <td style="opacity:0.6;width:100px;">Tipo:</td>
+                                        <td>{{tipoServicio}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="opacity:0.6;vertical-align:top;">Descripción:</td>
+                                        <td style="line-height:1.4;padding-top:5px;">{{descripcion}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="opacity:0.6;">Presupuesto:</td>
+                                        <td style="color:#ffdd57;font-weight:bold;">{{presupuesto}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="opacity:0.6;">Urgencia:</td>
+                                        <td>{{urgencia}}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                            
+                            <!-- Botón de Acción -->
+                            <div style="text-align: center; margin: 5px 0;">
+                                <a href="https://localhost:5173/home#solicitudes" 
+                                   style="background-color:#4ac7b6;color:#031424;padding:14px 32px;text-decoration:none;border-radius:10px;font-weight:bold;font-size:16px;display:inline-block;">
+                                    Gestionar Solicitud
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td align="center" style="padding:16px 20px;background-color:#031424;border-top:1px solid #10304a;">
+                            <p style="color:#4ac7b6;font-size:12px;margin:0;font-weight:600;opacity:0.8;">© 2026 UniService. Tu socio de confianza.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

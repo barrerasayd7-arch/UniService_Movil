@@ -1,0 +1,44 @@
+# ── Herramientas de IA / Claude Code (locales, no se suben) ──
+.claude/
+.agents/
+skills-lock.json
+CLAUDE.local.md
+**/.github/copilot-instructions.md
+
+# ── Archivos subidos por usuarios ──
+**/wwwroot/avatars/
+
+# ── Basura accidental (archivo vacío creado por un comando "cd" mal escrito) ──
+UniserviceAPI/cd
+
+# ── Secretos ──
+.env
+.env.*
+!.env.example
+**/appsettings.json
+**/appsettings.*.json
+!**/appsettings.Example.json
+**/Properties/launchSettings.json
+
+# ── .NET ──
+bin/
+obj/
+.vs/
+*.user
+*.suo
+TestResults/
+
+# ── IDEs / editores ──
+.idea/
+.vscode/
+*.iml
+
+# ── Sistema operativo ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Logs / temporales ──
+*.log
+*.tmp
+node_modules/

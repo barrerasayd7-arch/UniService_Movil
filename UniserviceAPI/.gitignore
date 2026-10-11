@@ -1,0 +1,10 @@
+# Secrets - NUNCA commitear estos archivos
+appsettings.Production.json
+.env
+.env.local
+*.user
+*.suo
+.vs/
+bin/
+obj/
+wwwroot/avatars/

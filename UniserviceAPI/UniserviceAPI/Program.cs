@@ -1,0 +1,304 @@
+using Microsoft.EntityFrameworkCore;
+using UniServiceAPI.Data;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using UniserviceAPI.Services;
+using UniserviceAPI.Hubs;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Cargar variables de entorno desde archivo .env si existe (solo desarrollo local)
+var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
+if (File.Exists(envPath))
+{
+    foreach (var line in File.ReadAllLines(envPath))
+    {
+        var trimmed = line.Trim();
+        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#")) continue;
+        
+        var parts = trimmed.Split('=', 2);
+        if (parts.Length == 2)
+        {
+            var key = parts[0].Trim();
+            var value = parts[1].Trim();
+            Environment.SetEnvironmentVariable(key, value);
+        }
+    }
+}
+
+// Incorporar también las variables cargadas desde .env al proveedor de configuración.
+builder.Configuration.AddEnvironmentVariables();
+var signingKey = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(signingKey) || Encoding.UTF8.GetByteCount(signingKey) < 32 ||
+    signingKey == "uniservice_super_secret_key_2026_segura_12345")
+    throw new InvalidOperationException("Configura Jwt__Key con una clave privada de al menos 32 bytes.");
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = 429;
+    options.AddPolicy("InstitutionalEmail", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+});
+builder.Services.AddHttpClient("InstitutionalEmail", client => client.Timeout = TimeSpan.FromSeconds(15));
+
+// 1. Configuración de Autenticación JWT
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+    var key = signingKey;
+    
+    Console.WriteLine($"[CONFIG] JWT Key: {(key.Length >= 16 ? "OK" : "ERROR - clave muy corta")}");
+    
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.Zero
+    };
+})
+.AddJwtBearer("MicrosoftInstitutional", options =>
+{
+    var tenant = builder.Configuration["Microsoft:TenantId"];
+    var audience = builder.Configuration["Microsoft:ApiClientId"];
+    var client = builder.Configuration["Microsoft:MobileClientId"];
+    options.MapInboundClaims = false;
+    if (Guid.TryParse(tenant, out _) && Guid.TryParse(audience, out _) && Guid.TryParse(client, out _))
+    {
+        options.Authority = $"https://login.microsoftonline.com/{tenant}/v2.0";
+        options.Audience = audience;
+        options.TokenValidationParameters.ValidIssuer = $"https://login.microsoftonline.com/{tenant}/v2.0";
+        options.TokenValidationParameters.ClockSkew = TimeSpan.Zero;
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = context =>
+            {
+                var user = context.Principal!;
+                var requiredRole = builder.Configuration["Microsoft:StudentRole"] ?? "EstudianteActivo";
+                var scopes = (user.FindFirst("scp")?.Value ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (user.FindFirst("tid")?.Value != tenant || !Guid.TryParse(user.FindFirst("oid")?.Value, out _) ||
+                    user.FindFirst("azp")?.Value != client || !scopes.Contains("access_as_user") ||
+                    !user.HasClaim("roles", requiredRole))
+                    context.Fail("Se requiere identidad institucional y rol de estudiante activo");
+                return Task.CompletedTask;
+            }
+        };
+    }
+    else
+    {
+        // Sin configuración institucional, rechazar todas las sesiones Microsoft.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context => { context.Fail("Microsoft institucional no configurado"); return Task.CompletedTask; }
+        };
+    }
+});
+
+builder.Services.AddScoped<ActiveStudentFilter>();
+builder.Services.AddAuthorization();
+
+// 2. Configuración de Base de Datos (PostgreSQL - Supabase)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                       ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+
+// Agregar parámetros de pooling si no están presentes
+if (!string.IsNullOrEmpty(connectionString) && !connectionString.Contains("Pooling"))
+{
+    connectionString += ";Pooling=true;Minimum Pool Size=5;Maximum Pool Size=50;Connection Idle Lifetime=300;Connection Pruning Interval=10";
+}
+
+if (string.IsNullOrEmpty(connectionString))
+{
+    Console.WriteLine("[ERROR] No se encontró ConnectionString. Verifica appsettings.json o variables de entorno.");
+}
+else
+{
+    Console.WriteLine("[CONFIG] ConnectionString configurada correctamente con pooling optimizado");
+}
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString)
+);
+
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<SupabaseStorageService>();
+builder.Services.AddHttpClient();
+
+// 3. Configuración de CORS
+// IMPORTANTE: Se agregan los puertos 5173 y 5174 por si Vite cambia de puerto automáticamente
+// Para producción, configurar la variable AllowedOrigins
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact",
+        policy =>
+        {
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials()
+                  .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH");
+        });
+});
+
+builder.Services.AddControllers
+    (options =>
+    {
+        //creamos una politica de ocultacion global de los endenpoints que el usuario solo acceda al iniciar sesion
+        var policy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
+
+        options.Filters.Add(new AuthorizeFilter(policy));
+
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value.Errors.Count > 0)
+                .Select(e => new { campo = e.Key, error = e.Value.Errors.First().ErrorMessage })
+                .ToList();
+            
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new
+            {
+                error = "Datos de entrada inválidos",
+                detalles = errors
+            });
+        };
+    });
+
+builder.Services.AddSignalR();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 52428800; // 50MB
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
+builder.Services.AddEndpointsApiExplorer();
+
+// 4. Configuración de Swagger
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Escribe: Bearer {tu_token}"
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+    // === OCULTAR AUTOMÁTICAMENTE LO PROTEGIDO EN EL SWAGGER ===
+    options.DocInclusionPredicate((docName, apiDesc) =>
+    {
+        // Revisamos si el endpoint o el controlador tienen el atributo [AllowAnonymous]
+        var hasAllowAnonymous = apiDesc.ActionDescriptor.EndpointMetadata
+            .Any(em => em is Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute);
+
+        // Si tiene [AllowAnonymous], se muestra en Swagger. Si no lo tiene (es privado), se oculta.
+        return hasAllowAnonymous;
+    });
+});
+
+var app = builder.Build();
+
+// --- CONFIGURACIÓN DEL PIPELINE DE HTTP (ORDEN CRÍTICO) ---
+
+// Middleware de manejo de errores global
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var ex = exceptionHandlerPathFeature?.Error;
+        
+        Console.WriteLine($"[ERROR GLOBAL] {ex?.GetType().Name}: {ex?.Message}");
+        Console.WriteLine($"[ERROR GLOBAL] Stack: {ex?.StackTrace}");
+        
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        
+        // En producción, no exponer detalles del error
+        var isDevelopment = app.Environment.IsDevelopment();
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "Error interno del servidor",
+            detalle = isDevelopment ? ex?.Message : null,
+            timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
+        });
+    });
+});
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseResponseCompression();
+
+app.UseStaticFiles();
+
+
+
+// A. EL CORS debe ir antes de cualquier middleware que maneje rutas o seguridad
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups";
+    context.Response.Headers["Cross-Origin-Embedder-Policy"] = "unsafe-none";
+    await next();
+});
+
+app.UseCors("AllowReact");
+// B. El orden de estos es vital para el funcionamiento de los controladores
+app.UseRouting();
+app.UseRateLimiter();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+// C. Mantenemos comentada la redirección HTTPS para facilitar la conexión local
+// app.UseHttpsRedirection();
+
+app.MapControllers();
+
+app.MapHub<ChatHub>("/chathub");
+
+app.Run();
+
