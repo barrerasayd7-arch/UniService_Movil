@@ -37,7 +37,7 @@ public class UsersController : ControllerBase
                 return NotFound(new { message = "Usuario no existe" });
 
             string hash = reader["password_hash"]?.ToString()?.Trim() ?? "";
-            bool valid = BCrypt.Net.BCrypt.Verify(dto.password, hash);
+            bool valid = !string.IsNullOrEmpty(hash) && BCrypt.Net.BCrypt.Verify(dto.password, hash);
 
             if (!valid)
                 return Unauthorized(new { message = "Contraseña incorrecta" });
@@ -49,13 +49,18 @@ public class UsersController : ControllerBase
             if (!estado)
                 return Unauthorized(new { message = "Tu cuenta ha sido suspendida. Contacta al administrador." });
 
+            var nombre = reader["nombre"]?.ToString();
+            var correo = reader["correo"]?.ToString();
+            // Npgsql no permite otro comando en la conexión mientras el lector siga abierto.
+            await reader.CloseAsync();
+
             // Actualizar ultima_actividad al hacer login
             var updateAct = new NpgsqlCommand("UPDATE usuarios SET ultima_actividad = NOW() WHERE id_usuario = @id", conn);
             updateAct.Parameters.AddWithValue("@id", id);
             await updateAct.ExecuteNonQueryAsync();
 
             // 🔐 GENERAR TOKEN
-            var jwtKey = _config["Jwt:Key"] ?? "ClaveSuperSecretaDeRespaldo_UniServices_2026";
+            var jwtKey = _config["Jwt:Key"]!; // Program.cs no arranca sin una clave válida
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -80,8 +85,8 @@ public class UsersController : ControllerBase
                 user = new
                 {
                     id = id,
-                    nombre = reader["nombre"]?.ToString(),
-                    correo = reader["correo"]?.ToString(),
+                    nombre = nombre,
+                    correo = correo,
                     id_rol = idRol // 👈 React usará esto para redirigir al admin
                 }
             });

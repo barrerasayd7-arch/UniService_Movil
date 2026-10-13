@@ -42,11 +42,119 @@ public class AuthController : ControllerBase
     public IActionResult VerificarCodigo([FromBody] VerificarCodigoDTO data) => StatusCode(403, new { error = "Usa /api/auth/institutional-email/send-code y verify-code" });
 
     // =========================
-    // REGISTER (BLOQUEADO SI NO VERIFICÓ)
+    // REGISTER: crea la cuenta a partir del JWT efímero
+    // emitido por /api/auth/institutional-email/verify-code.
     // =========================
     [AllowAnonymous]
     [HttpPost("register")]
-    public Task<IActionResult> Register([FromBody] RegisterDTO dto) => Task.FromResult<IActionResult>(StatusCode(403, new { error = "Crea tu cuenta verificando el código enviado a tu correo institucional" }));
+    public async Task<IActionResult> Register([FromBody] RegisterDTO dto)
+    {
+        var email = InstitutionalAccess.NormalizeEmail(dto.correo);
+        if (email == null)
+            return BadRequest(new { error = "Usa tu correo @unicesar.edu.co" });
+
+        var codeKey = _config["InstitutionalEmail:CodeKey"];
+        var jwtKey = _config["Jwt:Key"];
+        if (string.IsNullOrWhiteSpace(codeKey) || Encoding.UTF8.GetByteCount(codeKey) < 32 ||
+            string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+            return StatusCode(503, new { error = "El registro aún no está configurado" });
+
+        ClaimsPrincipal principal;
+        try
+        {
+            // MapInboundClaims = false: si no, el claim "email" se renombra a
+            // ClaimTypes.Email y FindFirst("email") devuelve null.
+            principal = new JwtSecurityTokenHandler { MapInboundClaims = false }.ValidateToken(dto.verificacion_token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(codeKey)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+        }
+        catch
+        {
+            return BadRequest(new { error = "Verificación de correo inválida o vencida. Solicita un código nuevo" });
+        }
+
+        if (principal.FindFirst("purpose")?.Value != "institutional_email_verify" ||
+            !string.Equals(principal.FindFirst("email")?.Value, email, StringComparison.Ordinal))
+            return BadRequest(new { error = "Verificación de correo inválida" });
+
+        var nombre = dto.nombre.Trim();
+        var apellido = dto.apellido.Trim();
+        var nombreCompleto = $"{nombre} {apellido}";
+        if (nombreCompleto.Length > 100) nombreCompleto = nombreCompleto[..100];
+        var telefono = dto.telefono.Trim();
+
+        await using var conn = new NpgsqlConnection(_config.GetConnectionString("DefaultConnection"));
+        await conn.OpenAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        await using (var exists = new NpgsqlCommand(
+            "SELECT COUNT(*) FROM usuarios WHERE lower(trim(correo)) = @email", conn, tx))
+        {
+            exists.Parameters.AddWithValue("@email", email);
+            if (Convert.ToInt32(await exists.ExecuteScalarAsync()) > 0)
+                return Conflict(new { error = "Ya existe una cuenta con ese correo. Inicia sesión en su lugar" });
+        }
+
+        var hash = BCrypt.Net.BCrypt.HashPassword(dto.password);
+
+        int id;
+        await using (var insert = new NpgsqlCommand("""
+            INSERT INTO usuarios(nombre, correo, password_hash, telefono, universidad, id_rol, estado, ultima_actividad)
+            VALUES (@nombre, @correo, @hash, @telefono, @universidad, 2, true, clock_timestamp())
+            RETURNING id_usuario
+            """, conn, tx))
+        {
+            insert.Parameters.AddWithValue("@nombre", nombreCompleto);
+            insert.Parameters.AddWithValue("@correo", email);
+            insert.Parameters.AddWithValue("@hash", hash);
+            insert.Parameters.AddWithValue("@telefono", telefono);
+            insert.Parameters.AddWithValue("@universidad", "Universidad Popular del Cesar");
+            id = Convert.ToInt32(await insert.ExecuteScalarAsync());
+        }
+
+        var verifExpires = DateTime.UtcNow.AddHours(1);
+        await using (var verif = new NpgsqlCommand("""
+            INSERT INTO verificaciones_correo_institucional(id_usuario, correo, verificado_hasta)
+            VALUES (@id, @correo, @expires)
+            ON CONFLICT(id_usuario) DO UPDATE SET correo = EXCLUDED.correo,
+              verificado_en = clock_timestamp(), verificado_hasta = EXCLUDED.verificado_hasta
+            """, conn, tx))
+        {
+            verif.Parameters.AddWithValue("@id", id);
+            verif.Parameters.AddWithValue("@correo", email);
+            verif.Parameters.AddWithValue("@expires", verifExpires);
+            await verif.ExecuteNonQueryAsync();
+        }
+
+        await tx.CommitAsync();
+
+        var sessionToken = new JwtSecurityToken(
+            claims: new[] { new Claim("id", id.ToString()), new Claim("id_rol", "2") },
+            expires: DateTime.UtcNow.AddDays(1),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                SecurityAlgorithms.HmacSha256));
+
+        return Ok(new
+        {
+            token = new JwtSecurityTokenHandler().WriteToken(sessionToken),
+            user = new
+            {
+                id,
+                nombre = nombreCompleto,
+                correo = email,
+                id_rol = 2,
+                telefono,
+                universidad = "Universidad Popular del Cesar"
+            }
+        });
+    }
 
     // =========================
     // LOGIN
@@ -60,7 +168,7 @@ public class AuthController : ControllerBase
             await conn.OpenAsync();
 
             int id, idRol;
-            string nombreUser, correoUser;
+            string? nombreUser, correoUser;
             bool estado = true;
 
             var cmd = new NpgsqlCommand("SELECT id_usuario, id_rol, nombre, correo, password_hash, estado FROM usuarios WHERE correo = @correo", conn);
@@ -285,13 +393,10 @@ public class AuthController : ControllerBase
     // =========================
     // VERIFICAR CONTRASEÑA MAESTRA DE ADMIN
     // =========================
-    private static readonly Lazy<string> _defaultAdminMasterHash = new(() =>
-        BCrypt.Net.BCrypt.HashPassword("admin_2026"));
-
     private static readonly Dictionary<int, (int intentos, DateTime bloqueadoHasta)> _adminAttempts = new();
 
     [HttpPost("verify-admin-master")]
-    public async Task<IActionResult> VerifyAdminMaster([FromBody] VerifyAdminMasterDTO dto)
+    public IActionResult VerifyAdminMaster([FromBody] VerifyAdminMasterDTO dto)
     {
         try
         {
@@ -320,7 +425,10 @@ public class AuthController : ControllerBase
                     _adminAttempts.Remove(userId);
             }
 
-            var storedHash = _config["Admin:MasterPasswordHash"] ?? _defaultAdminMasterHash.Value;
+            // Sin hash configurado no hay contraseña maestra válida (antes había una por defecto en el código).
+            var storedHash = _config["Admin:MasterPasswordHash"];
+            if (string.IsNullOrWhiteSpace(storedHash))
+                return StatusCode(503, new { error = "La contraseña maestra de administrador no está configurada" });
 
             if (!BCrypt.Net.BCrypt.Verify(dto.MasterPassword, storedHash))
             {

@@ -18,7 +18,7 @@ UniserviceAPI/cd
 **/appsettings.json
 **/appsettings.*.json
 !**/appsettings.Example.json
-**/Properties/launchSettings.json
+# launchSettings.json SÍ se versiona: no tiene secretos y fija el puerto 5165 y el entorno Development.
 
 # ── .NET ──
 bin/

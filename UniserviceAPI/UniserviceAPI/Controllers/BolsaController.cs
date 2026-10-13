@@ -51,6 +51,7 @@ public class BolsaController(IConfiguration config) : ControllerBase
     [HttpGet("perfiles/{id:int}/habilidades")]
     public async Task<IActionResult> Perfil(int id, CancellationToken ct)
     {
+        
         await using var conn = await Connect(ct);
         await using var cmd = new NpgsqlCommand("""
             SELECT h.id_habilidad, h.nombre, uh.nivel, uh.detalle FROM usuario_habilidades uh

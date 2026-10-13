@@ -117,7 +117,7 @@ public class ReportesController : ControllerBase
     }
 
     // ── GET /api/reportes/admin ── Admin ve TODOS los reportes
-    [HttpGet("admin")]
+    [HttpGet("admin"), AdminOnly]
     public async Task<IActionResult> GetTodosReportes([FromQuery] string? estado = null)
     {
         try
@@ -177,7 +177,7 @@ public class ReportesController : ControllerBase
     }
 
     // ── PATCH /api/reportes/{id}/estado ── Admin actualiza el estado de un reporte
-    [HttpPatch("{id}/estado")]
+    [HttpPatch("{id}/estado"), AdminOnly]
     public async Task<IActionResult> ActualizarEstado(int id, [FromBody] ActualizarReporteDTO dto)
     {
         try

@@ -16,8 +16,7 @@ namespace UniserviceAPI.Controllers;
 public sealed record InstitutionalEmailRequest([Required, StringLength(100)] string correo);
 public sealed record InstitutionalCodeRequest(
     [Required, StringLength(100)] string correo,
-    [Required, RegularExpression("^[0-9]{6}$")] string codigo,
-    [StringLength(50, MinimumLength = 2)] string? nombre);
+    [Required, RegularExpression("^[0-9]{6}$")] string codigo);
 
 [ApiController, Route("api/auth/institutional-email"), AllowAnonymous]
 [EnableRateLimiting("InstitutionalEmail")]
@@ -85,15 +84,27 @@ public sealed class InstitutionalEmailController(IConfiguration config, IHttpCli
         {
             using var response = await clients.CreateClient("InstitutionalEmail").SendAsync(message, ct);
             if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync(ct);
+                Console.WriteLine($"[BREVO] FALLO status={(int)response.StatusCode} body={errorBody}");
                 return StatusCode(503, new { error = "No pudimos enviar el código. Inténtalo más tarde" });
+            }
         }
-        catch (HttpRequestException) { return StatusCode(503, new { error = "Servicio de correo no disponible" }); }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"[BREVO] HttpRequestException: {ex.Message}");
+            return StatusCode(503, new { error = "Servicio de correo no disponible" });
+        }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         { return StatusCode(503, new { error = "Servicio de correo no disponible" }); }
         await tx.CommitAsync(ct);
         return Ok(new { mensaje = "Código enviado. Revisa tu bandeja y correo no deseado", expires_in = 600, resend_after = 60 });
     }
 
+    // Solo valida el código y emite un JWT efímero de verificación (15 min).
+    // No crea cuentas: eso lo hace POST /api/auth/register con el token devuelto.
+    // El token se firma con InstitutionalEmail:CodeKey (no con Jwt:Key) para que
+    // el middleware de sesión no lo acepte como auth.
     [HttpPost("verify-code")]
     public async Task<IActionResult> Verify(InstitutionalCodeRequest request, CancellationToken ct)
     {
@@ -123,66 +134,34 @@ public sealed class InstitutionalEmailController(IConfiguration config, IHttpCli
             await tx.CommitAsync(ct);
             return BadRequest(new { error = "Código inválido, vencido o agotado" });
         }
-        // Consumir incluso si la cuenta necesita vinculación supervisada o está suspendida.
         await using (var consume = new NpgsqlCommand("UPDATE uniservice_mobile.codigos_correo SET consumido = true WHERE correo = @email", conn, tx))
         {
             consume.Parameters.AddWithValue("email", email); await consume.ExecuteNonQueryAsync(ct);
         }
-        var id = 0; var role = 2; var name = request.nombre?.Trim() ?? email.Split('@')[0];
-        if (name.Length < 2) name = "Usuario";
-        if (name.Length > 50) name = name[..50];
-        var active = true; var linked = false;
-        await using (var user = new NpgsqlCommand("""
-            SELECT u.id_usuario, u.id_rol, u.nombre, u.estado,
-              EXISTS (SELECT 1 FROM verificaciones_correo_institucional v WHERE v.id_usuario = u.id_usuario AND v.correo = @email)
-            FROM usuarios u WHERE lower(trim(u.correo)) = @email FOR UPDATE OF u
-            """, conn, tx))
+        var cuentaExistente = false;
+        await using (var exists = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM usuarios WHERE lower(trim(correo)) = @email)", conn, tx))
         {
-            user.Parameters.AddWithValue("email", email);
-            await using var reader = await user.ExecuteReaderAsync(ct);
-            if (await reader.ReadAsync(ct))
-            {
-                id = reader.GetInt32(0); role = reader.IsDBNull(1) ? 2 : reader.GetInt32(1);
-                name = reader.GetString(2); active = !reader.IsDBNull(3) && reader.GetBoolean(3); linked = reader.GetBoolean(4);
-            }
-        }
-        if (!active || (id != 0 && !linked))
-        {
-            await tx.CommitAsync(ct);
-            return !active ? StatusCode(403, new { error = "Cuenta suspendida" })
-                : Conflict(new { error = "Cuenta existente: solicita al administrador vincular el acceso por correo" });
-        }
-        if (id == 0)
-        {
-            await using var create = new NpgsqlCommand("""
-                INSERT INTO usuarios(correo, nombre, id_rol, estado) VALUES (@email, @name, 2, true)
-                ON CONFLICT DO NOTHING RETURNING id_usuario
-                """, conn, tx);
-            create.Parameters.AddWithValue("email", email); create.Parameters.AddWithValue("name", name);
-            var created = await create.ExecuteScalarAsync(ct);
-            if (created == null)
-            {
-                await tx.CommitAsync(ct);
-                return Conflict(new { error = "Cuenta existente: solicita al administrador vincular el acceso por correo" });
-            }
-            id = Convert.ToInt32(created);
-        }
-        var expires = DateTime.UtcNow.AddHours(1);
-        await using (var verify = new NpgsqlCommand("""
-            INSERT INTO verificaciones_correo_institucional(id_usuario, correo, verificado_hasta)
-            VALUES (@id, @email, @expires)
-            ON CONFLICT(id_usuario) DO UPDATE SET correo = EXCLUDED.correo, verificado_en = clock_timestamp(), verificado_hasta = EXCLUDED.verificado_hasta;
-            UPDATE usuarios SET ultima_actividad = clock_timestamp() WHERE id_usuario = @id
-            """, conn, tx))
-        {
-            verify.Parameters.AddWithValue("id", id); verify.Parameters.AddWithValue("email", email);
-            verify.Parameters.AddWithValue("expires", expires); await verify.ExecuteNonQueryAsync(ct);
+            exists.Parameters.AddWithValue("email", email);
+            cuentaExistente = (await exists.ExecuteScalarAsync(ct)) is true;
         }
         await tx.CommitAsync(ct);
-        var token = new JwtSecurityToken(claims: [new Claim("id", id.ToString()), new Claim("id_rol", role.ToString()),
-            new Claim("auth_method", "institutional_email")], expires: expires,
-            signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!)), SecurityAlgorithms.HmacSha256));
-        return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token), expires_at = expires,
-            user = new { id, nombre = name, correo = email, id_rol = role, correo_institucional_verificado = true } });
+
+        var expires = DateTime.UtcNow.AddMinutes(15);
+        var token = new JwtSecurityToken(
+            claims: [
+                new Claim("purpose", "institutional_email_verify"),
+                new Claim("email", email)
+            ],
+            expires: expires,
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["InstitutionalEmail:CodeKey"]!)),
+                SecurityAlgorithms.HmacSha256));
+        return Ok(new
+        {
+            verificacion_token = new JwtSecurityTokenHandler().WriteToken(token),
+            expires_at = expires,
+            expires_in = 900,
+            cuenta_existente = cuentaExistente
+        });
     }
 }

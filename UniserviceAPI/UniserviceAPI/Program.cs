@@ -14,12 +14,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Cargar variables de entorno desde archivo .env si existe (solo desarrollo local)
-var envPath = Path.Combine(Directory.GetCurrentDirectory(), ".env");
-if (File.Exists(envPath))
+// Cargar variables de entorno desde archivo .env si existe (solo desarrollo local).
+// Se busca junto al proyecto (UniserviceAPI/UniserviceAPI/.env) y, si no está, en UniserviceAPI/.env.
+var envPath = new[] { builder.Environment.ContentRootPath, Path.Combine(builder.Environment.ContentRootPath, "..") }
+    .Select(dir => Path.GetFullPath(Path.Combine(dir, ".env")))
+    .FirstOrDefault(File.Exists);
+if (envPath != null)
 {
     foreach (var line in File.ReadAllLines(envPath))
     {
@@ -50,6 +54,12 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 20, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
+            AutoReplenishment = true
+        }));
+    options.AddPolicy("AdminLogin", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
             AutoReplenishment = true
         }));
 });
@@ -111,6 +121,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 });
 
 builder.Services.AddScoped<ActiveStudentFilter>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<AccountStatus>();
 builder.Services.AddAuthorization();
 
 // 2. Configuración de Base de Datos (PostgreSQL - Supabase)
@@ -141,19 +153,36 @@ builder.Services.AddScoped<SupabaseStorageService>();
 builder.Services.AddHttpClient();
 
 // 3. Configuración de CORS
-// IMPORTANTE: Se agregan los puertos 5173 y 5174 por si Vite cambia de puerto automáticamente
-// Para producción, configurar la variable AllowedOrigins
+// Development: cualquier origen (Vite cambia de puerto, Flutter web, etc.).
+// Producción: sólo los dominios de AllowedOrigins (separados por coma). La app móvil nativa no usa CORS.
+var allowedOrigins = (builder.Configuration["AllowedOrigins"] ?? "")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+if (!builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
+    Console.WriteLine("[CONFIG] AllowedOrigins vacío: ninguna web podrá llamar a la API (la app móvil sí).");
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact",
         policy =>
         {
-            policy.SetIsOriginAllowed(_ => true)
-                  .AllowAnyHeader()
-                  .AllowAnyMethod()
+            if (builder.Environment.IsDevelopment())
+                policy.SetIsOriginAllowed(_ => true);
+            else
+                policy.WithOrigins(allowedOrigins);
+            policy.AllowAnyHeader()
                   .AllowCredentials()
                   .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH");
         });
+});
+
+// Detrás del proxy del hosting, la IP del cliente llega en X-Forwarded-For. Sin esto,
+// los límites de intentos por IP tratarían a todos los usuarios como uno solo.
+// ForwardLimit = 1 toma sólo la IP que añade el proxy, no la que pueda inventar el cliente.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 builder.Services.AddControllers
@@ -165,6 +194,8 @@ builder.Services.AddControllers
             .Build();
 
         options.Filters.Add(new AuthorizeFilter(policy));
+        // Bloquea al instante las cuentas suspendidas aunque su JWT siga vigente.
+        options.Filters.Add<ActiveAccountFilter>();
 
     })
     .ConfigureApiBehaviorOptions(options =>
@@ -172,8 +203,8 @@ builder.Services.AddControllers
         options.InvalidModelStateResponseFactory = context =>
         {
             var errors = context.ModelState
-                .Where(e => e.Value.Errors.Count > 0)
-                .Select(e => new { campo = e.Key, error = e.Value.Errors.First().ErrorMessage })
+                .Where(e => e.Value != null && e.Value.Errors.Count > 0)
+                .Select(e => new { campo = e.Key, error = e.Value!.Errors.First().ErrorMessage })
                 .ToList();
             
             return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new
@@ -232,13 +263,18 @@ builder.Services.AddSwaggerGen(options =>
             .Any(em => em is Microsoft.AspNetCore.Authorization.AllowAnonymousAttribute);
 
         // Si tiene [AllowAnonymous], se muestra en Swagger. Si no lo tiene (es privado), se oculta.
-        return hasAllowAnonymous;
+        // Excepción: el panel admin se muestra para poder probarlo con "Authorize" (Swagger sólo corre en Development).
+        return hasAllowAnonymous || apiDesc.RelativePath?.StartsWith("api/admin", StringComparison.OrdinalIgnoreCase) == true;
     });
 });
 
 var app = builder.Build();
 
 // --- CONFIGURACIÓN DEL PIPELINE DE HTTP (ORDEN CRÍTICO) ---
+
+// En la nube siempre hay un proxy delante; en local no, y así no se aceptan cabeceras inventadas.
+if (!app.Environment.IsDevelopment())
+    app.UseForwardedHeaders();
 
 // Middleware de manejo de errores global
 app.UseExceptionHandler(errorApp =>

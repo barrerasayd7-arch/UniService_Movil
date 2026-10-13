@@ -168,7 +168,7 @@ public class CalificacionesController : ControllerBase
             }
 
             // Si ya calificó, devolver su calificación actual
-            object miCalificacion = null;
+            object? miCalificacion = null;
             if (yaCalifico > 0)
             {
                 using var cmdMiCalif = new NpgsqlCommand(@"

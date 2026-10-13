@@ -125,7 +125,7 @@ public class SolicitudesController : ControllerBase
             var idSolicitud = await insertCmd.ExecuteScalarAsync();
 
             // Obtener datos para el mensaje del chat
-            string nombreCliente = null, tituloServicio = null, emailProveedor = null, nombreProveedor = null;
+            string? nombreCliente = null, tituloServicio = null, emailProveedor = null, nombreProveedor = null;
             using (var dataCmd = new NpgsqlCommand(@"
                 SELECT c.nombre AS nombre_cliente, se.titulo AS titulo_servicio,
                        u.correo AS email_proveedor, u.nombre AS nombre_proveedor
@@ -376,7 +376,7 @@ public class SolicitudesController : ControllerBase
         ", conn);
 
         cmd.Parameters.AddWithValue("@estado", estado);
-        cmd.Parameters.AddWithValue("@motivo", (object)dto.motivo_rechazo ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@motivo", (object?)dto.motivo_rechazo ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@contraoferta", dto.contraoferta.HasValue ? (object)dto.contraoferta.Value : DBNull.Value);
         cmd.Parameters.AddWithValue("@fue_aceptada", fueAceptada);
         cmd.Parameters.AddWithValue("@id", dto.id_solicitud);

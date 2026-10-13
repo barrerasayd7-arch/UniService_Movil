@@ -28,7 +28,7 @@ public class ServicesController : ControllerBase
     // =========================
     // GET TODOS LOS SERVICIOS (ADMIN - INCLUYE PENDIENTES)
     // =========================
-    [HttpGet("admin/all")]
+    [HttpGet("admin/all"), AdminOnly]
     public async Task<IActionResult> GetAllAdmin()
     {
         try
@@ -567,18 +567,18 @@ public class ServicesController : ControllerBase
             cmd.Parameters.AddWithValue("@icono", dto.icono ?? "📌");
             cmd.Parameters.AddWithValue("@ubicacion_lat", dto.ubicacion_lat.HasValue ? (object)dto.ubicacion_lat.Value : DBNull.Value);
             cmd.Parameters.AddWithValue("@ubicacion_lng", dto.ubicacion_lng.HasValue ? (object)dto.ubicacion_lng.Value : DBNull.Value);
-            cmd.Parameters.AddWithValue("@direccion", (object)dto.direccion ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@direccion", (object?)dto.direccion ?? DBNull.Value);
 
             var idServicio = await cmd.ExecuteScalarAsync();
             // Notificar a todos los admins del nuevo servicio pendiente
             try
             {
                 using var cmdAdmins = new NpgsqlCommand(
-                    "SELECT email, nombre FROM usuarios WHERE rol = 1", conn);
+                    "SELECT correo, nombre FROM usuarios WHERE id_rol = 1 AND estado IS TRUE", conn);
                 using var rAdmins = await cmdAdmins.ExecuteReaderAsync();
                 var admins = new List<(string email, string nombre)>();
                 while (await rAdmins.ReadAsync())
-                    admins.Add((rAdmins["email"].ToString()!, rAdmins["nombre"].ToString()!));
+                    admins.Add((rAdmins["correo"].ToString()!, rAdmins["nombre"].ToString()!));
                 rAdmins.Close();
 
                 // Obtener nombre del proveedor
@@ -799,7 +799,7 @@ public class ServicesController : ControllerBase
     {
         if (value == null || value == DBNull.Value) return "🏫 Presencial";
 
-        string str = value.ToString();
+        string? str = value.ToString();
         return str switch
         {
             "0" => "🏫 Presencial",
@@ -816,7 +816,7 @@ public class ServicesController : ControllerBase
     {
         if (value == null || value == DBNull.Value) return "📆 Entre semana";
 
-        string str = value.ToString();
+        string? str = value.ToString();
         return str switch
         {
             "-1" => "Pausado",
@@ -832,7 +832,7 @@ public class ServicesController : ControllerBase
     }
 
     // ── PUT /api/services/{id}/pausar (Admin) - Toggle disponibilidad
-    [HttpPut("{id}/pausar")]
+    [HttpPut("{id}/pausar"), AdminOnly]
     public async Task<IActionResult> Pausar(int id)
     {
         try
@@ -887,7 +887,7 @@ public class ServicesController : ControllerBase
             cmd.Parameters.AddWithValue("@icono", dto.icono ?? "");
             cmd.Parameters.AddWithValue("@ubicacion_lat", dto.ubicacion_lat.HasValue ? (object)dto.ubicacion_lat.Value : DBNull.Value);
             cmd.Parameters.AddWithValue("@ubicacion_lng", dto.ubicacion_lng.HasValue ? (object)dto.ubicacion_lng.Value : DBNull.Value);
-            cmd.Parameters.AddWithValue("@direccion", (object)dto.direccion ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@direccion", (object?)dto.direccion ?? DBNull.Value);
 
             int filas = await cmd.ExecuteNonQueryAsync();
             if (filas == 0)
@@ -948,7 +948,7 @@ public class ServicesController : ControllerBase
         }
     }
 
-    [HttpPut("{id}/aprobar")]
+    [HttpPut("{id}/aprobar"), AdminOnly]
     public async Task<IActionResult> Aprobar(int id)
     {
         try
@@ -1014,7 +1014,7 @@ public class ServicesController : ControllerBase
         }
     }
     // ── PUT /api/services/{id}/rechazar (Admin)
-    [HttpPut("{id}/rechazar")]
+    [HttpPut("{id}/rechazar"), AdminOnly]
     public async Task<IActionResult> Rechazar(int id, [FromBody] RechazarServicioDTO dto)
     {
         try
