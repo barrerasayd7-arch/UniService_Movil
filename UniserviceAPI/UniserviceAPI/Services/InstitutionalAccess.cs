@@ -8,6 +8,10 @@ namespace UniserviceAPI.Services;
 
 public static class InstitutionalAccess
 {
+    // Cuánto dura la verificación del correo institucional (acceso a la Bolsa, etc.).
+    // Se renueva cada vez que el usuario confirma un código OTP nuevo.
+    public static readonly TimeSpan VerificationValidity = TimeSpan.FromDays(180);
+
     public static string? NormalizeEmail(string? value)
     {
         var normalized = value?.Trim().ToLowerInvariant();

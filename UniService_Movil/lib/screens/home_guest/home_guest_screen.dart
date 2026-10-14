@@ -56,64 +56,69 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              NavbarInvitado(
-                movil: movil,
-                menuAbierto: _menuAbierto,
-                onToggleMenu: () => setState(() => _menuAbierto = !_menuAbierto),
-                onAncla: _irA,
-                onLogin: _login,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _scroll,
-                  child: Column(
-                    children: [
-                      KeyedSubtree(
-                        key: _keys['inicio'],
-                        child: HeroPresentacion(
-                          onExplorar: () => _irA('buscar'),
-                          onPublicar: _login,
+      // SafeArea: la barra superior no queda bajo la hora/batería del celular.
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                NavbarInvitado(
+                  movil: movil,
+                  menuAbierto: _menuAbierto,
+                  onToggleMenu: () =>
+                      setState(() => _menuAbierto = !_menuAbierto),
+                  onAncla: _irA,
+                  onLogin: _login,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scroll,
+                    child: Column(
+                      children: [
+                        KeyedSubtree(
+                          key: _keys['inicio'],
+                          child: HeroPresentacion(
+                            onExplorar: () => _irA('buscar'),
+                            onPublicar: _login,
+                          ),
                         ),
-                      ),
-                      KeyedSubtree(
-                        key: _keys['buscar'],
-                        child: BusquedaInvitado(
+                        KeyedSubtree(
+                          key: _keys['buscar'],
+                          child: BusquedaInvitado(
+                            servicios: _servicios,
+                            onTapServicio: (_) => _login(),
+                          ),
+                        ),
+                        SeccionRecientes(
                           servicios: _servicios,
                           onTapServicio: (_) => _login(),
                         ),
-                      ),
-                      SeccionRecientes(
-                        servicios: _servicios,
-                        onTapServicio: (_) => _login(),
-                      ),
-                      KeyedSubtree(
-                        key: _keys['mejor-calificados'],
-                        child: SeccionDestacados(
-                          servicios: _servicios,
-                          onTapServicio: (_) => _login(),
+                        KeyedSubtree(
+                          key: _keys['mejor-calificados'],
+                          child: SeccionDestacados(
+                            servicios: _servicios,
+                            onTapServicio: (_) => _login(),
+                          ),
                         ),
-                      ),
-                      KeyedSubtree(
-                        key: _keys['soporte'],
-                        child: FooterInvitado(onAncla: _irA, onLogin: _login),
-                      ),
-                    ],
+                        KeyedSubtree(
+                          key: _keys['soporte'],
+                          child: FooterInvitado(onAncla: _irA, onLogin: _login),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          if (movil && _menuAbierto)
-            Positioned(
-              top: 62,
-              right: 16,
-              child: MenuMovilInvitado(onAncla: _irA, onLogin: _login),
+              ],
             ),
-        ],
+            if (movil && _menuAbierto)
+              Positioned(
+                top: 62,
+                right: 16,
+                child: MenuMovilInvitado(onAncla: _irA, onLogin: _login),
+              ),
+          ],
+        ),
       ),
     );
   }

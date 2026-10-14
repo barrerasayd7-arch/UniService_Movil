@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../data/auth_repository.dart';
 import '../../data/servicios_mock.dart';
 import '../../models/servicio.dart';
 import '../home_guest/hero_presentacion.dart';
@@ -34,8 +35,10 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _menuAbierto = false;
   bool _scrolled = false;
 
-
-  final String _nombreUsuario = 'Usuario';
+  String get _nombreUsuario {
+    final nombre = AuthRepository.instance.usuario.value?.nombre.trim() ?? '';
+    return nombre.isEmpty ? 'Usuario' : nombre.split(' ').first;
+  }
 
   final List<Servicio> _servicios = serviciosMock;
 
@@ -100,8 +103,9 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).pushNamed('/perfil');
   }
 
-  void _cerrarSesion() {
-    
+  Future<void> _cerrarSesion() async {
+    await AuthRepository.instance.cerrarSesion();
+    if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil('/home-guest', (_) => false);
   }
 
@@ -112,88 +116,94 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              NavbarHome(
-                movil: movil,
-                menuAbierto: _menuAbierto,
-                scrolled: _scrolled,
-                nombreUsuario: _nombreUsuario,
-                onToggleMenu: () => setState(() => _menuAbierto = !_menuAbierto),
-                onAncla: _irA,
-                onSolicitudes: () => _proximamente('Mis solicitudes'),
-                onPerfil: _irAPerfil,
-                onCerrarSesion: _cerrarSesion,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  controller: _scroll,
-                  child: Column(
-                    children: [
-                      KeyedSubtree(
-                        key: _keys['inicio'],
-                        child: HeroPresentacion(
-                          onExplorar: () => _irA('buscar'),
-                          onPublicar: () => _irA('publicar'),
+      // SafeArea: la barra superior no queda bajo la hora/batería del celular.
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                NavbarHome(
+                  movil: movil,
+                  menuAbierto: _menuAbierto,
+                  scrolled: _scrolled,
+                  nombreUsuario: _nombreUsuario,
+                  onToggleMenu: () =>
+                      setState(() => _menuAbierto = !_menuAbierto),
+                  onAncla: _irA,
+                  onSolicitudes: () => _proximamente('Mis solicitudes'),
+                  onPerfil: _irAPerfil,
+                  onCerrarSesion: _cerrarSesion,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: _scroll,
+                    child: Column(
+                      children: [
+                        KeyedSubtree(
+                          key: _keys['inicio'],
+                          child: HeroPresentacion(
+                            onExplorar: () => _irA('buscar'),
+                            onPublicar: () => _irA('publicar'),
+                          ),
                         ),
-                      ),
-                      KeyedSubtree(
-                        key: _keys['buscar'],
-                        child: BusquedaHome(
+                        KeyedSubtree(
+                          key: _keys['buscar'],
+                          child: BusquedaHome(
+                            servicios: _servicios,
+                            onTapServicio: _abrirServicio,
+                          ),
+                        ),
+                        SeccionRecientes(
                           servicios: _servicios,
                           onTapServicio: _abrirServicio,
                         ),
-                      ),
-                      SeccionRecientes(
-                        servicios: _servicios,
-                        onTapServicio: _abrirServicio,
-                      ),
-                      KeyedSubtree(
-                        key: _keys['mejor-calificados'],
-                        child: SeccionDestacados(
-                          servicios: _servicios,
-                          onTapServicio: _abrirServicio,
+                        KeyedSubtree(
+                          key: _keys['mejor-calificados'],
+                          child: SeccionDestacados(
+                            servicios: _servicios,
+                            onTapServicio: _abrirServicio,
+                          ),
                         ),
-                      ),
-                      KeyedSubtree(
-                        key: _keys['publicar'],
-                        child: TarjetaPublicar(
-                          onAbrir: () => _proximamente('Publicar servicio'),
+                        KeyedSubtree(
+                          key: _keys['publicar'],
+                          child: TarjetaPublicar(
+                            onAbrir: () => _proximamente('Publicar servicio'),
+                          ),
                         ),
-                      ),
-                      KeyedSubtree(
-                        key: _keys['soporte'],
-                        child: FooterHome(
-                          onAncla: _irA,
-                          onPerfil: _irAPerfil,
-                          onSolicitudes: () => _proximamente('Mis solicitudes'),
-                          onProximamente: () => _proximamente('Esta sección'),
+                        KeyedSubtree(
+                          key: _keys['soporte'],
+                          child: FooterHome(
+                            onAncla: _irA,
+                            onPerfil: _irAPerfil,
+                            onSolicitudes: () =>
+                                _proximamente('Mis solicitudes'),
+                            onProximamente: () => _proximamente('Esta sección'),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-
-          if (movil && _menuAbierto)
-            Positioned(
-              top: 62,
-              right: 16,
-              child: MenuMovilHome(
-                nombreUsuario: _nombreUsuario,
-                onAncla: _irA,
-                onSolicitudes: () => _proximamente('Mis solicitudes'),
-                onPerfil: _irAPerfil,
-                onCerrarSesion: _cerrarSesion,
-              ),
+              ],
             ),
 
-          BotonesFlotantes(onChat: () => _proximamente('Chat')),
-        ],
+            if (movil && _menuAbierto)
+              Positioned(
+                top: 62,
+                right: 16,
+                child: MenuMovilHome(
+                  nombreUsuario: _nombreUsuario,
+                  onAncla: _irA,
+                  onSolicitudes: () => _proximamente('Mis solicitudes'),
+                  onPerfil: _irAPerfil,
+                  onCerrarSesion: _cerrarSesion,
+                ),
+              ),
+
+            BotonesFlotantes(onChat: () => _proximamente('Chat')),
+          ],
+        ),
       ),
     );
   }

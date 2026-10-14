@@ -6,13 +6,18 @@ import '../../widgets/app_buttons.dart';
 import '../../widgets/floating_icons.dart';
 import '../../widgets/section_label.dart';
 import '../../widgets/tesseract_background.dart';
+import '../../widgets/animacion_ambiental.dart';
 
 /// `.hero` (Presentacion.jsx): fondo con tesseract 4D, iconos flotantes,
 /// título, descripción y dos botones.
 class HeroPresentacion extends StatelessWidget {
   final VoidCallback onExplorar;
   final VoidCallback onPublicar;
-  const HeroPresentacion({super.key, required this.onExplorar, required this.onPublicar});
+  const HeroPresentacion({
+    super.key,
+    required this.onExplorar,
+    required this.onPublicar,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -25,8 +30,12 @@ class HeroPresentacion extends StatelessWidget {
       child: Stack(
         children: [
           const Positioned.fill(child: ColoredBox(color: AppColors.bg)),
-          const Positioned.fill(child: TesseractBackground()),
-          const Positioned.fill(child: FloatingIcons()),
+          const Positioned.fill(
+            child: AnimacionAmbiental(child: TesseractBackground()),
+          ),
+          const Positioned.fill(
+            child: AnimacionAmbiental(child: FloatingIcons()),
+          ),
           // Gradiente oscuro encima para que resalten las letras
           Positioned.fill(
             child: IgnorePointer(
@@ -73,7 +82,12 @@ class HeroPresentacion extends StatelessWidget {
                           height: 1.15,
                           shadows: movil
                               ? null
-                              : [Shadow(color: AppColors.a(AppColors.teal, 0.08), blurRadius: 60)],
+                              : [
+                                  Shadow(
+                                    color: AppColors.a(AppColors.teal, 0.08),
+                                    blurRadius: 60,
+                                  ),
+                                ],
                         ),
                         children: [
                           const TextSpan(text: 'Intercambia '),
@@ -82,7 +96,9 @@ class HeroPresentacion extends StatelessWidget {
                             baseline: TextBaseline.alphabetic,
                             child: AcentoText('servicios', fontSize: h1),
                           ),
-                          const TextSpan(text: '\nentre estudiantes universitarios'),
+                          const TextSpan(
+                            text: '\nentre estudiantes universitarios',
+                          ),
                         ],
                       ),
                     ),
@@ -93,7 +109,11 @@ class HeroPresentacion extends StatelessWidget {
                         child: Text(
                           'Tutorías, ensayos, proyectos, diseño, programación y arriendo de '
                           'habitaciones — todo para la comunidad universitaria en Colombia.',
-                          style: AppText.poppins(16, color: AppColors.texto2, height: 1.7),
+                          style: AppText.poppins(
+                            16,
+                            color: AppColors.texto2,
+                            height: 1.7,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 36),
@@ -105,9 +125,15 @@ class HeroPresentacion extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            BtnVerde(label: 'Explorar servicios', onTap: onExplorar),
+                            BtnVerde(
+                              label: 'Explorar servicios',
+                              onTap: onExplorar,
+                            ),
                             const SizedBox(height: 12),
-                            BtnBorde(label: 'Publicar mi servicio', onTap: onPublicar),
+                            BtnBorde(
+                              label: 'Publicar mi servicio',
+                              onTap: onPublicar,
+                            ),
                           ],
                         ),
                       )
@@ -116,8 +142,14 @@ class HeroPresentacion extends StatelessWidget {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          BtnVerde(label: 'Explorar servicios', onTap: onExplorar),
-                          BtnBorde(label: 'Publicar mi servicio', onTap: onPublicar),
+                          BtnVerde(
+                            label: 'Explorar servicios',
+                            onTap: onExplorar,
+                          ),
+                          BtnBorde(
+                            label: 'Publicar mi servicio',
+                            onTap: onPublicar,
+                          ),
                         ],
                       ),
                   ],

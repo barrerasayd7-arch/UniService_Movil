@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../data/auth_repository.dart';
 import '../../core/app_text.dart';
-import '../../core/categorias.dart' show formatearFecha, iconosPorCategoria, iconoPorDefecto;
+import '../../core/categorias.dart'
+    show formatearFecha, iconosPorCategoria, iconoPorDefecto;
 import '../../data/detalle_mock.dart';
 import '../../models/servicio.dart';
 import '../../models/servicio_detalle.dart';
@@ -34,7 +36,7 @@ class _DetailScreenState extends State<DetailScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // para que se vea el esqueleto, igual que en la web.
     final s = widget.servicio;
     if (s != null) _detalle = detalleMock(s);
@@ -57,8 +59,9 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
-  void _cerrarSesion() {
-    
+  Future<void> _cerrarSesion() async {
+    await AuthRepository.instance.cerrarSesion();
+    if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil('/home-guest', (_) => false);
   }
 
@@ -78,8 +81,18 @@ class _DetailScreenState extends State<DetailScreen> {
     final d = _detalle;
     if (d == null) return;
     const meses = [
-      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
     ];
     final h = DateTime.now();
     setState(() {
@@ -102,36 +115,39 @@ class _DetailScreenState extends State<DetailScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              NavbarServicio(
-                movil: movilNav,
-                menuAbierto: _menuAbierto,
-                onToggleMenu: () => setState(() => _menuAbierto = !_menuAbierto),
-                onEnlace: _irA,
-                onCerrarSesion: _cerrarSesion,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      _cuerpo(ancho),
-                      _footer(),
-                    ],
+      // SafeArea: la barra superior no queda bajo la hora/batería del celular.
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                NavbarServicio(
+                  movil: movilNav,
+                  menuAbierto: _menuAbierto,
+                  onToggleMenu: () =>
+                      setState(() => _menuAbierto = !_menuAbierto),
+                  onEnlace: _irA,
+                  onCerrarSesion: _cerrarSesion,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(children: [_cuerpo(ancho), _footer()]),
                   ),
                 ),
-              ),
-            ],
-          ),
-          if (movilNav && _menuAbierto)
-            Positioned(
-              top: 62,
-              right: 16,
-              child: MenuMovilServicio(onEnlace: _irA, onCerrarSesion: _cerrarSesion),
+              ],
             ),
-        ],
+            if (movilNav && _menuAbierto)
+              Positioned(
+                top: 62,
+                right: 16,
+                child: MenuMovilServicio(
+                  onEnlace: _irA,
+                  onCerrarSesion: _cerrarSesion,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -221,12 +237,19 @@ class _DetailScreenState extends State<DetailScreen> {
                       const SizedBox(height: 4),
                       Text.rich(
                         TextSpan(
-                          style: AppText.poppins(14.4, color: AppColors.texto2, height: 1.6),
+                          style: AppText.poppins(
+                            14.4,
+                            color: AppColors.texto2,
+                            height: 1.6,
+                          ),
                           children: [
                             TextSpan(
                               text: d.promedio.toStringAsFixed(1),
-                              style: AppText.poppins(14.4,
-                                  weight: FontWeight.w700, height: 1.6),
+                              style: AppText.poppins(
+                                14.4,
+                                weight: FontWeight.w700,
+                                height: 1.6,
+                              ),
                             ),
                             const TextSpan(text: ' de 5.0'),
                           ],
@@ -237,7 +260,11 @@ class _DetailScreenState extends State<DetailScreen> {
                   const SizedBox(width: 20),
                   Text(
                     '${d.resenas.length} reseñas',
-                    style: AppText.poppins(14.4, color: AppColors.texto2, height: 1.6),
+                    style: AppText.poppins(
+                      14.4,
+                      color: AppColors.texto2,
+                      height: 1.6,
+                    ),
                   ),
                 ],
               ),
@@ -250,7 +277,9 @@ class _DetailScreenState extends State<DetailScreen> {
                   border: Border.all(color: AppColors.borde),
                 ),
                 child: Text(
-                  s.descripcion.isEmpty ? 'Sin descripción disponible.' : s.descripcion,
+                  s.descripcion.isEmpty
+                      ? 'Sin descripción disponible.'
+                      : s.descripcion,
                   style: AppText.poppins(15.2, height: 1.8),
                 ),
               ),
@@ -272,7 +301,9 @@ class _DetailScreenState extends State<DetailScreen> {
               InfoRow(
                 label: 'Publicado',
                 value: formatearFecha(s.fechaPublicacion),
-                ultima: !(d.contacto != null) && !(d.esArriendo && d.direccion != null),
+                ultima:
+                    !(d.contacto != null) &&
+                    !(d.esArriendo && d.direccion != null),
               ),
               if (d.contacto != null)
                 InfoRow(
@@ -309,7 +340,9 @@ class _DetailScreenState extends State<DetailScreen> {
                   children: [
                     for (var i = 0; i < d.resenas.length; i++)
                       Padding(
-                        padding: EdgeInsets.only(bottom: i < d.resenas.length - 1 ? 16 : 0),
+                        padding: EdgeInsets.only(
+                          bottom: i < d.resenas.length - 1 ? 16 : 0,
+                        ),
                         child: _ResenaCard(resena: d.resenas[i]),
                       ),
                   ],
@@ -327,7 +360,9 @@ class _DetailScreenState extends State<DetailScreen> {
       s.titulo.isEmpty ? 'Sin título' : s.titulo,
       style: AppText.serif(movil ? 24 : 30.4, height: 1.2),
     );
-    final reportar = _BtnReportar(onTap: () => _aviso('Reportar: próxima vista por implementar'));
+    final reportar = _BtnReportar(
+      onTap: () => _aviso('Reportar: próxima vista por implementar'),
+    );
 
     if (movil) {
       return Column(
@@ -380,10 +415,7 @@ class _DetailScreenState extends State<DetailScreen> {
             ],
           ),
         ),
-        FormSolicitud(
-          categoria: s.categoria,
-          proveedorNombre: s.proveedor,
-        ),
+        FormSolicitud(categoria: s.categoria, proveedorNombre: s.proveedor),
       ],
     );
   }
@@ -405,10 +437,7 @@ class _DetailScreenState extends State<DetailScreen> {
               style: AppText.poppins(14.4, color: AppColors.texto2),
             ),
             const SizedBox(height: 24),
-            BtnVerde(
-              label: '← Volver al inicio',
-              onTap: () => _irA('inicio'),
-            ),
+            BtnVerde(label: '← Volver al inicio', onTap: () => _irA('inicio')),
           ],
         ),
       ),
@@ -471,7 +500,11 @@ class _DetailScreenState extends State<DetailScreen> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.location_on, color: AppColors.teal, size: 20),
+                    const Icon(
+                      Icons.location_on,
+                      color: AppColors.teal,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -495,21 +528,33 @@ class _DetailScreenState extends State<DetailScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        Positioned.fill(child: CustomPaint(painter: _MapaPainter())),
+                        Positioned.fill(
+                          child: CustomPaint(painter: _MapaPainter()),
+                        ),
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.location_on, size: 48, color: Color(0xFFEA4335)),
+                            const Icon(
+                              Icons.location_on,
+                              size: 48,
+                              color: Color(0xFFEA4335),
+                            ),
                             const SizedBox(height: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.card,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 'Aquí iría el mapa (google_maps_flutter)',
-                                style: AppText.poppins(12, color: AppColors.texto2),
+                                style: AppText.poppins(
+                                  12,
+                                  color: AppColors.texto2,
+                                ),
                               ),
                             ),
                           ],
@@ -563,7 +608,11 @@ class _ResenaCard extends StatelessWidget {
                   ),
                   child: Text(
                     iniciales(resena.autor),
-                    style: AppText.poppins(13.6, weight: FontWeight.w700, color: AppColors.bg),
+                    style: AppText.poppins(
+                      13.6,
+                      weight: FontWeight.w700,
+                      color: AppColors.bg,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -593,7 +642,11 @@ class _ResenaCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 resena.comentario,
-                style: AppText.poppins(14.08, color: AppColors.texto2, height: 1.6),
+                style: AppText.poppins(
+                  14.08,
+                  color: AppColors.texto2,
+                  height: 1.6,
+                ),
               ),
             ],
           ],
@@ -655,10 +708,18 @@ class _MapaPainter extends CustomPainter {
       ..color = AppColors.a(AppColors.teal, 0.06)
       ..strokeWidth = 4;
     for (double x = 40; x < size.width; x += 90) {
-      canvas.drawLine(Offset(x, 0), Offset(x + 30, size.height), x % 180 < 90 ? calle : fina);
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x + 30, size.height),
+        x % 180 < 90 ? calle : fina,
+      );
     }
     for (double y = 30; y < size.height; y += 70) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y - 20), y % 140 < 70 ? calle : fina);
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y - 20),
+        y % 140 < 70 ? calle : fina,
+      );
     }
   }
 

@@ -62,8 +62,8 @@ class _AuthFieldState extends State<AuthField> {
     final borderColor = widget.verified
         ? AppColors.verificado
         : focused
-            ? AppColors.teal
-            : AppColors.borde;
+        ? AppColors.teal
+        : AppColors.borde;
 
     final input = AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -101,7 +101,10 @@ class _AuthFieldState extends State<AuthField> {
           disabledBorder: InputBorder.none,
           hintText: widget.hint,
           hintStyle: AppText.poppins(13.76, color: const Color(0xFF1E3D5C)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 11,
+          ),
         ),
       ),
     );
@@ -228,8 +231,9 @@ class AuthPrimaryButton extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: (h ? AppColors.teal2 : AppColors.teal)
-                  .withAlpha(deshabilitado ? 150 : 255),
+              color: (h ? AppColors.teal2 : AppColors.teal).withAlpha(
+                deshabilitado ? 150 : 255,
+              ),
               border: Border.all(color: AppColors.teal2),
               borderRadius: BorderRadius.circular(10),
               boxShadow: h
@@ -264,7 +268,11 @@ class AuthPrimaryButton extends StatelessWidget {
 class AuthSecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const AuthSecondaryButton({super.key, required this.label, required this.onTap});
+  const AuthSecondaryButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -358,15 +366,15 @@ class AuthSeparator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Widget linea() => Expanded(
-          child: Container(
-            height: 1,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.transparent, AppColors.borde, Colors.transparent],
-              ),
-            ),
+      child: Container(
+        height: 1,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.transparent, AppColors.borde, Colors.transparent],
           ),
-        );
+        ),
+      ),
+    );
 
     return Padding(
       padding: const EdgeInsets.only(top: 16, bottom: 14),
@@ -402,7 +410,12 @@ class AuthPie extends StatelessWidget {
   final String texto;
   final String link;
   final VoidCallback onTap;
-  const AuthPie({super.key, required this.texto, required this.link, required this.onTap});
+  const AuthPie({
+    super.key,
+    required this.texto,
+    required this.link,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -456,7 +469,9 @@ Future<void> mostrarNotificacion(
             borderRadius: BorderRadius.circular(12),
             border: Border(
               left: BorderSide(
-                color: exito ? const Color(0xFF00C851) : const Color(0xFFFF4D4F),
+                color: exito
+                    ? const Color(0xFF00C851)
+                    : const Color(0xFFFF4D4F),
                 width: 5,
               ),
               top: const BorderSide(color: AppColors.borde2),
@@ -476,7 +491,10 @@ Future<void> mostrarNotificacion(
               GestureDetector(
                 onTap: () => Navigator.of(ctx).pop(),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 15,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.teal,
                     borderRadius: BorderRadius.circular(6),
@@ -501,3 +519,10 @@ Future<void> mostrarNotificacion(
 
 /// Validaciones iguales a las de InicioSesion.jsx
 final RegExp regexCorreo = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+
+/// Misma regla que el backend (InstitutionalAccess.NormalizeEmail): sólo @unicesar.edu.co.
+final RegExp regexCorreoInstitucional = RegExp(
+  r'^[a-z0-9][a-z0-9._+-]*@unicesar\.edu\.co$',
+);
+
+String normalizarCorreo(String v) => v.trim().toLowerCase();

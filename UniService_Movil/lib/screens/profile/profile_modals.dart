@@ -9,6 +9,7 @@ import '../../models/usuario.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 import '../login/auth_widgets.dart' show mostrarNotificacion;
 import 'profile_widgets.dart';
+import '../../widgets/avatar_respaldo.dart';
 
 // ═════════════════════════════════════════════════════════════
 // Base: overlay oscuro con blur + caja .image-menu
@@ -28,11 +29,17 @@ Future<T?> mostrarImageMenu<T>(
     barrierColor: const Color(0xBF000000),
     transitionDuration: const Duration(milliseconds: 350),
     transitionBuilder: (ctx, anim, _, child) {
-      final c = CurvedAnimation(parent: anim, curve: const Cubic(0.16, 1, 0.3, 1));
+      final c = CurvedAnimation(
+        parent: anim,
+        curve: const Cubic(0.16, 1, 0.3, 1),
+      );
       return FadeTransition(
         opacity: anim,
         child: SlideTransition(
-          position: Tween(begin: const Offset(0, 0.06), end: Offset.zero).animate(c),
+          position: Tween(
+            begin: const Offset(0, 0.06),
+            end: Offset.zero,
+          ).animate(c),
           child: child,
         ),
       );
@@ -45,7 +52,10 @@ Future<T?> mostrarImageMenu<T>(
             color: Colors.transparent,
             child: Container(
               width: double.infinity,
-              constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: MediaQuery.of(ctx).size.height * 0.85),
+              constraints: BoxConstraints(
+                maxWidth: maxWidth,
+                maxHeight: MediaQuery.of(ctx).size.height * 0.85,
+              ),
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: AppColors.card,
@@ -81,7 +91,10 @@ Future<T?> mostrarImageMenu<T>(
                           child: Text(
                             titulo,
                             textAlign: TextAlign.center,
-                            style: AppText.poppins(20.8, weight: FontWeight.w700),
+                            style: AppText.poppins(
+                              20.8,
+                              weight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
@@ -138,11 +151,15 @@ class ImageOption extends StatelessWidget {
                 border: Border.all(
                   color: h
                       ? AppColors.teal
-                      : (peligro ? AppColors.a(const Color(0xFFEF4444), 0.3) : AppColors.borde),
+                      : (peligro
+                            ? AppColors.a(const Color(0xFFEF4444), 0.3)
+                            : AppColors.borde),
                 ),
               ),
               child: Row(
-                mainAxisAlignment: centrado ? MainAxisAlignment.center : MainAxisAlignment.start,
+                mainAxisAlignment: centrado
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
                 children: [
                   AnimatedScale(
                     duration: const Duration(milliseconds: 250),
@@ -154,7 +171,11 @@ class ImageOption extends StatelessWidget {
                         color: h ? AppColors.teal : AppColors.bg3,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Icon(icono, size: 30, color: h ? AppColors.bg : AppColors.texto),
+                      child: Icon(
+                        icono,
+                        size: 30,
+                        color: h ? AppColors.bg : AppColors.texto,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -164,7 +185,9 @@ class ImageOption extends StatelessWidget {
                       style: AppText.poppins(
                         15,
                         weight: FontWeight.w700,
-                        color: peligro ? const Color(0xFFF87171) : AppColors.texto,
+                        color: peligro
+                            ? const Color(0xFFF87171)
+                            : AppColors.texto,
                       ),
                     ),
                   ),
@@ -218,7 +241,10 @@ class _CampoModal extends StatelessWidget {
               hintStyle: AppText.poppins(14.4, color: AppColors.texto3),
               filled: true,
               fillColor: const Color(0x0DFFFFFF),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: const BorderSide(color: Color(0x26FFFFFF)),
@@ -289,7 +315,12 @@ Future<void> mostrarEditarPerfil(BuildContext context, Usuario u) {
     icono: Icons.edit_outlined,
     builder: (ctx) {
       Future<void> campo(String titulo, String etiqueta, String inicial) async {
-        final v = await _pedirValor(ctx, titulo: titulo, etiqueta: etiqueta, inicial: inicial);
+        final v = await _pedirValor(
+          ctx,
+          titulo: titulo,
+          etiqueta: etiqueta,
+          inicial: inicial,
+        );
         if (v != null && v.isNotEmpty && ctx.mounted) {
           //  PUT /api/users/{id} con el campo modificado
           mostrarNotificacion(ctx, 'Aquí se guardaría: $v', exito: true);
@@ -308,19 +339,31 @@ Future<void> mostrarEditarPerfil(BuildContext context, Usuario u) {
           ImageOption(
             icono: Icons.menu_book_outlined,
             texto: 'Cambiar Descripción',
-            onTap: () => campo('Cambiar Descripción', 'Nueva descripción', u.descripcion),
+            onTap: () => campo(
+              'Cambiar Descripción',
+              'Nueva descripción',
+              u.descripcion,
+            ),
           ),
           const SizedBox(height: 14),
           ImageOption(
             icono: Icons.apartment,
             texto: 'Cambiar Universidad',
-            onTap: () => campo('Cambiar Universidad', 'Nueva universidad', u.universidad),
+            onTap: () => campo(
+              'Cambiar Universidad',
+              'Nueva universidad',
+              u.universidad,
+            ),
           ),
           const SizedBox(height: 14),
           ImageOption(
             icono: Icons.phone_outlined,
             texto: 'Cambiar Teléfono',
-            onTap: () => campo('Cambiar Teléfono', 'Nuevo número de teléfono', u.telefono),
+            onTap: () => campo(
+              'Cambiar Teléfono',
+              'Nuevo número de teléfono',
+              u.telefono,
+            ),
           ),
         ],
       );
@@ -343,10 +386,18 @@ Future<void> mostrarCambiarAvatar(BuildContext context) {
           icono: Icons.public,
           texto: 'Usar URL',
           onTap: () async {
-            final v = await _pedirValor(ctx, titulo: 'URL de la imagen', etiqueta: 'URL de la imagen');
+            final v = await _pedirValor(
+              ctx,
+              titulo: 'URL de la imagen',
+              etiqueta: 'URL de la imagen',
+            );
             if (v != null && v.isNotEmpty && ctx.mounted) {
               //  PUT /api/users/{id} { avatar: url }
-              mostrarNotificacion(ctx, 'Aquí se guardaría la URL del avatar.', exito: true);
+              mostrarNotificacion(
+                ctx,
+                'Aquí se guardaría la URL del avatar.',
+                exito: true,
+              );
             }
           },
         ),
@@ -356,7 +407,10 @@ Future<void> mostrarCambiarAvatar(BuildContext context) {
           texto: 'Subir Imagen',
           onTap: () {
             //  abrir la galería con el paquete image_picker
-            mostrarNotificacion(ctx, 'Aquí se abriría la galería (image_picker).');
+            mostrarNotificacion(
+              ctx,
+              'Aquí se abriría la galería (image_picker).',
+            );
           },
         ),
       ],
@@ -400,15 +454,24 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
   }
 
   void _guardarPassword() {
-    if (_actual.text.isEmpty || _nueva.text.isEmpty || _confirmar.text.isEmpty) {
+    if (_actual.text.isEmpty ||
+        _nueva.text.isEmpty ||
+        _confirmar.text.isEmpty) {
       mostrarNotificacion(context, 'Completa todos los campos');
     } else if (_nueva.text.length < 8) {
-      mostrarNotificacion(context, 'La nueva contraseña debe tener mínimo 8 caracteres');
+      mostrarNotificacion(
+        context,
+        'La nueva contraseña debe tener mínimo 8 caracteres',
+      );
     } else if (_nueva.text != _confirmar.text) {
       mostrarNotificacion(context, 'Las contraseñas no coinciden');
     } else {
       //  PUT /api/users/{id}/password
-      mostrarNotificacion(context, 'Aquí se cambiaría la contraseña.', exito: true);
+      mostrarNotificacion(
+        context,
+        'Aquí se cambiaría la contraseña.',
+        exito: true,
+      );
     }
   }
 
@@ -454,8 +517,18 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _CampoModal(label: 'Contraseña actual', hint: '••••••••', controller: _actual, obscure: true),
-          _CampoModal(label: 'Nueva contraseña', hint: 'Mínimo 8 caracteres', controller: _nueva, obscure: true),
+          _CampoModal(
+            label: 'Contraseña actual',
+            hint: '••••••••',
+            controller: _actual,
+            obscure: true,
+          ),
+          _CampoModal(
+            label: 'Nueva contraseña',
+            hint: 'Mínimo 8 caracteres',
+            controller: _nueva,
+            obscure: true,
+          ),
           _CampoModal(
             label: 'Confirmar nueva contraseña',
             hint: 'Repite la nueva contraseña',
@@ -513,7 +586,10 @@ final RegExp regexCorreo = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 // ═════════════════════════════════════════════════════════════
 // Mis servicios (lista con acciones) + editar / eliminar / imágenes
 // ═════════════════════════════════════════════════════════════
-Future<void> mostrarMisServicios(BuildContext context, List<Servicio> servicios) {
+Future<void> mostrarMisServicios(
+  BuildContext context,
+  List<Servicio> servicios,
+) {
   return mostrarImageMenu<void>(
     context,
     titulo: 'Mis servicios (${servicios.length})',
@@ -542,12 +618,23 @@ Future<void> mostrarMisServicios(BuildContext context, List<Servicio> servicios)
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _BtnCuadrado(Icons.image_outlined, 'Gestionar imágenes',
-                        () => mostrarImagenesServicio(ctx, s)),
+                    _BtnCuadrado(
+                      Icons.image_outlined,
+                      'Gestionar imágenes',
+                      () => mostrarImagenesServicio(ctx, s),
+                    ),
                     const SizedBox(width: 8),
-                    _BtnCuadrado(Icons.edit_outlined, 'Editar', () => mostrarEditarServicio(ctx, s)),
+                    _BtnCuadrado(
+                      Icons.edit_outlined,
+                      'Editar',
+                      () => mostrarEditarServicio(ctx, s),
+                    ),
                     const SizedBox(width: 8),
-                    _BtnCuadrado(Icons.delete_outline, 'Eliminar', () => mostrarConfirmarEliminar(ctx)),
+                    _BtnCuadrado(
+                      Icons.delete_outline,
+                      'Eliminar',
+                      () => mostrarConfirmarEliminar(ctx),
+                    ),
                   ],
                 ),
               ),
@@ -602,7 +689,11 @@ Future<void> mostrarEditarServicio(BuildContext context, Servicio s) {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _CampoModal(label: 'Título', controller: titulo),
-        _CampoModal(label: 'Precio/hora', controller: precio, tipo: TextInputType.number),
+        _CampoModal(
+          label: 'Precio/hora',
+          controller: precio,
+          tipo: TextInputType.number,
+        ),
         _CampoModal(label: 'Contacto', controller: contacto),
         _CampoModal(label: 'Descripción', controller: descripcion, lineas: 4),
         Row(
@@ -624,7 +715,11 @@ Future<void> mostrarEditarServicio(BuildContext context, Servicio s) {
                 onTap: () {
                   //  PUT /api/services/{id}
                   Navigator.of(ctx).pop();
-                  mostrarNotificacion(context, 'Aquí se guardarían los cambios.', exito: true);
+                  mostrarNotificacion(
+                    context,
+                    'Aquí se guardarían los cambios.',
+                    exito: true,
+                  );
                 },
               ),
             ),
@@ -648,7 +743,11 @@ Future<void> mostrarConfirmarEliminar(BuildContext context) {
           padding: const EdgeInsets.only(bottom: 20),
           child: Text(
             '¿Estás seguro? Esto eliminará también todas las solicitudes asociadas y no se puede deshacer.',
-            style: AppText.poppins(14, color: AppColors.texto.withAlpha(179), height: 1.5),
+            style: AppText.poppins(
+              14,
+              color: AppColors.texto.withAlpha(179),
+              height: 1.5,
+            ),
           ),
         ),
         ImageOption(
@@ -729,10 +828,14 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: i == 0 ? const Color(0x1434D399) : const Color(0x08FFFFFF),
+                color: i == 0
+                    ? const Color(0x1434D399)
+                    : const Color(0x08FFFFFF),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: i == 0 ? const Color(0x4D34D399) : const Color(0x14FFFFFF),
+                  color: i == 0
+                      ? const Color(0x4D34D399)
+                      : const Color(0x14FFFFFF),
                 ),
               ),
               child: Row(
@@ -743,7 +846,9 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: i == 0 ? const Color(0xFF34D399) : const Color(0x1AFFFFFF),
+                      color: i == 0
+                          ? const Color(0xFF34D399)
+                          : const Color(0x1AFFFFFF),
                     ),
                     child: Text(
                       '${i + 1}',
@@ -762,7 +867,10 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
                       color: AppColors.bg3,
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: const Icon(Icons.image_outlined, color: AppColors.texto3),
+                    child: const Icon(
+                      Icons.image_outlined,
+                      color: AppColors.texto3,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -770,11 +878,19 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (i == 0)
-                          Text('⭐ Portada', style: AppText.poppins(12.8, weight: FontWeight.w700)),
+                          Text(
+                            '⭐ Portada',
+                            style: AppText.poppins(
+                              12.8,
+                              weight: FontWeight.w700,
+                            ),
+                          ),
                         Text(
                           'Click para ver imagen',
-                          style: AppText.poppins(11.2, color: AppColors.texto.withAlpha(128))
-                              .copyWith(decoration: TextDecoration.underline),
+                          style: AppText.poppins(
+                            11.2,
+                            color: AppColors.texto.withAlpha(128),
+                          ).copyWith(decoration: TextDecoration.underline),
                         ),
                       ],
                     ),
@@ -784,7 +900,10 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
                     children: [
                       _FlechaOrden('↑', i == 0 ? null : () => _mover(i, -1)),
                       const SizedBox(height: 2),
-                      _FlechaOrden('↓', i == _imgs.length - 1 ? null : () => _mover(i, 1)),
+                      _FlechaOrden(
+                        '↓',
+                        i == _imgs.length - 1 ? null : () => _mover(i, 1),
+                      ),
                     ],
                   ),
                   const SizedBox(width: 10),
@@ -798,7 +917,11 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: const Color(0x4DEF4444)),
                       ),
-                      child: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFF87171)),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        size: 16,
+                        color: Color(0xFFF87171),
+                      ),
                     ),
                   ),
                 ],
@@ -808,14 +931,20 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
           Padding(
             padding: const EdgeInsets.only(bottom: 16, top: 4),
             child: GestureDetector(
-              onTap: () => mostrarNotificacion(context, 'Aquí se abriría la galería (image_picker).'),
+              onTap: () => mostrarNotificacion(
+                context,
+                'Aquí se abriría la galería (image_picker).',
+              ),
               child: Opacity(
                 opacity: 0.6,
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x26FFFFFF), width: 2),
+                    border: Border.all(
+                      color: const Color(0x26FFFFFF),
+                      width: 2,
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -848,7 +977,7 @@ class _ImagenesContenidoState extends State<_ImagenesContenido> {
                 onTap: _imgs.isEmpty
                     ? null
                     : () {
-                        //PUT orden de imágenes 
+                        //PUT orden de imágenes
                         Navigator.of(context).pop();
                       },
               ),
@@ -928,6 +1057,7 @@ Future<void> mostrarListaPersonas(
                 leading: ClipOval(
                   child: Image.asset(
                     'assets/img/default-avatar.png',
+                    errorBuilder: avatarRespaldo,
                     width: 44,
                     height: 44,
                     fit: BoxFit.cover,

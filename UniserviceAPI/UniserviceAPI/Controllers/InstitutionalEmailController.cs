@@ -138,11 +138,19 @@ public sealed class InstitutionalEmailController(IConfiguration config, IHttpCli
         {
             consume.Parameters.AddWithValue("email", email); await consume.ExecuteNonQueryAsync(ct);
         }
-        var cuentaExistente = false;
-        await using (var exists = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM usuarios WHERE lower(trim(correo)) = @email)", conn, tx))
+        // Si la cuenta ya existe, el código confirma de nuevo el buzón: renueva su verificación.
+        bool cuentaExistente;
+        await using (var renew = new NpgsqlCommand("""
+            INSERT INTO verificaciones_correo_institucional(id_usuario, correo, verificado_hasta)
+            SELECT id_usuario, @email, clock_timestamp() + @validez FROM usuarios WHERE lower(trim(correo)) = @email
+            ON CONFLICT(id_usuario) DO UPDATE SET correo = EXCLUDED.correo,
+              verificado_en = clock_timestamp(), verificado_hasta = EXCLUDED.verificado_hasta
+            RETURNING id_usuario
+            """, conn, tx))
         {
-            exists.Parameters.AddWithValue("email", email);
-            cuentaExistente = (await exists.ExecuteScalarAsync(ct)) is true;
+            renew.Parameters.AddWithValue("email", email);
+            renew.Parameters.AddWithValue("validez", InstitutionalAccess.VerificationValidity);
+            cuentaExistente = await renew.ExecuteScalarAsync(ct) != null;
         }
         await tx.CommitAsync(ct);
 

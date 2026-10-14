@@ -14,7 +14,8 @@ class NavbarPerfil extends StatelessWidget {
   final bool menuAbierto;
   final String nombreUsuario;
   final VoidCallback onToggleMenu;
-  final ValueChanged<String> onEnlace; // inicio | publicar | mis-servicios | solicitudes | soporte
+  final ValueChanged<String>
+  onEnlace; // inicio | publicar | mis-servicios | solicitudes | soporte
   final VoidCallback onPerfil;
   final VoidCallback onCerrarSesion;
 
@@ -42,6 +43,9 @@ class NavbarPerfil extends StatelessWidget {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        // El fondo es 95% opaco: el desenfoque casi no se ve y en móvil cuesta un pase
+        // de GPU por cuadro al hacer scroll.
+        enabled: false,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -66,17 +70,21 @@ class NavbarPerfil extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: 'Uni',
-                                style: AppText.poppins(24,
-                                    weight: FontWeight.w700,
-                                    color: AppColors.teal,
-                                    spacing: 0.5),
+                                style: AppText.poppins(
+                                  24,
+                                  weight: FontWeight.w700,
+                                  color: AppColors.teal,
+                                  spacing: 0.5,
+                                ),
                               ),
                               TextSpan(
                                 text: 'Service',
-                                style: AppText.poppins(24,
-                                    weight: FontWeight.w700,
-                                    color: AppColors.amarillo,
-                                    spacing: 0.5),
+                                style: AppText.poppins(
+                                  24,
+                                  weight: FontWeight.w700,
+                                  color: AppColors.amarillo,
+                                  spacing: 0.5,
+                                ),
                               ),
                             ],
                           ),
@@ -103,7 +111,10 @@ class NavbarPerfil extends StatelessWidget {
                             for (final e in enlaces)
                               Padding(
                                 padding: const EdgeInsets.only(left: 2),
-                                child: NavBoton(label: e.$1, onTap: () => onEnlace(e.$2)),
+                                child: NavBoton(
+                                  label: e.$1,
+                                  onTap: () => onEnlace(e.$2),
+                                ),
                               ),
                             Padding(
                               padding: const EdgeInsets.only(left: 2),
@@ -176,20 +187,30 @@ class MenuMovilPerfil extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (final e in NavbarPerfil.enlaces)
-              fila(NavBoton(label: e.$1, bloque: true, onTap: () => onEnlace(e.$2))),
-            fila(NavBoton(
-              label: nombreUsuario,
-              bloque: true,
-              icono: Icons.person_outline,
-              estilo: EstiloNav.perfil,
-              onTap: onPerfil,
-            )),
-            fila(NavBoton(
-              label: 'Cerrar Sesión',
-              bloque: true,
-              estilo: EstiloNav.cerrar,
-              onTap: onCerrarSesion,
-            )),
+              fila(
+                NavBoton(
+                  label: e.$1,
+                  bloque: true,
+                  onTap: () => onEnlace(e.$2),
+                ),
+              ),
+            fila(
+              NavBoton(
+                label: nombreUsuario,
+                bloque: true,
+                icono: Icons.person_outline,
+                estilo: EstiloNav.perfil,
+                onTap: onPerfil,
+              ),
+            ),
+            fila(
+              NavBoton(
+                label: 'Cerrar Sesión',
+                bloque: true,
+                estilo: EstiloNav.cerrar,
+                onTap: onCerrarSesion,
+              ),
+            ),
           ],
         ),
       ),

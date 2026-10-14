@@ -6,6 +6,7 @@ import '../../widgets/cosmos_background.dart';
 import 'auth_lateral.dart';
 import 'auth_widgets.dart';
 import 'login_form.dart';
+import '../../widgets/animacion_ambiental.dart';
 import 'register_form.dart';
 
 /// Vista de Login + Registro (InicioSesion.jsx).
@@ -30,11 +31,17 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         children: [
           // La escena cósmica solo se muestra en pantallas anchas (igual que la web)
-          if (!apilado) const Positioned.fill(child: CosmosBackground()),
+          if (!apilado)
+            const Positioned.fill(
+              child: AnimacionAmbiental(child: CosmosBackground()),
+            ),
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 24,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: apilado ? 420 : 820),
                   child: TweenAnimationBuilder<double>(
@@ -69,7 +76,11 @@ class _AuthBox extends StatelessWidget {
   final bool apilado;
   final int tab;
   final ValueChanged<int> onTab;
-  const _AuthBox({required this.apilado, required this.tab, required this.onTab});
+  const _AuthBox({
+    required this.apilado,
+    required this.tab,
+    required this.onTab,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -87,10 +98,7 @@ class _AuthBox extends StatelessWidget {
             blurRadius: 60,
             offset: const Offset(0, 20),
           ),
-          BoxShadow(
-            color: AppColors.a(AppColors.teal, 0.05),
-            spreadRadius: 1,
-          ),
+          BoxShadow(color: AppColors.a(AppColors.teal, 0.05), spreadRadius: 1),
         ],
       ),
       child: apilado
@@ -98,11 +106,11 @@ class _AuthBox extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const AuthLateral(compacto: true),
+                const AnimacionAmbiental(child: AuthLateral(compacto: true)),
                 formulario,
               ],
             )
-                    : ConstrainedBox(
+          : ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 460),
               child: LayoutBuilder(
                 builder: (context, box) => Stack(
@@ -119,7 +127,9 @@ class _AuthBox extends StatelessWidget {
                       top: 0,
                       bottom: 0,
                       width: box.maxWidth / 2,
-                      child: const AuthLateral(compacto: false),
+                      child: const AnimacionAmbiental(
+                        child: AuthLateral(compacto: false),
+                      ),
                     ),
                   ],
                 ),
@@ -134,12 +144,19 @@ class _Formulario extends StatelessWidget {
   final bool apilado;
   final int tab;
   final ValueChanged<int> onTab;
-  const _Formulario({required this.apilado, required this.tab, required this.onTab});
+  const _Formulario({
+    required this.apilado,
+    required this.tab,
+    required this.onTab,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: apilado ? 24 : 32, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: apilado ? 24 : 32,
+        vertical: 32,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -167,7 +184,11 @@ class _Formulario extends StatelessWidget {
                       const TextSpan(text: 'Accede a la '),
                       TextSpan(
                         text: 'plataforma',
-                        style: AppText.serif(22.4, color: AppColors.teal, height: 1.3),
+                        style: AppText.serif(
+                          22.4,
+                          color: AppColors.teal,
+                          height: 1.3,
+                        ),
                       ),
                     ],
                   ),

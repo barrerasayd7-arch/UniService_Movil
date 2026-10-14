@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
+import '../../data/api_client.dart';
+import '../../data/auth_repository.dart';
 import 'auth_widgets.dart';
 
-/// Panel "Iniciar sesión" (#panel-login de InicioSesion.jsx).
-/// Solo UI + validaciones visuales. La llamada a la API va en [_entrar].
+/// Panel "Iniciar sesión" (#panel-login de InicioSesion.jsx): POST /api/auth/login.
 class LoginForm extends StatefulWidget {
   final VoidCallback onIrARegistro;
   const LoginForm({super.key, required this.onIrARegistro});
@@ -29,36 +30,39 @@ class _LoginFormState extends State<LoginForm> {
 
   void _validarCorreo(String v) {
     setState(() {
-      _errores['correo'] = regexCorreo.hasMatch(v) ? '' : 'Correo inválido';
+      _errores['correo'] = regexCorreo.hasMatch(normalizarCorreo(v))
+          ? ''
+          : 'Correo inválido';
     });
   }
 
   void _validarPass(String v) {
     setState(() {
-      _errores['pass'] = v.length < 8 ? 'Mínimo 8 caracteres' : '';
+      _errores['pass'] = v.isEmpty ? 'Ingresa tu contraseña' : '';
     });
   }
 
   Future<void> _entrar() async {
     if (_cargando) return;
-    if (_correo.text.isEmpty || !regexCorreo.hasMatch(_correo.text)) {
+    final correo = normalizarCorreo(_correo.text);
+    if (!regexCorreo.hasMatch(correo)) {
       mostrarNotificacion(context, 'Ingresa un correo válido');
       return;
     }
-    if (_pass.text.length < 8) {
-      mostrarNotificacion(context, 'Mínimo 8 caracteres');
+    if (_pass.text.isEmpty) {
+      mostrarNotificacion(context, 'Ingresa tu contraseña');
       return;
     }
     setState(() => _cargando = true);
-    // (backend): POST /api/auth/login { correo, password }
-    await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (!mounted) return;
-    setState(() => _cargando = false);
-    mostrarNotificacion(
-      context,
-      'Aquí iría el login real (solo se implementó la vista).',
-      exito: true,
-    );
+    try {
+      await AuthRepository.instance.iniciarSesion(correo, _pass.text);
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() => _cargando = false);
+      mostrarNotificacion(context, e.mensaje);
+    }
   }
 
   @override
@@ -116,16 +120,8 @@ class _LoginFormState extends State<LoginForm> {
         const SizedBox(height: 8),
         AuthSecondaryButton(
           label: 'Entrar como invitado',
-          onTap: () => Navigator.of(context).pushReplacementNamed('/home-guest'),
-        ),
-        const SizedBox(height: 12),
-
-        const AuthSeparator(text: 'o continúa con'),
-
-        GoogleButton(
-          onTap: () {
-            // (backend): flujo de Google Sign-In
-          },
+          onTap: () =>
+              Navigator.of(context).pushReplacementNamed('/home-guest'),
         ),
         const SizedBox(height: 14),
 

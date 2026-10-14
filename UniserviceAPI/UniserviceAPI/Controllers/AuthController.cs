@@ -118,7 +118,7 @@ public class AuthController : ControllerBase
             id = Convert.ToInt32(await insert.ExecuteScalarAsync());
         }
 
-        var verifExpires = DateTime.UtcNow.AddHours(1);
+        var verifExpires = DateTime.UtcNow.Add(InstitutionalAccess.VerificationValidity);
         await using (var verif = new NpgsqlCommand("""
             INSERT INTO verificaciones_correo_institucional(id_usuario, correo, verificado_hasta)
             VALUES (@id, @correo, @expires)

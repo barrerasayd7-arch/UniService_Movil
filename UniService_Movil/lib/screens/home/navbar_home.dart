@@ -54,8 +54,12 @@ class NavBoton extends StatelessWidget {
       case EstiloNav.solicitudes:
         return (
           fg: hover ? AppColors.bg : AppColors.amarillo,
-          bg: hover ? AppColors.amarillo : AppColors.a(AppColors.amarillo, 0.10),
-          borde: hover ? AppColors.amarillo : AppColors.a(AppColors.amarillo, 0.25),
+          bg: hover
+              ? AppColors.amarillo
+              : AppColors.a(AppColors.amarillo, 0.10),
+          borde: hover
+              ? AppColors.amarillo
+              : AppColors.a(AppColors.amarillo, 0.25),
         );
       case EstiloNav.perfil:
         return (
@@ -76,14 +80,14 @@ class NavBoton extends StatelessWidget {
   Widget build(BuildContext context) {
     final destacado = estilo != EstiloNav.normal;
     Widget texto(Color fg) => Text(
-          label,
-          overflow: TextOverflow.ellipsis,
-          style: AppText.poppins(
-            13.12,
-            weight: destacado ? FontWeight.w600 : FontWeight.w500,
-            color: fg,
-          ),
-        );
+      label,
+      overflow: TextOverflow.ellipsis,
+      style: AppText.poppins(
+        13.12,
+        weight: destacado ? FontWeight.w600 : FontWeight.w500,
+        color: fg,
+      ),
+    );
     return HoverBuilder(
       builder: (context, hover) {
         final c = _colores(hover);
@@ -107,10 +111,7 @@ class NavBoton extends StatelessWidget {
                 ],
                 // Flexible solo cuando hay ancho acotado (menú móvil); en la
                 // barra de escritorio el ancho es ilimitado y fallaría.
-                if (bloque)
-                  Flexible(child: texto(c.fg))
-                else
-                  texto(c.fg),
+                if (bloque) Flexible(child: texto(c.fg)) else texto(c.fg),
               ],
             ),
           ),
@@ -150,6 +151,9 @@ class NavbarHome extends StatelessWidget {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        // El fondo es 95% opaco: el desenfoque casi no se ve y en móvil cuesta un pase
+        // de GPU por cuadro al hacer scroll.
+        enabled: false,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           width: double.infinity,
@@ -339,26 +343,38 @@ class MenuMovilHome extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             for (final e in enlacesNavHome)
-              fila(NavBoton(label: e.label, bloque: true, onTap: () => onAncla(e.ancla))),
-            fila(NavBoton(
-              label: 'Mis solicitudes',
-              bloque: true,
-              estilo: EstiloNav.solicitudes,
-              onTap: onSolicitudes,
-            )),
-            fila(NavBoton(
-              label: nombreUsuario,
-              bloque: true,
-              icono: Icons.person_outline,
-              estilo: EstiloNav.perfil,
-              onTap: onPerfil,
-            )),
-            fila(NavBoton(
-              label: 'Cerrar Sesión',
-              bloque: true,
-              estilo: EstiloNav.cerrar,
-              onTap: onCerrarSesion,
-            )),
+              fila(
+                NavBoton(
+                  label: e.label,
+                  bloque: true,
+                  onTap: () => onAncla(e.ancla),
+                ),
+              ),
+            fila(
+              NavBoton(
+                label: 'Mis solicitudes',
+                bloque: true,
+                estilo: EstiloNav.solicitudes,
+                onTap: onSolicitudes,
+              ),
+            ),
+            fila(
+              NavBoton(
+                label: nombreUsuario,
+                bloque: true,
+                icono: Icons.person_outline,
+                estilo: EstiloNav.perfil,
+                onTap: onPerfil,
+              ),
+            ),
+            fila(
+              NavBoton(
+                label: 'Cerrar Sesión',
+                bloque: true,
+                estilo: EstiloNav.cerrar,
+                onTap: onCerrarSesion,
+              ),
+            ),
           ],
         ),
       ),

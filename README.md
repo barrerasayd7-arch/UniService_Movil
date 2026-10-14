@@ -70,6 +70,23 @@ URL del backend en desarrollo según dónde corre la app:
 | Windows / web / simulador iOS | `http://localhost:5165` |
 | Celular físico | `http://IP_DE_TU_PC:5165` (misma red Wi-Fi) |
 
+La URL se elige al compilar, sin tocar código: `flutter run --dart-define=API_URL=http://IP_DE_TU_PC:5165`.
+
+### Probar en un celular Android físico
+
+1. **Una sola vez en el PC:**
+   - Activa el *Modo de desarrollador* de Windows (`start ms-settings:developers`); Flutter lo necesita para compilar plugins.
+   - Acepta las licencias de Android: `flutter doctor --android-licenses`.
+   - Abre el puerto de la API en el firewall (PowerShell **como administrador**; la red Wi-Fi debe estar como *Privada*):
+     `New-NetFirewallRule -DisplayName "UniService API 5165" -Direction Inbound -Protocol TCP -LocalPort 5165 -Action Allow -Profile Private`
+2. **En el celular:** activa *Opciones de desarrollador* → *Depuración USB*, conéctalo por cable y acepta el aviso.
+3. **API escuchando en la red:** `cd UniserviceAPI/UniserviceAPI` → `dotnet run --launch-profile celular`.
+4. Comprueba desde el navegador del celular que abre `http://IP_DE_TU_PC:5165/swagger`.
+5. **App:** `cd UniService_Movil` → `flutter run --dart-define=API_URL=http://IP_DE_TU_PC:5165`.
+
+Sin cable: `flutter build apk --debug --dart-define=API_URL=http://IP_DE_TU_PC:5165` y pasa al celular `build/app/outputs/flutter-apk/app-debug.apk`.
+Las versiones debug permiten HTTP; la release exige HTTPS (la API en la nube).
+
 ## 4. Panel de administración
 
 Endpoints bajo `/api/admin` (usuarios, suspensiones, servicios, reportes, solicitudes y bitácora).

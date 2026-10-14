@@ -4,7 +4,7 @@ import 'package:app_uniservice/main.dart';
 
 void main() {
   testWidgets('La app arranca en el login', (WidgetTester tester) async {
-    await tester.pumpWidget(const UniServiceApp());
+    await tester.pumpWidget(const UniServiceApp(rutaInicial: '/login'));
     await tester.pump();
 
     // El login muestra el título del formulario

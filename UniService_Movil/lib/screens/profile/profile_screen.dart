@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/app_colors.dart';
+import '../../data/auth_repository.dart';
 import '../../core/app_text.dart';
 import '../../core/categorias.dart' show formatearFecha;
 import '../../data/servicios_mock.dart';
@@ -14,7 +15,9 @@ import '../login/auth_widgets.dart' show mostrarNotificacion;
 import 'navbar_perfil.dart';
 import 'profile_background.dart';
 import 'profile_modals.dart';
+import '../../widgets/animacion_ambiental.dart';
 import 'profile_widgets.dart';
+import '../../widgets/avatar_respaldo.dart';
 
 /// Vista de Perfil (Perfil.jsx).
 /// [externo] = true muestra el perfil de OTRA persona (Seguir / Chatear /
@@ -32,9 +35,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _siguiendo = false;
 
   //  GET /api/users/{id}
-  late final Usuario _usuario = widget.externo ? perfilExternoMock : miPerfilMock;
+  late final Usuario _usuario = widget.externo
+      ? perfilExternoMock
+      : miPerfilMock;
 
- 
   final _misServicios = serviciosMock.take(4).toList();
 
   bool get _externo => widget.externo;
@@ -45,19 +49,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (enlace == 'inicio') {
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
     } else {
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false, arguments: enlace);
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/home', (_) => false, arguments: enlace);
     }
   }
 
   void _irAMiPerfil() {
     setState(() => _menuAbierto = false);
     if (_externo) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/perfil', ModalRoute.withName('/home'));
+      Navigator.of(
+        context,
+      ).pushNamedAndRemoveUntil('/perfil', ModalRoute.withName('/home'));
     }
   }
 
-  void _cerrarSesion() {
-    //  /api/auth/logout y limpiar el token
+  Future<void> _cerrarSesion() async {
+    await AuthRepository.instance.cerrarSesion();
+    if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil('/home-guest', (_) => false);
   }
 
@@ -74,31 +83,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _compartir() async {
-    await Clipboard.setData(ClipboardData(text: 'https://uniservice.app/perfil/${_usuario.id}'));
+    await Clipboard.setData(
+      ClipboardData(text: 'https://uniservice.app/perfil/${_usuario.id}'),
+    );
     if (!mounted) return;
     mostrarNotificacion(context, 'Enlace del perfil copiado', exito: true);
   }
 
   void _abrirSeguidores() => mostrarListaPersonas(
-        context,
-        titulo: 'Seguidores',
-        icono: Icons.people,
-        personas: personasMock,
-        vacio: 'Aún no tienes seguidores.',
-        onTapPersona: (_) => Navigator.of(context).pushNamed('/perfil-externo'),
-      );
+    context,
+    titulo: 'Seguidores',
+    icono: Icons.people,
+    personas: personasMock,
+    vacio: 'Aún no tienes seguidores.',
+    onTapPersona: (_) => Navigator.of(context).pushNamed('/perfil-externo'),
+  );
 
   void _abrirSiguiendo() => mostrarListaPersonas(
-        context,
-        titulo: 'Siguiendo',
-        icono: Icons.how_to_reg,
-        personas: personasMock.take(3).toList(),
-        vacio: 'Aún no sigues a nadie.',
-        onTapPersona: (_) => Navigator.of(context).pushNamed('/perfil-externo'),
-      );
+    context,
+    titulo: 'Siguiendo',
+    icono: Icons.how_to_reg,
+    personas: personasMock.take(3).toList(),
+    vacio: 'Aún no sigues a nadie.',
+    onTapPersona: (_) => Navigator.of(context).pushNamed('/perfil-externo'),
+  );
 
   void _reportar() {
-    
     _proximamente('Reportar');
   }
 
@@ -109,40 +119,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
-          const Positioned.fill(child: ProfileBackground()),
-          Column(
-            children: [
-              NavbarPerfil(
-                movil: movil,
-                menuAbierto: _menuAbierto,
-                nombreUsuario: miPerfilMock.nombre.split(' ').first,
-                onToggleMenu: () => setState(() => _menuAbierto = !_menuAbierto),
-                onEnlace: _irA,
-                onPerfil: _irAMiPerfil,
-                onCerrarSesion: _cerrarSesion,
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: _contenido(ancho),
+      // SafeArea: la barra superior no queda bajo la hora/batería del celular.
+      body: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            const Positioned.fill(
+              child: AnimacionAmbiental(child: ProfileBackground()),
+            ),
+            Column(
+              children: [
+                NavbarPerfil(
+                  movil: movil,
+                  menuAbierto: _menuAbierto,
+                  nombreUsuario: miPerfilMock.nombre.split(' ').first,
+                  onToggleMenu: () =>
+                      setState(() => _menuAbierto = !_menuAbierto),
+                  onEnlace: _irA,
+                  onPerfil: _irAMiPerfil,
+                  onCerrarSesion: _cerrarSesion,
+                ),
+                Expanded(
+                  child: SingleChildScrollView(child: _contenido(ancho)),
+                ),
+              ],
+            ),
+            if (movil && _menuAbierto)
+              Positioned(
+                top: 62,
+                right: 16,
+                child: MenuMovilPerfil(
+                  nombreUsuario: miPerfilMock.nombre.split(' ').first,
+                  onEnlace: _irA,
+                  onPerfil: _irAMiPerfil,
+                  onCerrarSesion: _cerrarSesion,
                 ),
               ),
-            ],
-          ),
-          if (movil && _menuAbierto)
-            Positioned(
-              top: 62,
-              right: 16,
-              child: MenuMovilPerfil(
-                nombreUsuario: miPerfilMock.nombre.split(' ').first,
-                onEnlace: _irA,
-                onPerfil: _irAMiPerfil,
-                onCerrarSesion: _cerrarSesion,
-              ),
-            ),
-          _BotonReportar(onTap: _reportar),
-        ],
+            _BotonReportar(onTap: _reportar),
+          ],
+        ),
       ),
     );
   }
@@ -151,23 +166,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final pad = ancho <= 480
         ? const EdgeInsets.fromLTRB(8, 10, 8, 0)
         : ancho <= 640
-            ? const EdgeInsets.fromLTRB(12, 12, 12, 0)
-            : ancho <= 768
-                ? const EdgeInsets.fromLTRB(16, 15, 16, 0)
-                : const EdgeInsets.fromLTRB(20, 19, 20, 0);
+        ? const EdgeInsets.fromLTRB(12, 12, 12, 0)
+        : ancho <= 768
+        ? const EdgeInsets.fromLTRB(16, 15, 16, 0)
+        : const EdgeInsets.fromLTRB(20, 19, 20, 0);
 
-    final tarjeta = FadeInUp(child: _TarjetaPerfil(
-      usuario: _usuario,
-      externo: _externo,
-      siguiendo: _siguiendo,
-      onAvatar: () => mostrarCambiarAvatar(context),
-      onSeguidores: _abrirSeguidores,
-      onSiguiendo: _abrirSiguiendo,
-      onEditar: () => mostrarEditarPerfil(context, _usuario),
-      onCompartir: _compartir,
-      onSeguir: () => setState(() => _siguiendo = !_siguiendo),
-      onChatear: () => _proximamente('Chat'),
-    ));
+    final tarjeta = FadeInUp(
+      child: _TarjetaPerfil(
+        usuario: _usuario,
+        externo: _externo,
+        siguiendo: _siguiendo,
+        onAvatar: () => mostrarCambiarAvatar(context),
+        onSeguidores: _abrirSeguidores,
+        onSiguiendo: _abrirSiguiendo,
+        onEditar: () => mostrarEditarPerfil(context, _usuario),
+        onCompartir: _compartir,
+        onSeguir: () => setState(() => _siguiendo = !_siguiendo),
+        onChatear: () => _proximamente('Chat'),
+      ),
+    );
 
     final panel = _PanelDerecho(
       usuario: _usuario,
@@ -192,9 +209,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Expanded(child: panel),
                   ],
                 )
-              : Column(
-                  children: [tarjeta, const SizedBox(height: 30), panel],
-                ),
+              : Column(children: [tarjeta, const SizedBox(height: 30), panel]),
         ),
       ),
     );
@@ -211,9 +226,25 @@ class _BotonReportar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final size = w <= 480 ? 42.0 : w <= 768 ? 48.0 : w <= 1024 ? 55.0 : 66.0;
-    final margen = w <= 480 ? 16.0 : w <= 768 ? 20.0 : 30.0;
-    final icono = w <= 480 ? 16.0 : w <= 768 ? 19.0 : w <= 1024 ? 21.0 : 24.0;
+    final size = w <= 480
+        ? 42.0
+        : w <= 768
+        ? 48.0
+        : w <= 1024
+        ? 55.0
+        : 66.0;
+    final margen = w <= 480
+        ? 16.0
+        : w <= 768
+        ? 20.0
+        : 30.0;
+    final icono = w <= 480
+        ? 16.0
+        : w <= 768
+        ? 19.0
+        : w <= 1024
+        ? 21.0
+        : 24.0;
 
     return Positioned(
       right: margen,
@@ -232,19 +263,32 @@ class _BotonReportar extends StatelessWidget {
                 height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.a(const Color(0xFFEF4444), hover ? 0.25 : 0.15),
+                  color: AppColors.a(
+                    const Color(0xFFEF4444),
+                    hover ? 0.25 : 0.15,
+                  ),
                   border: Border.all(
-                    color: AppColors.a(const Color(0xFFEF4444), hover ? 0.5 : 0.3),
+                    color: AppColors.a(
+                      const Color(0xFFEF4444),
+                      hover ? 0.5 : 0.3,
+                    ),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.a(const Color(0xFFEF4444), hover ? 0.25 : 0.15),
+                      color: AppColors.a(
+                        const Color(0xFFEF4444),
+                        hover ? 0.25 : 0.15,
+                      ),
                       blurRadius: hover ? 24 : 16,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: Icon(Icons.bug_report, size: icono, color: const Color(0xFFF87171)),
+                child: Icon(
+                  Icons.bug_report,
+                  size: icono,
+                  color: const Color(0xFFF87171),
+                ),
               ),
             ),
           ),
@@ -285,13 +329,21 @@ class _TarjetaPerfil extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.of(context).size.width;
-    final avatar = ancho <= 640 ? 92.0 : ancho <= 768 ? 100.0 : 120.0;
-    final nombreSize = ancho <= 640 ? 25.6 : ancho <= 768 ? 27.2 : 28.8;
+    final avatar = ancho <= 640
+        ? 92.0
+        : ancho <= 768
+        ? 100.0
+        : 120.0;
+    final nombreSize = ancho <= 640
+        ? 25.6
+        : ancho <= 768
+        ? 27.2
+        : 28.8;
     final headerPad = ancho <= 640
         ? const EdgeInsets.fromLTRB(22, 35, 22, 30)
         : ancho <= 768
-            ? const EdgeInsets.fromLTRB(26, 38, 26, 34)
-            : const EdgeInsets.fromLTRB(30, 60, 30, 50);
+        ? const EdgeInsets.fromLTRB(26, 38, 26, 34)
+        : const EdgeInsets.fromLTRB(30, 60, 30, 50);
 
     return HoverBuilder(
       cursor: SystemMouseCursors.basic,
@@ -338,7 +390,13 @@ class _TarjetaPerfil extends StatelessWidget {
                     conectado: usuario.conectado,
                     onTap: externo ? null : onAvatar,
                   ),
-                  SizedBox(height: ancho <= 640 ? 14 : ancho <= 768 ? 16 : 20),
+                  SizedBox(
+                    height: ancho <= 640
+                        ? 14
+                        : ancho <= 768
+                        ? 16
+                        : 20,
+                  ),
                   Text(
                     usuario.nombre,
                     textAlign: TextAlign.center,
@@ -388,7 +446,9 @@ class _TarjetaPerfil extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.only(bottom: 25),
                     decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: AppColors.borde)),
+                      border: Border(
+                        bottom: BorderSide(color: AppColors.borde),
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,7 +486,9 @@ class _TarjetaPerfil extends StatelessWidget {
                               child: BtnAction(
                                 label: siguiendo ? 'Siguiendo' : 'Seguir',
                                 icono: siguiendo ? Icons.check : Icons.add,
-                                estilo: siguiendo ? EstiloAccion.outline : EstiloAccion.solido,
+                                estilo: siguiendo
+                                    ? EstiloAccion.outline
+                                    : EstiloAccion.solido,
                                 onTap: onSeguir,
                               ),
                             ),
@@ -501,7 +563,8 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))
+      ..repeat();
   }
 
   @override
@@ -514,7 +577,9 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final s = widget.size;
     return MouseRegion(
-      cursor: widget.onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      cursor: widget.onTap == null
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
         child: SizedBox(
@@ -529,31 +594,33 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
                 top: -4,
                 right: -4,
                 bottom: -4,
-                child: AnimatedBuilder(
-                  animation: _c,
-                  builder: (context, _) => Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: SweepGradient(
-                        transform: GradientRotation(_c.value * 2 * math.pi),
-                        colors: const [
-                          Color(0xFFF5C842),
-                          Color(0xFF00D4D4),
-                          Color(0xFFF5C842),
-                          Color(0xFF00D4D4),
-                          Color(0xFFF5C842),
+                child: AnimacionAmbiental(
+                  child: AnimatedBuilder(
+                    animation: _c,
+                    builder: (context, _) => Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: SweepGradient(
+                          transform: GradientRotation(_c.value * 2 * math.pi),
+                          colors: const [
+                            Color(0xFFF5C842),
+                            Color(0xFF00D4D4),
+                            Color(0xFFF5C842),
+                            Color(0xFF00D4D4),
+                            Color(0xFFF5C842),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.a(AppColors.amarillo, 0.3),
+                            blurRadius: 20,
+                          ),
+                          BoxShadow(
+                            color: const Color(0x4D00D4D4),
+                            blurRadius: 10,
+                          ),
                         ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.a(AppColors.amarillo, 0.3),
-                          blurRadius: 20,
-                        ),
-                        BoxShadow(
-                          color: const Color(0x4D00D4D4),
-                          blurRadius: 10,
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -574,7 +641,11 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
                   ],
                 ),
                 child: ClipOval(
-                  child: Image.asset('assets/img/default-avatar.png', fit: BoxFit.cover),
+                  child: Image.asset(
+                    'assets/img/default-avatar.png',
+                    errorBuilder: avatarRespaldo,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               // Indicador conectado / desconectado (solo perfiles externos)
@@ -625,14 +696,23 @@ class _PanelDerecho extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.of(context).size.width;
-    final gap = ancho <= 640 ? 20.0 : ancho <= 768 ? 24.0 : 28.0;
+    final gap = ancho <= 640
+        ? 20.0
+        : ancho <= 768
+        ? 24.0
+        : 28.0;
 
     final celdas = <Widget>[
       InfoItem(label: 'Correo', value: usuario.correo),
-      InfoItem(label: 'Miembro desde', value: formatearFecha(usuario.fechaRegistro)),
+      InfoItem(
+        label: 'Miembro desde',
+        value: formatearFecha(usuario.fechaRegistro),
+      ),
       InfoItem(
         label: 'Universidad',
-        value: usuario.universidad.isEmpty ? 'Sin universidad' : usuario.universidad,
+        value: usuario.universidad.isEmpty
+            ? 'Sin universidad'
+            : usuario.universidad,
       ),
       InfoItem(label: 'Reputación', value: usuario.reputacionTexto),
       InfoItem(
@@ -681,7 +761,9 @@ class _PanelDerecho extends StatelessWidget {
                 return Wrap(
                   spacing: gap,
                   runSpacing: gap,
-                  children: [for (final c in celdas) SizedBox(width: colW, child: c)],
+                  children: [
+                    for (final c in celdas) SizedBox(width: colW, child: c),
+                  ],
                 );
               },
             ),

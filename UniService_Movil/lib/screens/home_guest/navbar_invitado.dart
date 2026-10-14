@@ -43,6 +43,9 @@ class NavbarInvitado extends StatelessWidget {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        // El fondo es 95% opaco: el desenfoque casi no se ve y en móvil cuesta un pase
+        // de GPU por cuadro al hacer scroll.
+        enabled: false,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -126,7 +129,11 @@ class _NavLink extends StatelessWidget {
   final String label;
   final bool destacado;
   final VoidCallback onTap;
-  const _NavLink({required this.label, required this.onTap, this.destacado = false});
+  const _NavLink({
+    required this.label,
+    required this.onTap,
+    this.destacado = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -143,7 +150,9 @@ class _NavLink extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: destacado
                 ? Border.all(
-                    color: hover ? AppColors.teal : AppColors.a(AppColors.teal, 0.35),
+                    color: hover
+                        ? AppColors.teal
+                        : AppColors.a(AppColors.teal, 0.35),
                   )
                 : Border.all(color: Colors.transparent),
           ),
@@ -204,7 +213,11 @@ class _Hamburguesa extends StatelessWidget {
 class MenuMovilInvitado extends StatelessWidget {
   final ValueChanged<String> onAncla;
   final VoidCallback onLogin;
-  const MenuMovilInvitado({super.key, required this.onAncla, required this.onLogin});
+  const MenuMovilInvitado({
+    super.key,
+    required this.onAncla,
+    required this.onLogin,
+  });
 
   @override
   Widget build(BuildContext context) {

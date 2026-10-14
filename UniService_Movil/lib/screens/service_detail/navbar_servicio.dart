@@ -36,6 +36,9 @@ class NavbarServicio extends StatelessWidget {
     return ClipRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        // El fondo es 95% opaco: el desenfoque casi no se ve y en móvil cuesta un pase
+        // de GPU por cuadro al hacer scroll.
+        enabled: false,
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -60,17 +63,21 @@ class NavbarServicio extends StatelessWidget {
                             children: [
                               TextSpan(
                                 text: 'Uni',
-                                style: AppText.poppins(24,
-                                    weight: FontWeight.w700,
-                                    color: AppColors.teal,
-                                    spacing: 0.5),
+                                style: AppText.poppins(
+                                  24,
+                                  weight: FontWeight.w700,
+                                  color: AppColors.teal,
+                                  spacing: 0.5,
+                                ),
                               ),
                               TextSpan(
                                 text: 'Service',
-                                style: AppText.poppins(24,
-                                    weight: FontWeight.w700,
-                                    color: AppColors.amarillo,
-                                    spacing: 0.5),
+                                style: AppText.poppins(
+                                  24,
+                                  weight: FontWeight.w700,
+                                  color: AppColors.amarillo,
+                                  spacing: 0.5,
+                                ),
                               ),
                             ],
                           ),
@@ -96,7 +103,10 @@ class NavbarServicio extends StatelessWidget {
                           for (final e in enlaces)
                             Padding(
                               padding: const EdgeInsets.only(left: 2),
-                              child: NavBoton(label: e.$1, onTap: () => onEnlace(e.$2)),
+                              child: NavBoton(
+                                label: e.$1,
+                                onTap: () => onEnlace(e.$2),
+                              ),
                             ),
                           Padding(
                             padding: const EdgeInsets.only(left: 2),
@@ -123,7 +133,11 @@ class NavbarServicio extends StatelessWidget {
 class MenuMovilServicio extends StatelessWidget {
   final ValueChanged<String> onEnlace;
   final VoidCallback onCerrarSesion;
-  const MenuMovilServicio({super.key, required this.onEnlace, required this.onCerrarSesion});
+  const MenuMovilServicio({
+    super.key,
+    required this.onEnlace,
+    required this.onCerrarSesion,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -151,13 +165,21 @@ class MenuMovilServicio extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (final e in NavbarServicio.enlaces)
-              fila(NavBoton(label: e.$1, bloque: true, onTap: () => onEnlace(e.$2))),
-            fila(NavBoton(
-              label: 'Cerrar Sesión',
-              bloque: true,
-              estilo: EstiloNav.cerrar,
-              onTap: onCerrarSesion,
-            )),
+              fila(
+                NavBoton(
+                  label: e.$1,
+                  bloque: true,
+                  onTap: () => onEnlace(e.$2),
+                ),
+              ),
+            fila(
+              NavBoton(
+                label: 'Cerrar Sesión',
+                bloque: true,
+                estilo: EstiloNav.cerrar,
+                onTap: onCerrarSesion,
+              ),
+            ),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import '../../core/app_text.dart';
 import '../../models/servicio_detalle.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 import 'detail_widgets.dart';
+import '../../widgets/avatar_respaldo.dart';
 
 /// Colores del avatar según la primera letra (colorAvatar de utilidades.js).
 const _coloresAvatar = [
@@ -53,8 +54,14 @@ class ProveedorCard extends StatelessWidget {
               stops: const [0, 0.5, 1],
               colors: [
                 const Color(0xFF0E1929),
-                Color.alphaBlend(AppColors.a(AppColors.teal, 0.05), const Color(0xFF0E1929)),
-                Color.alphaBlend(AppColors.a(AppColors.violeta, 0.03), const Color(0xFF0E1929)),
+                Color.alphaBlend(
+                  AppColors.a(AppColors.teal, 0.05),
+                  const Color(0xFF0E1929),
+                ),
+                Color.alphaBlend(
+                  AppColors.a(AppColors.violeta, 0.03),
+                  const Color(0xFF0E1929),
+                ),
               ],
             ),
             boxShadow: hover
@@ -87,7 +94,10 @@ class ProveedorCard extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
-                        colors: [AppColors.a(AppColors.teal, 0.08), Colors.transparent],
+                        colors: [
+                          AppColors.a(AppColors.teal, 0.08),
+                          Colors.transparent,
+                        ],
                         stops: const [0, 0.7],
                       ),
                     ),
@@ -109,7 +119,10 @@ class ProveedorCard extends StatelessWidget {
                             end: Alignment.bottomRight,
                             colors: colores,
                           ),
-                          border: Border.all(color: Colors.white.withAlpha(26), width: 3),
+                          border: Border.all(
+                            color: Colors.white.withAlpha(26),
+                            width: 3,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withAlpha(77),
@@ -120,6 +133,7 @@ class ProveedorCard extends StatelessWidget {
                         ),
                         child: Image.asset(
                           'assets/img/default-avatar.png',
+                          errorBuilder: avatarRespaldo,
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -129,7 +143,9 @@ class ProveedorCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              s.proveedor.isEmpty ? 'Proveedor anónimo' : s.proveedor,
+                              s.proveedor.isEmpty
+                                  ? 'Proveedor anónimo'
+                                  : s.proveedor,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppText.poppins(
@@ -143,7 +159,10 @@ class ProveedorCard extends StatelessWidget {
                               detalle.universidadTexto,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: AppText.poppins(13.6, color: AppColors.texto2),
+                              style: AppText.poppins(
+                                13.6,
+                                color: AppColors.texto2,
+                              ),
                             ),
                           ],
                         ),
@@ -154,14 +173,19 @@ class ProveedorCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.only(top: 14),
                     decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: Colors.white.withAlpha(15))),
+                      border: Border(
+                        top: BorderSide(color: Colors.white.withAlpha(15)),
+                      ),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Flexible(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white.withAlpha(10),
                               borderRadius: BorderRadius.circular(8),
@@ -169,7 +193,11 @@ class ProveedorCard extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.star_rounded, size: 14, color: AppColors.estrella),
+                                const Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: AppColors.estrella,
+                                ),
                                 const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
@@ -193,7 +221,11 @@ class ProveedorCard extends StatelessWidget {
                           opacity: hover ? 1 : 0,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
-                            transform: Matrix4.translationValues(hover ? 0 : -8, 0, 0),
+                            transform: Matrix4.translationValues(
+                              hover ? 0 : -8,
+                              0,
+                              0,
+                            ),
                             child: Text(
                               'Ver perfil →',
                               style: AppText.poppins(
