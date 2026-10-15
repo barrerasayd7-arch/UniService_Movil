@@ -58,7 +58,7 @@ class TarjetaServicio extends StatelessWidget {
       button: true,
       label:
           '${s.titulo}. ${etiquetaCategoria(s.categoria)}. Por ${s.proveedor}. '
-          '$calificacion. ${formatearPrecio(s.precioHora)} por ${s.unidadPrecio}.',
+          '$calificacion. ${formatearPrecio(s.precio)} por ${s.unidadPrecio}.',
       excludeSemantics: true,
       child: Material(
         color: AppColors.card,
@@ -90,7 +90,7 @@ class TarjetaServicio extends StatelessWidget {
                       bottom: 10,
                       right: 10,
                       child: _Precio(
-                        valor: s.precioHora,
+                        valor: s.precio,
                         unidad: s.unidadPrecio,
                       ),
                     ),

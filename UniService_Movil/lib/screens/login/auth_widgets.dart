@@ -245,11 +245,17 @@ class AuthPrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final bool cargando;
+
+  /// Fondo del botón (teal por defecto; ámbar en el acceso de administrador).
+  final Color color;
+  final Color colorHover;
   const AuthPrimaryButton({
     super.key,
     required this.label,
     this.onTap,
     this.cargando = false,
+    this.color = AppColors.teal,
+    this.colorHover = AppColors.teal2,
   });
 
   @override
@@ -269,14 +275,14 @@ class AuthPrimaryButton extends StatelessWidget {
               width: double.infinity,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: (h ? AppColors.teal2 : AppColors.teal).withAlpha(
+                color: (h ? colorHover : color).withAlpha(
                   deshabilitado && !cargando ? 140 : 255,
                 ),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: h
                     ? [
                         BoxShadow(
-                          color: AppColors.a(AppColors.teal, 0.3),
+                          color: AppColors.a(color, 0.3),
                           blurRadius: 20,
                           offset: const Offset(0, 6),
                         ),

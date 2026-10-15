@@ -12,8 +12,22 @@ class ChipCategoria {
   final String label;
   final String valor;
   final IconData icono;
-  const ChipCategoria(this.label, this.valor, this.icono);
+  final int? idCategoria; // null = todas
+  const ChipCategoria(this.label, this.valor, this.icono, [this.idCategoria]);
 }
+
+/// Categorías de la tabla `categorias` (ids fijos; el backend también usa 6 = arriendo).
+const List<(int, String)> categoriasServicio = [
+  (1, 'Tutorías'),
+  (2, 'Ensayos y redacción'),
+  (3, 'Proyectos'),
+  (4, 'Programación'),
+  (5, 'Diseño'),
+  (6, 'Arriendo de habitaciones'),
+  (7, 'Otros servicios'),
+];
+
+const int idCategoriaArriendo = 6;
 
 const Map<String, IconData> iconosPorCategoria = {
   'Programación': Icons.code,
@@ -42,13 +56,45 @@ const Map<String, CategoriaColor> coloresCategoria = {
 
 const List<ChipCategoria> chipsCategoria = [
   ChipCategoria('Todos', 'todos', Icons.grid_view_rounded),
-  ChipCategoria('Tutorías', 'tutorias', Icons.menu_book_outlined),
-  ChipCategoria('Ensayos', 'ensayos', Icons.edit_outlined),
-  ChipCategoria('Proyectos', 'proyectos', Icons.folder_outlined),
-  ChipCategoria('Programación', 'programacion', Icons.code),
-  ChipCategoria('Diseño', 'diseno', Icons.palette_outlined),
-  ChipCategoria('Arriendo', 'arriendo', Icons.home_outlined),
+  ChipCategoria('Tutorías', 'tutorias', Icons.menu_book_outlined, 1),
+  ChipCategoria('Ensayos', 'ensayos', Icons.edit_outlined, 2),
+  ChipCategoria('Proyectos', 'proyectos', Icons.folder_outlined, 3),
+  ChipCategoria('Programación', 'programacion', Icons.code, 4),
+  ChipCategoria('Diseño', 'diseno', Icons.palette_outlined, 5),
+  ChipCategoria('Arriendo', 'arriendo', Icons.home_outlined, 6),
+  ChipCategoria('Otros', 'otros', Icons.public, 7),
 ];
+
+/// Valores de la API -> texto para mostrar.
+const Map<String, String> modalidades = {
+  'presencial': 'Presencial',
+  'virtual': 'Virtual',
+  'mixta': 'Mixta',
+};
+
+const Map<String, String> disponibilidades = {
+  'entre_semana': 'Entre semana',
+  'fines_de_semana': 'Fines de semana',
+  'siempre': 'Siempre disponible',
+};
+
+const Map<String, String> unidadesPrecio = {
+  'hora': 'por hora',
+  'mes': 'por mes',
+  'proyecto': 'por proyecto',
+};
+
+/// 20000, 'hora' -> "$20.000 / hora".
+String textoPrecio(int precio, String unidad) =>
+    '${formatearPrecio(precio)} / $unidad';
+
+/// Estado de un servicio propio -> (etiqueta, color).
+(String, Color) estadoServicio(String estado) => switch (estado) {
+  'aprobado' => ('Publicado', const Color(0xFF34D399)),
+  'pausado' => ('Pausado', const Color(0xFF94A3B8)),
+  'rechazado' => ('Rechazado', const Color(0xFFFF6B6B)),
+  _ => ('En revisión', const Color(0xFFF5C842)),
+};
 
 /// Opciones del select de ordenamiento: valor -> etiqueta.
 const Map<String, String> opcionesOrden = {

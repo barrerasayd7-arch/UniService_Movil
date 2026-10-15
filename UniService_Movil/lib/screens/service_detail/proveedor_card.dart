@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
+import '../../core/categorias.dart' show formatearDecimal;
 import '../../models/servicio_detalle.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 import 'detail_widgets.dart';
@@ -131,11 +132,20 @@ class ProveedorCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: Image.asset(
-                          'assets/img/default-avatar.png',
-                          errorBuilder: avatarRespaldo,
-                          fit: BoxFit.cover,
-                        ),
+                        child: detalle.proveedor.avatar != null
+                            ? Image.network(
+                                detalle.proveedor.avatar!,
+                                fit: BoxFit.cover,
+                                cacheWidth: (avatar *
+                                        MediaQuery.devicePixelRatioOf(context))
+                                    .round(),
+                                errorBuilder: avatarRespaldo,
+                              )
+                            : Image.asset(
+                                'assets/img/default-avatar.png',
+                                errorBuilder: avatarRespaldo,
+                                fit: BoxFit.cover,
+                              ),
                       ),
                       SizedBox(width: movil ? 12 : 16),
                       Expanded(
@@ -201,7 +211,9 @@ class ProveedorCard extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
-                                    '${s.estrellas} · ${detalle.resenas.length} reseñas',
+                                    detalle.proveedor.numResenas == 0
+                                        ? 'Sin reseñas todavía'
+                                        : '${formatearDecimal(detalle.proveedor.promedio)} · ${detalle.proveedor.numResenas} ${detalle.proveedor.numResenas == 1 ? 'reseña' : 'reseñas'}',
                                     overflow: TextOverflow.ellipsis,
                                     style: AppText.poppins(
                                       13.12,

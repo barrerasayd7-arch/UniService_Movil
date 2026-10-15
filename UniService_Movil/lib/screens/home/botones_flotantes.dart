@@ -23,8 +23,7 @@ class BotonesFlotantes extends StatefulWidget {
 
 class _BotonesFlotantesState extends State<BotonesFlotantes> {
   bool _abierto = false;
-  final int _mensajesNoLeidos = 2; 
-
+  final int _mensajesNoLeidos = 2;
 
   final List<_Notif> _notifs = [
     _Notif('Tu solicitud de "Tutoría de Cálculo" fue aceptada.'),
@@ -38,8 +37,20 @@ class _BotonesFlotantesState extends State<BotonesFlotantes> {
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.of(context).size.width;
-    final bell = ancho <= 480 ? 42.0 : ancho <= 768 ? 48.0 : ancho <= 1024 ? 55.0 : 60.0;
-    final bellIcon = ancho <= 480 ? 18.0 : ancho <= 768 ? 20.0 : ancho <= 1024 ? 22.0 : 24.0;
+    final bell = ancho <= 480
+        ? 42.0
+        : ancho <= 768
+        ? 48.0
+        : ancho <= 1024
+        ? 55.0
+        : 60.0;
+    final bellIcon = ancho <= 480
+        ? 18.0
+        : ancho <= 768
+        ? 20.0
+        : ancho <= 1024
+        ? 22.0
+        : 24.0;
 
     // El panel va en la misma columna (encima de los botones) para que
     // reciba los toques; Positioned no pasa hit-test fuera de su Stack.
@@ -127,17 +138,27 @@ class _CircleButton extends StatelessWidget {
                   top: 0,
                   right: 0,
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                    constraints: const BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
                     padding: const EdgeInsets.symmetric(horizontal: 5),
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: const Color(0xFFEF4444),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF093B38), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFF093B38),
+                        width: 2,
+                      ),
                     ),
                     child: Text(
                       '$badge',
-                      style: AppText.poppins(11, weight: FontWeight.w700, color: Colors.white),
+                      style: AppText.poppins(
+                        11,
+                        weight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -198,7 +219,11 @@ class _Panel extends StatelessWidget {
                   IconButton(
                     onPressed: onVaciar,
                     tooltip: 'Vaciar todas las notificaciones',
-                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.texto2),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: AppColors.texto2,
+                    ),
                   ),
                 ],
               ),
@@ -240,7 +265,11 @@ class _Panel extends StatelessWidget {
                                 ),
                                 child: Text(
                                   n.texto,
-                                  style: AppText.poppins(12.8, color: AppColors.texto, height: 1.4),
+                                  style: AppText.poppins(
+                                    12.8,
+                                    color: AppColors.texto,
+                                    height: 1.4,
+                                  ),
                                 ),
                               ),
                             ),

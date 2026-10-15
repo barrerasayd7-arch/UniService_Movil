@@ -12,13 +12,27 @@ class ApiException implements Exception {
   final String mensaje;
   final bool suspendida;
 
-  const ApiException(this.status, this.mensaje, {this.suspendida = false});
+  /// Cuerpo JSON del error (campos extra como intentos_restantes o bloqueado_hasta).
+  final Map<String, dynamic>? datos;
+
+  const ApiException(
+    this.status,
+    this.mensaje, {
+    this.suspendida = false,
+    this.datos,
+  });
 
   bool get sinConexion => status == 0;
+
+  /// El panel admin pide (otra vez) la contraseña de administrador: la sesión sigue válida.
+  bool get requiereElevacion => datos?['requiere_elevacion'] == true;
 
   @override
   String toString() => 'ApiException($status): $mensaje';
 }
+
+/// Archivo para enviar en un formulario multipart.
+typedef ArchivoSubida = ({List<int> bytes, String nombre});
 
 /// Cliente HTTP del backend: añade el JWT, decodifica JSON y traduce errores.
 class ApiClient {
@@ -29,9 +43,14 @@ class ApiClient {
   final http.Client _client;
   final String _baseUrl;
   static const _timeout = Duration(seconds: 15);
+  // Varias fotos por datos móviles tardan más que una petición JSON.
+  static const _timeoutSubida = Duration(seconds: 90);
 
   /// JWT de la sesión actual (null = invitado).
   String? token;
+
+  /// Token de la contraseña de administrador; sólo viaja a /api/admin/*.
+  String? adminToken;
 
   /// Se llama cuando el servidor rechaza la sesión (token vencido o cuenta suspendida).
   void Function(ApiException error)? onSesionInvalida;
@@ -44,20 +63,41 @@ class ApiClient {
       _send('PATCH', path, body);
   Future<dynamic> delete(String path) => _send('DELETE', path);
 
-  Future<dynamic> _send(String method, String path, [Object? body]) async {
-    final request = http.Request(method, Uri.parse('$_baseUrl$path'))
-      ..headers['Accept'] = 'application/json';
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+  /// POST multipart: cada archivo va en el campo [campo].
+  Future<dynamic> subirArchivos(
+    String path,
+    String campo,
+    List<ArchivoSubida> archivos,
+  ) {
+    final request = http.MultipartRequest('POST', Uri.parse('$_baseUrl$path'))
+      ..files.addAll([
+        for (final a in archivos)
+          http.MultipartFile.fromBytes(campo, a.bytes, filename: a.nombre),
+      ]);
+    return _enviar(request, _timeoutSubida);
+  }
+
+  Future<dynamic> _send(String method, String path, [Object? body]) {
+    final request = http.Request(method, Uri.parse('$_baseUrl$path'));
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
+    }
+    return _enviar(request, _timeout);
+  }
+
+  Future<dynamic> _enviar(http.BaseRequest request, Duration timeout) async {
+    request.headers['Accept'] = 'application/json';
+    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    if (adminToken != null && request.url.path.startsWith('/api/admin/')) {
+      request.headers['X-Admin-Elevacion'] = adminToken!;
     }
 
     final http.Response response;
     try {
       response = await http.Response.fromStream(
-        await _client.send(request).timeout(_timeout),
-      );
+        await _client.send(request).timeout(timeout),
+      ).timeout(timeout);
     } on TimeoutException {
       throw const ApiException(
         0,
@@ -77,6 +117,7 @@ class ApiClient {
       response.statusCode,
       _mensajeDeError(response.statusCode, data),
       suspendida: data is Map && data['suspendida'] == true,
+      datos: data is Map<String, dynamic> ? data : null,
     );
     final sesionRechazada =
         (response.statusCode == 401 && token != null) || error.suspendida;
@@ -110,6 +151,7 @@ class ApiClient {
       401 => 'Tu sesión terminó. Inicia sesión de nuevo.',
       403 => 'No tienes permiso para hacer esto.',
       404 => 'No encontramos lo que buscabas.',
+      413 => 'Las imágenes pesan demasiado. Usa fotos de menos de 5 MB.',
       429 => 'Demasiados intentos. Espera un minuto y vuelve a intentarlo.',
       503 => 'El servicio no está disponible ahora. Inténtalo más tarde.',
       _ => 'Algo falló en el servidor ($status). Inténtalo de nuevo.',

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
 import '../../data/api_client.dart';
 import '../../data/auth_repository.dart';
+import '../admin/admin_widgets.dart';
 import 'auth_widgets.dart';
 import 'recuperar_password.dart';
 
@@ -60,9 +61,18 @@ class _LoginFormState extends State<LoginForm> {
       _aviso = null;
     });
     try {
-      await AuthRepository.instance.iniciarSesion(correo, _pass.text);
+      final usuario = await AuthRepository.instance.iniciarSesion(
+        correo,
+        _pass.text,
+      );
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);
+      // Cuenta admin: avisar antes de entrar con privilegios. El panel queda encima
+      // del home, así "Volver" o "Seguir como usuario" llevan a la app normal.
+      final irAlPanel = usuario.esAdmin && await mostrarAvisoAdmin(context);
+      if (!mounted) return;
+      final nav = Navigator.of(context);
+      nav.pushNamedAndRemoveUntil('/home', (_) => false);
+      if (irAlPanel) nav.pushNamed('/admin');
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() {

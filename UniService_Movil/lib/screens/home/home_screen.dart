@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../data/auth_repository.dart';
-import '../../data/servicios_mock.dart';
 import '../../models/servicio.dart';
 import '../../core/app_text.dart';
 import '../../widgets/explorador_servicios.dart';
@@ -37,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return nombre.isEmpty ? 'Usuario' : nombre.split(' ').first;
   }
 
-  final List<Servicio> _servicios = serviciosMock;
+  final _explorador = GlobalKey<ExploradorServiciosState>();
 
   @override
   void initState() {
@@ -47,9 +46,11 @@ class _HomeScreenState extends State<HomeScreen> {
       final arg = ModalRoute.of(context)?.settings.arguments;
       if (arg is! String) return;
       if (arg == 'solicitudes') {
-        _proximamente('Mis solicitudes');
+        _abrir('/solicitudes');
       } else if (arg == 'mis-servicios') {
-        _proximamente('Mis servicios');
+        _abrir('/mis-servicios');
+      } else if (arg == 'publicar') {
+        _abrir('/publicar');
       } else {
         _irA(arg);
       }
@@ -93,9 +94,20 @@ class _HomeScreenState extends State<HomeScreen> {
       );
   }
 
+  void _abrir(String ruta) {
+    setState(() => _menuAbierto = false);
+    Navigator.of(context).pushNamed(ruta);
+  }
+
   void _abrirServicio(Servicio s) {
     Navigator.of(context).pushNamed('/servicio', arguments: s);
   }
+
+  /// Entrada al panel (sólo cuentas admin): pide la contraseña de administrador.
+  VoidCallback? get _panelAdmin =>
+      (AuthRepository.instance.usuario.value?.esAdmin ?? false)
+      ? () => Navigator.of(context).pushNamed('/admin')
+      : null;
 
   void _irAPerfil() {
     setState(() => _menuAbierto = false);
@@ -130,57 +142,64 @@ class _HomeScreenState extends State<HomeScreen> {
                   onToggleMenu: () =>
                       setState(() => _menuAbierto = !_menuAbierto),
                   onAncla: _irA,
-                  onSolicitudes: () => _proximamente('Mis solicitudes'),
+                  onSolicitudes: () => _abrir('/solicitudes'),
                   onPerfil: _irAPerfil,
                   onCerrarSesion: _cerrarSesion,
+                  onPanelAdmin: _panelAdmin,
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scroll,
-                    child: Column(
-                      children: [
-                        // Lo primero: buscar. (La portada de marketing queda para invitados.)
-                        KeyedSubtree(
-                          key: _keys['inicio'],
-                          child: ExploradorServicios(
-                            servicios: _servicios,
-                            onTapServicio: _abrirServicio,
-                            encabezado: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Hola, $_nombreUsuario',
-                                  style: AppText.serif(30, height: 1.15),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '¿Qué necesitas hoy?',
-                                  style: AppText.poppins(
-                                    15,
-                                    color: AppColors.texto2,
+                  child: RefreshIndicator(
+                    color: AppColors.teal,
+                    backgroundColor: AppColors.card,
+                    onRefresh: () async => _explorador.currentState?.recargar(),
+                    child: SingleChildScrollView(
+                      controller: _scroll,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        children: [
+                          // Lo primero: buscar. (La portada de marketing queda para invitados.)
+                          KeyedSubtree(
+                            key: _keys['inicio'],
+                            child: ExploradorServicios(
+                              key: _explorador,
+                              onTapServicio: _abrirServicio,
+                              encabezado: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Hola, $_nombreUsuario',
+                                    style: AppText.serif(30, height: 1.15),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '¿Qué necesitas hoy?',
+                                    style: AppText.poppins(
+                                      15,
+                                      color: AppColors.texto2,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                        KeyedSubtree(
-                          key: _keys['publicar'],
-                          child: TarjetaPublicar(
-                            onAbrir: () => _proximamente('Publicar servicio'),
+                          KeyedSubtree(
+                            key: _keys['publicar'],
+                            child: TarjetaPublicar(
+                              onAbrir: () => _abrir('/publicar'),
+                            ),
                           ),
-                        ),
-                        KeyedSubtree(
-                          key: _keys['soporte'],
-                          child: FooterHome(
-                            onAncla: _irA,
-                            onPerfil: _irAPerfil,
-                            onSolicitudes: () =>
-                                _proximamente('Mis solicitudes'),
-                            onProximamente: () => _proximamente('Esta sección'),
+                          KeyedSubtree(
+                            key: _keys['soporte'],
+                            child: FooterHome(
+                              onAncla: _irA,
+                              onPerfil: _irAPerfil,
+                              onSolicitudes: () => _abrir('/solicitudes'),
+                              onProximamente: () =>
+                                  _proximamente('Esta sección'),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -194,9 +213,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: MenuMovilHome(
                   nombreUsuario: _nombreUsuario,
                   onAncla: _irA,
-                  onSolicitudes: () => _proximamente('Mis solicitudes'),
+                  onSolicitudes: () => _abrir('/solicitudes'),
                   onPerfil: _irAPerfil,
                   onCerrarSesion: _cerrarSesion,
+                  onPanelAdmin: _panelAdmin,
                 ),
               ),
 

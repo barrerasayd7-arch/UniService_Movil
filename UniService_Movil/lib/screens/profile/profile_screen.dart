@@ -7,8 +7,9 @@ import '../../core/app_colors.dart';
 import '../../data/auth_repository.dart';
 import '../../core/app_text.dart';
 import '../../core/categorias.dart' show formatearFecha;
-import '../../data/servicios_mock.dart';
-import '../../data/usuarios_mock.dart';
+import '../../data/api_client.dart';
+import '../../data/perfil_repository.dart';
+import '../../data/servicios_repository.dart';
 import '../../models/usuario.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 import '../login/auth_widgets.dart' show mostrarNotificacion;
@@ -17,14 +18,15 @@ import 'profile_background.dart';
 import 'profile_modals.dart';
 import '../../widgets/animacion_ambiental.dart';
 import 'profile_widgets.dart';
-import '../../widgets/avatar_respaldo.dart';
 
 /// Vista de Perfil (Perfil.jsx).
-/// [externo] = true muestra el perfil de OTRA persona (Seguir / Chatear /
-/// Compartir y "Reportar usuario"); false muestra el perfil propio.
+/// [externo] = false: el perfil propio (GET /api/perfil/me, con correo y teléfono).
+/// [externo] = true: el perfil público de [idUsuario] (GET /api/perfil/{id}), con
+/// Seguir / Chatear / Compartir y "Reportar usuario", sin datos de contacto.
 class ProfileScreen extends StatefulWidget {
   final bool externo;
-  const ProfileScreen({super.key, this.externo = false});
+  final int? idUsuario;
+  const ProfileScreen({super.key, this.externo = false, this.idUsuario});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -32,16 +34,71 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _menuAbierto = false;
-  bool _siguiendo = false;
+  bool _guardandoSeguir = false;
 
-  //  GET /api/users/{id}
-  late final Usuario _usuario = widget.externo
-      ? perfilExternoMock
-      : miPerfilMock;
+  Usuario? _perfil;
+  String? _error;
 
-  final _misServicios = serviciosMock.take(4).toList();
+  int _totalServicios = 0;
 
   bool get _externo => widget.externo;
+  Usuario get _usuario => _perfil!;
+  String get _nombreSesion =>
+      (AuthRepository.instance.usuario.value?.nombre ?? '').split(' ').first;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+    if (!_externo) _contarServicios();
+  }
+
+  Future<void> _cargar() async {
+    setState(() => _error = null);
+    final id = widget.idUsuario;
+    if (_externo && id == null) {
+      setState(() => _error = 'Perfil no encontrado');
+      return;
+    }
+    // Abrir "mi" perfil como externo lleva a la vista propia.
+    if (_externo && id == AuthRepository.instance.usuario.value?.id) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pushReplacementNamed('/perfil');
+      });
+      return;
+    }
+    try {
+      final perfil = _externo
+          ? await PerfilRepository.instance.perfil(id!)
+          : await PerfilRepository.instance.miPerfil();
+      if (mounted) setState(() => _perfil = perfil);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.status == 404 ? 'Este perfil no existe o no está disponible.' : e.mensaje);
+    }
+  }
+
+  Future<void> _alternarSeguir() async {
+    if (_guardandoSeguir) return;
+    final seguir = !_usuario.loSigo;
+    setState(() => _guardandoSeguir = true);
+    try {
+      final total = await PerfilRepository.instance.seguir(_usuario.id, seguir: seguir);
+      if (mounted) setState(() => _perfil = _usuario.copyWith(loSigo: seguir, totalSeguidores: total));
+    } on ApiException catch (e) {
+      if (mounted) mostrarNotificacion(context, e.mensaje);
+    } finally {
+      if (mounted) setState(() => _guardandoSeguir = false);
+    }
+  }
+
+  Future<void> _contarServicios() async {
+    try {
+      final mios = await ServiciosRepository.instance.mios();
+      if (mounted) setState(() => _totalServicios = mios.length);
+    } on ApiException {
+      // El contador es informativo; si falla se queda en 0.
+    }
+  }
 
   // ── Navegación ──
   void _irA(String enlace) {
@@ -90,27 +147,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
     mostrarNotificacion(context, 'Enlace del perfil copiado', exito: true);
   }
 
+  void _abrirPerfil(PersonaResumen p) =>
+      Navigator.of(context).pushNamed('/perfil-externo', arguments: p.id);
+
   void _abrirSeguidores() => mostrarListaPersonas(
     context,
     titulo: 'Seguidores',
     icono: Icons.people,
-    personas: personasMock,
-    vacio: 'Aún no tienes seguidores.',
-    onTapPersona: (_) => Navigator.of(context).pushNamed('/perfil-externo'),
+    personas: PerfilRepository.instance.seguidores(_usuario.id),
+    vacio: _externo ? 'Aún no tiene seguidores.' : 'Aún no tienes seguidores.',
+    onTapPersona: _abrirPerfil,
   );
 
   void _abrirSiguiendo() => mostrarListaPersonas(
     context,
     titulo: 'Siguiendo',
     icono: Icons.how_to_reg,
-    personas: personasMock.take(3).toList(),
-    vacio: 'Aún no sigues a nadie.',
-    onTapPersona: (_) => Navigator.of(context).pushNamed('/perfil-externo'),
+    personas: PerfilRepository.instance.siguiendo(_usuario.id),
+    vacio: _externo ? 'Aún no sigue a nadie.' : 'Aún no sigues a nadie.',
+    onTapPersona: _abrirPerfil,
   );
 
-  void _reportar() {
-    _proximamente('Reportar');
-  }
+  // Botón flotante: problema general. En perfiles ajenos: "Reportar usuario".
+  void _reportarProblema() => mostrarReportar(context);
+  void _reportarUsuario() =>
+      mostrarReportar(context, idUsuario: _usuario.id, nombreUsuario: _usuario.nombre);
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 NavbarPerfil(
                   movil: movil,
                   menuAbierto: _menuAbierto,
-                  nombreUsuario: miPerfilMock.nombre.split(' ').first,
+                  nombreUsuario: _nombreSesion,
                   onToggleMenu: () =>
                       setState(() => _menuAbierto = !_menuAbierto),
                   onEnlace: _irA,
@@ -140,7 +201,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onCerrarSesion: _cerrarSesion,
                 ),
                 Expanded(
-                  child: SingleChildScrollView(child: _contenido(ancho)),
+                  child: _perfil != null
+                      ? RefreshIndicator(
+                          color: AppColors.teal,
+                          onRefresh: _cargar,
+                          child: SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: _contenido(ancho),
+                          ),
+                        )
+                      : _estadoCarga(),
                 ),
               ],
             ),
@@ -149,13 +219,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 top: 62,
                 right: 16,
                 child: MenuMovilPerfil(
-                  nombreUsuario: miPerfilMock.nombre.split(' ').first,
+                  nombreUsuario: _nombreSesion,
                   onEnlace: _irA,
                   onPerfil: _irAMiPerfil,
                   onCerrarSesion: _cerrarSesion,
                 ),
               ),
-            _BotonReportar(onTap: _reportar),
+            _BotonReportar(onTap: _reportarProblema),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _estadoCarga() {
+    if (_error == null) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.teal));
+    }
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.person_off_outlined, size: 48, color: AppColors.texto3),
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: AppText.poppins(14.4, color: AppColors.texto2),
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: _cargar,
+              icon: const Icon(Icons.refresh, color: AppColors.teal),
+              label: Text('Reintentar', style: AppText.poppins(14, color: AppColors.teal)),
+            ),
           ],
         ),
       ),
@@ -175,13 +274,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: _TarjetaPerfil(
         usuario: _usuario,
         externo: _externo,
-        siguiendo: _siguiendo,
-        onAvatar: () => mostrarCambiarAvatar(context),
+        siguiendo: _usuario.loSigo,
+        onAvatar: () => mostrarCambiarAvatar(
+          context,
+          tieneAvatar: _usuario.avatarUrl != null,
+          onCambio: (url) => setState(
+            () => _perfil = _usuario.copyWith(avatarUrl: url, quitarAvatar: url == null),
+          ),
+        ),
         onSeguidores: _abrirSeguidores,
         onSiguiendo: _abrirSiguiendo,
-        onEditar: () => mostrarEditarPerfil(context, _usuario),
+        onEditar: () => mostrarEditarPerfil(
+          context,
+          _usuario,
+          onActualizado: (u) => setState(() => _perfil = u),
+        ),
         onCompartir: _compartir,
-        onSeguir: () => setState(() => _siguiendo = !_siguiendo),
+        onSeguir: _alternarSeguir,
         onChatear: () => _proximamente('Chat'),
       ),
     );
@@ -189,10 +298,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final panel = _PanelDerecho(
       usuario: _usuario,
       externo: _externo,
-      totalServicios: _misServicios.length,
+      totalServicios: _totalServicios,
       onSeguridad: () => mostrarSeguridad(context),
-      onReportarUsuario: _reportar,
-      onMisServicios: () => mostrarMisServicios(context, _misServicios),
+      onReportarUsuario: _reportarUsuario,
+      onMisServicios: () => Navigator.of(context)
+          .pushNamed('/mis-servicios')
+          .then((_) => _contarServicios()),
     );
 
     return Padding(
@@ -386,8 +497,7 @@ class _TarjetaPerfil extends StatelessWidget {
                 children: [
                   _Avatar(
                     size: avatar,
-                    externo: externo,
-                    conectado: usuario.conectado,
+                    url: usuario.avatarUrl,
                     onTap: externo ? null : onAvatar,
                   ),
                   SizedBox(
@@ -433,7 +543,9 @@ class _TarjetaPerfil extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
-                      usuario.descripcion,
+                      usuario.descripcion.isEmpty
+                          ? (externo ? 'Sin descripción.' : 'Aún no tienes descripción. Toca "Editar Perfil" para agregarla.')
+                          : usuario.descripcion,
                       textAlign: TextAlign.center,
                       style: AppText.poppins(
                         14.4,
@@ -470,7 +582,7 @@ class _TarjetaPerfil extends StatelessWidget {
                         const SizedBox(width: 15),
                         Expanded(
                           child: StatItem(
-                            value: '${usuario.totalSiguiendo}',
+                            value: formatearNumero(usuario.totalSiguiendo),
                             label: 'Siguiendo',
                             onTap: onSiguiendo,
                           ),
@@ -543,15 +655,9 @@ class _TarjetaPerfil extends StatelessWidget {
 // ── Avatar con anillo dorado/teal giratorio ──
 class _Avatar extends StatefulWidget {
   final double size;
-  final bool externo;
-  final bool conectado;
+  final String? url;
   final VoidCallback? onTap;
-  const _Avatar({
-    required this.size,
-    required this.externo,
-    required this.conectado,
-    required this.onTap,
-  });
+  const _Avatar({required this.size, required this.url, required this.onTap});
 
   @override
   State<_Avatar> createState() => _AvatarState();
@@ -640,31 +746,8 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
                     ),
                   ],
                 ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/img/default-avatar.png',
-                    errorBuilder: avatarRespaldo,
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                child: ClipOval(child: fotoPerfil(widget.url, size: s)),
               ),
-              // Indicador conectado / desconectado (solo perfiles externos)
-              if (widget.externo)
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: widget.conectado
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFEF4444),
-                      border: Border.all(color: AppColors.bg, width: 3),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
@@ -702,11 +785,19 @@ class _PanelDerecho extends StatelessWidget {
         ? 24.0
         : 28.0;
 
+    final fecha = usuario.fechaRegistro;
     final celdas = <Widget>[
-      InfoItem(label: 'Correo', value: usuario.correo),
+      // Correo y teléfono sólo existen en el perfil propio: la API no los envía en perfiles ajenos.
+      if (!externo)
+        InfoItem(label: 'Correo', value: usuario.correo ?? '')
+      else
+        InfoItem(
+          label: 'Programa',
+          value: usuario.programa.isEmpty ? 'No indicado' : usuario.programa,
+        ),
       InfoItem(
         label: 'Miembro desde',
-        value: formatearFecha(usuario.fechaRegistro),
+        value: fecha == null ? 'No disponible' : formatearFecha(fecha),
       ),
       InfoItem(
         label: 'Universidad',
@@ -715,10 +806,16 @@ class _PanelDerecho extends StatelessWidget {
             : usuario.universidad,
       ),
       InfoItem(label: 'Reputación', value: usuario.reputacionTexto),
-      InfoItem(
-        label: 'Teléfono',
-        value: usuario.telefono.isEmpty ? 'No disponible' : usuario.telefono,
-      ),
+      if (!externo)
+        InfoItem(
+          label: 'Teléfono (solo tú lo ves)',
+          value: (usuario.telefono ?? '').isEmpty ? 'No disponible' : usuario.telefono!,
+        )
+      else
+        InfoItem(
+          label: 'Sede',
+          value: usuario.sede.isEmpty ? 'No indicada' : usuario.sede,
+        ),
       // La web pone esta opción en la sexta celda de la cuadrícula
       if (!externo)
         MenuItem(

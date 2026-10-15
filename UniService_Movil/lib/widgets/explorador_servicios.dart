@@ -1,32 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
 import '../core/app_text.dart';
 import '../core/categorias.dart';
+import '../data/api_client.dart';
+import '../data/servicios_repository.dart';
 import '../models/servicio.dart';
 import 'tarjeta_servicio.dart';
 
-/// Buscador + categorías + "Mejor calificados" + resultados.
+/// Buscador + categorías + "Mejor calificados" + resultados de `GET /api/servicios`.
 /// Lo usan el inicio (con sesión) y el inicio de invitado.
 ///
-/// - Busca mientras se escribe; las categorías acotan los resultados.
+/// - Busca mientras se escribe (espera a que se deje de teclear); categoría y orden
+///   se aplican en el servidor.
 /// - Sin búsqueda ni filtro, muestra primero los mejor calificados en una fila deslizable.
-/// - Los resultados crecen con "Ver más" (sin paginación numerada).
+/// - Los resultados crecen con "Ver más" (pide la página siguiente).
+/// - Se recarga solo cuando el usuario publica, edita o borra un servicio.
 class ExploradorServicios extends StatefulWidget {
-  final List<Servicio> servicios;
   final void Function(Servicio) onTapServicio;
 
   /// Va encima del buscador (saludo o título de la sección).
   final Widget encabezado;
+
+  /// Para pruebas; por defecto el repositorio de la app.
+  final ServiciosRepository? repositorio;
+
   const ExploradorServicios({
     super.key,
-    required this.servicios,
     required this.onTapServicio,
     required this.encabezado,
+    this.repositorio,
   });
 
   @override
-  State<ExploradorServicios> createState() => _ExploradorServiciosState();
+  State<ExploradorServicios> createState() => ExploradorServiciosState();
 }
 
 // Etiqueta corta del orden actual para el botón (las largas viven en la hoja de opciones).
@@ -39,66 +48,123 @@ const _etiquetaOrden = {
   'rating-menor': 'Peor calificados',
 };
 
-class _ExploradorServiciosState extends State<ExploradorServicios> {
+const _porPagina = 12;
+
+class ExploradorServiciosState extends State<ExploradorServicios> {
+  late final ServiciosRepository _repo =
+      widget.repositorio ?? ServiciosRepository.instance;
   final _busqueda = TextEditingController();
+  Timer? _espera;
   String _chip = 'todos';
   String _orden = 'recientes';
-  int _mostrar = 0; // 0 = tamaño inicial según el ancho
+
+  List<Servicio> _servicios = const [];
+  List<Servicio> _destacados = const [];
+  int _pagina = 0;
+  int _total = 0;
+  bool _hayMas = false;
+  bool _cargando = true;
+  bool _cargandoMas = false;
+  String? _error;
+  String? _errorMas;
+
+  // Cada búsqueda nueva invalida las respuestas que lleguen tarde de las anteriores.
+  int _peticion = 0;
 
   bool get _filtrando => _busqueda.text.trim().isNotEmpty || _chip != 'todos';
 
+  int? get _idCategoria =>
+      chipsCategoria.firstWhere((c) => c.valor == _chip).idCategoria;
+
+  @override
+  void initState() {
+    super.initState();
+    _repo.cambios.addListener(recargar);
+    recargar();
+  }
+
   @override
   void dispose() {
+    _repo.cambios.removeListener(recargar);
+    _espera?.cancel();
     _busqueda.dispose();
     super.dispose();
   }
 
-  bool _coincideChip(Servicio s) {
-    if (_chip == 'todos') return true;
-    final cat = normalizar(s.categoria);
-    return switch (_chip) {
-      'tutorias' => cat.contains('tutoria'),
-      'ensayos' => cat.contains('ensayo') || cat.contains('redaccion'),
-      'proyectos' => cat.contains('proyecto'),
-      'programacion' => cat.contains('programacion'),
-      'diseno' => cat.contains('diseno'),
-      'arriendo' => cat.contains('arriendo'),
-      _ => true,
-    };
-  }
+  /// Vuelve a pedir resultados y destacados (deslizar hacia abajo, o tras un cambio).
+  Future<void> recargar() => Future.wait([_cargar(), _cargarDestacados()]);
 
-  List<Servicio> get _resultados {
-    final q = normalizar(_busqueda.text);
-    final lista = widget.servicios.where((s) {
-      final texto = normalizar(
-        '${s.titulo} ${s.descripcion} ${s.categoria} ${s.proveedor}',
-      );
-      return (q.isEmpty || texto.contains(q)) && _coincideChip(s);
-    }).toList();
-    lista.sort(switch (_orden) {
-      'antiguos' => (a, b) => a.fechaPublicacion.compareTo(b.fechaPublicacion),
-      'precio-menor' => (a, b) => a.precioHora.compareTo(b.precioHora),
-      'precio-mayor' => (a, b) => b.precioHora.compareTo(a.precioHora),
-      'rating-mayor' => (a, b) => b.estrellas.compareTo(a.estrellas),
-      'rating-menor' => (a, b) => a.estrellas.compareTo(b.estrellas),
-      _ => (a, b) => b.fechaPublicacion.compareTo(a.fechaPublicacion),
+  Future<void> _cargar({bool mas = false}) async {
+    final id = mas ? _peticion : ++_peticion;
+    setState(() {
+      if (mas) {
+        _cargandoMas = true;
+        _errorMas = null;
+      } else {
+        _cargando = true;
+        _error = null;
+      }
     });
-    return lista;
+    try {
+      final p = await _repo.listar(
+        pagina: mas ? _pagina + 1 : 1,
+        porPagina: _porPagina,
+        categoria: _idCategoria,
+        busqueda: _busqueda.text,
+        orden: _orden,
+      );
+      if (!mounted || id != _peticion) return;
+      setState(() {
+        _servicios = mas ? [..._servicios, ...p.servicios] : p.servicios;
+        _pagina = p.pagina;
+        _total = p.total;
+        _hayMas = p.hayMas;
+      });
+    } on ApiException catch (e) {
+      if (!mounted || id != _peticion) return;
+      setState(() => mas ? _errorMas = e.mensaje : _error = e.mensaje);
+    } finally {
+      if (mounted && id == _peticion) {
+        setState(() => mas ? _cargandoMas = false : _cargando = false);
+      }
+    }
   }
 
-  List<Servicio> get _destacados =>
-      (widget.servicios.where((s) => s.numResenas > 0).toList()
-            ..sort((a, b) => b.estrellas.compareTo(a.estrellas)))
-          .take(5)
-          .toList();
+  // Los 5 mejor calificados que tengan al menos una reseña.
+  Future<void> _cargarDestacados() async {
+    try {
+      final p = await _repo.listar(porPagina: 10, orden: 'rating-mayor');
+      if (!mounted) return;
+      setState(
+        () => _destacados = p.servicios
+            .where((s) => s.numResenas > 0)
+            .take(5)
+            .toList(),
+      );
+    } on ApiException {
+      // La fila es opcional: si falla, simplemente no se muestra.
+    }
+  }
 
-  void _reiniciar() => setState(() => _mostrar = 0);
+  void _alEscribir(String _) {
+    setState(() {}); // muestra u oculta los destacados
+    _espera?.cancel();
+    _espera = Timer(const Duration(milliseconds: 350), _cargar);
+  }
 
-  void _limpiarFiltros() => setState(() {
+  void _elegirChip(String valor) {
+    if (valor == _chip) return;
+    _espera?.cancel();
+    setState(() => _chip = valor);
+    _cargar();
+  }
+
+  void _limpiarFiltros() {
+    _espera?.cancel();
     _busqueda.clear();
-    _chip = 'todos';
-    _mostrar = 0;
-  });
+    setState(() => _chip = 'todos');
+    _cargar();
+  }
 
   Future<void> _elegirOrden() async {
     final elegido = await showModalBottomSheet<String>(
@@ -137,7 +203,10 @@ class _ExploradorServiciosState extends State<ExploradorServicios> {
         ),
       ),
     );
-    if (elegido != null && elegido != _orden) setState(() => _orden = elegido);
+    if (elegido != null && elegido != _orden) {
+      setState(() => _orden = elegido);
+      _cargar();
+    }
   }
 
   @override
@@ -145,11 +214,41 @@ class _ExploradorServiciosState extends State<ExploradorServicios> {
     final ancho = MediaQuery.sizeOf(context).width;
     final movil = ancho < Breakpoints.mobile;
     final margen = movil ? 16.0 : 24.0;
-    final lote = movil ? 6 : 12;
-    final mostrar = _mostrar == 0 ? lote : _mostrar;
-    final resultados = _resultados;
-    final visibles = resultados.take(mostrar).toList();
     final destacados = _filtrando ? const <Servicio>[] : _destacados;
+    final primeraCarga = _cargando && _servicios.isEmpty;
+
+    final Widget resultados;
+    if (primeraCarga) {
+      resultados = const _RejillaEsqueleto();
+    } else if (_error != null && _servicios.isEmpty) {
+      resultados = _Aviso(
+        icono: Icons.cloud_off_rounded,
+        titulo: 'No pudimos cargar los servicios',
+        texto: _error!,
+        boton: 'Reintentar',
+        onBoton: _cargar,
+      );
+    } else if (_servicios.isEmpty) {
+      final q = _busqueda.text.trim();
+      resultados = _Aviso(
+        icono: _filtrando ? Icons.search_off_rounded : Icons.storefront_outlined,
+        titulo: q.isNotEmpty
+            ? 'Sin resultados para "$q"'
+            : _filtrando
+            ? 'No hay servicios en esta categoría'
+            : 'Todavía no hay servicios publicados',
+        texto: _filtrando
+            ? 'Prueba con otra palabra o elige otra categoría.'
+            : 'Sé el primero en ofrecer lo que sabes hacer.',
+        boton: _filtrando ? 'Ver todos' : null,
+        onBoton: _limpiarFiltros,
+      );
+    } else {
+      resultados = RejillaServicios(
+        servicios: _servicios,
+        onTapServicio: widget.onTapServicio,
+      );
+    }
 
     return Center(
       child: ConstrainedBox(
@@ -163,19 +262,13 @@ class _ExploradorServiciosState extends State<ExploradorServicios> {
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(margen, 16, margen, 0),
-              child: _Buscador(
-                controller: _busqueda,
-                onChanged: (_) => _reiniciar(),
-              ),
+              child: _Buscador(controller: _busqueda, onChanged: _alEscribir),
             ),
             const SizedBox(height: 12),
             _FiltroCategorias(
               seleccionado: _chip,
               margen: margen,
-              onChanged: (v) => setState(() {
-                _chip = v;
-                _mostrar = 0;
-              }),
+              onChanged: _elegirChip,
             ),
             if (destacados.isNotEmpty) ...[
               _TituloSeccion(texto: 'Mejor calificados', margen: margen),
@@ -186,13 +279,11 @@ class _ExploradorServiciosState extends State<ExploradorServicios> {
               ),
             ],
             _TituloSeccion(
-              texto: _filtrando
-                  ? (resultados.length == 1
-                        ? '1 resultado'
-                        : '${resultados.length} resultados')
+              texto: _filtrando && !primeraCarga
+                  ? (_total == 1 ? '1 resultado' : '$_total resultados')
                   : 'Todos los servicios',
               margen: margen,
-              accion: resultados.length > 1
+              accion: _total > 1
                   ? TextButton.icon(
                       onPressed: _elegirOrden,
                       style: TextButton.styleFrom(
@@ -211,41 +302,28 @@ class _ExploradorServiciosState extends State<ExploradorServicios> {
                     )
                   : null,
             ),
+            // Recargando con resultados en pantalla: barra fina en vez de vaciar la lista.
+            if (_cargando && _servicios.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.fromLTRB(margen, 0, margen, 8),
+                child: const LinearProgressIndicator(
+                  minHeight: 2,
+                  color: AppColors.teal,
+                  backgroundColor: AppColors.borde,
+                ),
+              ),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: margen),
-              child: resultados.isEmpty
-                  ? _SinResultados(
-                      busqueda: _busqueda.text.trim(),
-                      onLimpiar: _limpiarFiltros,
-                    )
-                  : RejillaServicios(
-                      servicios: visibles,
-                      onTapServicio: widget.onTapServicio,
-                    ),
+              child: resultados,
             ),
-            if (resultados.length > visibles.length)
+            if (_servicios.isNotEmpty && (_hayMas || _errorMas != null))
               Padding(
                 padding: EdgeInsets.fromLTRB(margen, 20, margen, 0),
-                child: Center(
-                  child: OutlinedButton(
-                    onPressed: () => setState(() => _mostrar = mostrar + lote),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.teal,
-                      side: const BorderSide(color: AppColors.bordeCampo),
-                      minimumSize: const Size(220, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      'Ver más servicios (${resultados.length - visibles.length})',
-                      style: AppText.poppins(
-                        14,
-                        weight: FontWeight.w600,
-                        color: AppColors.teal,
-                      ),
-                    ),
-                  ),
+                child: _BotonVerMas(
+                  cargando: _cargandoMas,
+                  error: _errorMas,
+                  restantes: _total - _servicios.length,
+                  onTap: () => _cargar(mas: true),
                 ),
               ),
             const SizedBox(height: 40),
@@ -336,6 +414,7 @@ class _FiltroCategorias extends StatelessWidget {
           final c = chipsCategoria[i];
           final activo = c.valor == seleccionado;
           return Center(
+            key: ValueKey('chip-${c.valor}'),
             child: Semantics(
               selected: activo,
               button: true,
@@ -459,10 +538,80 @@ class _FilaDestacados extends StatelessWidget {
   }
 }
 
-class _SinResultados extends StatelessWidget {
-  final String busqueda;
-  final VoidCallback onLimpiar;
-  const _SinResultados({required this.busqueda, required this.onLimpiar});
+class _BotonVerMas extends StatelessWidget {
+  final bool cargando;
+  final String? error;
+  final int restantes;
+  final VoidCallback onTap;
+  const _BotonVerMas({
+    required this.cargando,
+    required this.error,
+    required this.restantes,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              error!,
+              textAlign: TextAlign.center,
+              style: AppText.poppins(13, color: AppColors.errorTexto),
+            ),
+          ),
+        OutlinedButton(
+          onPressed: cargando ? null : onTap,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.teal,
+            side: const BorderSide(color: AppColors.bordeCampo),
+            minimumSize: const Size(220, 48),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: cargando
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.teal,
+                  ),
+                )
+              : Text(
+                  error != null
+                      ? 'Reintentar'
+                      : 'Ver más servicios ($restantes)',
+                  style: AppText.poppins(
+                    14,
+                    weight: FontWeight.w600,
+                    color: AppColors.teal,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Aviso en lugar de resultados: sin resultados, sin servicios o error de red.
+class _Aviso extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String texto;
+  final String? boton;
+  final VoidCallback onBoton;
+  const _Aviso({
+    required this.icono,
+    required this.titulo,
+    required this.texto,
+    required this.boton,
+    required this.onBoton,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -475,43 +624,117 @@ class _SinResultados extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.search_off_rounded,
-            size: 36,
-            color: AppColors.texto2,
-          ),
+          Icon(icono, size: 36, color: AppColors.texto2),
           const SizedBox(height: 12),
           Text(
-            busqueda.isEmpty
-                ? 'No hay servicios en esta categoría'
-                : 'Sin resultados para "$busqueda"',
+            titulo,
             textAlign: TextAlign.center,
             style: AppText.poppins(15.5, weight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           Text(
-            'Prueba con otra palabra o elige otra categoría.',
+            texto,
             textAlign: TextAlign.center,
             style: AppText.poppins(13.5, color: AppColors.texto2, height: 1.45),
           ),
-          const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: onLimpiar,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.teal,
-              side: const BorderSide(color: AppColors.bordeCampo),
-              minimumSize: const Size(160, 44),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          if (boton != null) ...[
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: onBoton,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.teal,
+                side: const BorderSide(color: AppColors.bordeCampo),
+                minimumSize: const Size(160, 44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                boton!,
+                style: AppText.poppins(
+                  14,
+                  weight: FontWeight.w600,
+                  color: AppColors.teal,
+                ),
               ),
             ),
-            child: Text(
-              'Ver todos',
-              style: AppText.poppins(
-                14,
-                weight: FontWeight.w600,
-                color: AppColors.teal,
-              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Tarjetas grises con la forma de las reales mientras llega la primera página.
+class _RejillaEsqueleto extends StatelessWidget {
+  const _RejillaEsqueleto();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Cargando servicios',
+      child: LayoutBuilder(
+        builder: (context, box) {
+          const gap = 16.0;
+          final cols = ((box.maxWidth + gap) / (300 + gap)).floor().clamp(1, 4);
+          final ancho = (box.maxWidth - gap * (cols - 1)) / cols;
+          return Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [
+              for (var i = 0; i < (cols == 1 ? 2 : cols * 2); i++)
+                SizedBox(width: ancho, child: const _TarjetaEsqueleto()),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _TarjetaEsqueleto extends StatelessWidget {
+  const _TarjetaEsqueleto();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget barra(double factor, double alto) => FractionallySizedBox(
+      widthFactor: factor,
+      alignment: Alignment.centerLeft,
+      child: Container(
+        height: alto,
+        decoration: BoxDecoration(
+          color: AppColors.bg3,
+          borderRadius: BorderRadius.circular(6),
+        ),
+      ),
+    );
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.borde),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const AspectRatio(
+            aspectRatio: 16 / 9,
+            child: ColoredBox(color: AppColors.bg3),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                barra(0.8, 16),
+                const SizedBox(height: 10),
+                barra(1, 12),
+                const SizedBox(height: 6),
+                barra(0.6, 12),
+                const SizedBox(height: 14),
+                barra(0.4, 24),
+              ],
             ),
           ),
         ],

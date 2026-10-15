@@ -104,12 +104,26 @@ class AuthRepository {
     return iniciarSesion(correo, nuevaPassword);
   }
 
+  /// Cambia la contraseña con la sesión abierta. El servidor cierra todas las sesiones
+  /// (también las de otros dispositivos) y devuelve un token nuevo para éste.
+  Future<void> cambiarPassword(String actual, String nueva) async {
+    final data =
+        await api.post('/api/auth/change-password', {
+              'ContrasenaActual': actual,
+              'ContrasenaNueva': nueva,
+            })
+            as Map<String, dynamic>;
+    final token = data['token'] as String;
+    final user = usuario.value!;
+    await _store.guardar(token, user);
+    api.token = token;
+  }
+
   Future<void> cerrarSesion() async {
-    final actual = usuario.value;
-    if (actual != null) {
-      // Sólo registra la última actividad; si falla, la sesión se cierra igual.
+    if (usuario.value != null) {
+      // El servidor invalida el token (y los de otros dispositivos); si falla, se sale igual.
       try {
-        await api.post('/api/auth/logout', {'id_usuario': actual.id});
+        await api.post('/api/auth/logout');
       } on ApiException {
         // Sin red: no impide salir.
       }
@@ -128,6 +142,7 @@ class AuthRepository {
 
   Future<void> _limpiar() async {
     api.token = null;
+    api.adminToken = null;
     usuario.value = null;
     await _store.borrar();
   }

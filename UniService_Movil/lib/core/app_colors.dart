@@ -34,6 +34,11 @@ class AppColors {
   static const estrella = Color(0xFFF5A623);
   static const violeta = Color(0xFF8B5CF6);
 
+  // Modo administrador: color exclusivo del acceso y del panel (el ámbar ya es "solicitudes"
+  // y estrellas). 7.2:1 sobre bg y 7.2:1 con texto bg encima.
+  static const admin = Color(0xFFA78BFA);
+  static const adminHover = Color(0xFFC4B5FD);
+
   /// Color con opacidad (equivale a rgba(r,g,b,o) del CSS).
   static Color a(Color c, double opacity) =>
       c.withAlpha((opacity.clamp(0.0, 1.0) * 255).round());

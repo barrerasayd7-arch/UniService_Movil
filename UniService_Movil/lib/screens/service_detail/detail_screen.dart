@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_colors.dart';
-import '../../data/auth_repository.dart';
 import '../../core/app_text.dart';
-import '../../core/categorias.dart'
-    show formatearFecha, iconosPorCategoria, iconoPorDefecto;
-import '../../data/detalle_mock.dart';
+import '../../core/categorias.dart';
+import '../../data/api_client.dart';
+import '../../data/auth_repository.dart';
+import '../../data/servicios_repository.dart';
 import '../../models/servicio.dart';
 import '../../models/servicio_detalle.dart';
 import '../../widgets/app_buttons.dart' show BtnVerde, HoverBuilder;
@@ -18,44 +20,102 @@ import 'navbar_servicio.dart';
 import 'proveedor_card.dart';
 import 'skeleton_servicio.dart';
 
-/// Vista de detalle de un servicio (DetalleServicio.jsx).
-/// Si [servicio] es null muestra el estado "Servicio no encontrado".
+/// Detalle de un servicio (`GET /api/servicios/{id}`).
+///
+/// - Invitado: ve todo menos el contacto y la ubicación exacta; se le invita a iniciar sesión.
+/// - Con sesión: contacto (WhatsApp o correo), mapa, solicitud y reseña.
+/// - Dueño: ve también su servicio en revisión, pausado o rechazado (con el motivo).
 class DetailScreen extends StatefulWidget {
+  final int? idServicio;
+
+  /// Datos de la tarjeta tocada: no se usan para pintar, sólo dan el id sin esperar.
   final Servicio? servicio;
-  const DetailScreen({super.key, required this.servicio});
+  final ServiciosRepository? repositorio;
+
+  const DetailScreen({
+    super.key,
+    this.idServicio,
+    this.servicio,
+    this.repositorio,
+  });
 
   @override
   State<DetailScreen> createState() => _DetailScreenState();
 }
 
 class _DetailScreenState extends State<DetailScreen> {
+  late final ServiciosRepository _repo =
+      widget.repositorio ?? ServiciosRepository.instance;
+  late final int? _id = widget.idServicio ?? widget.servicio?.id;
+
   bool _cargando = true;
   bool _menuAbierto = false;
+  bool _noEncontrado = false;
+  String? _error;
   ServicioDetalle? _detalle;
+
+  bool get _haySesion => AuthRepository.instance.haySesion;
 
   @override
   void initState() {
     super.initState();
+    _cargar();
+  }
 
-    // para que se vea el esqueleto, igual que en la web.
-    final s = widget.servicio;
-    if (s != null) _detalle = detalleMock(s);
-    Future<void>.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) setState(() => _cargando = false);
+  Future<void> _cargar() async {
+    final id = _id;
+    if (id == null) {
+      setState(() {
+        _cargando = false;
+        _noEncontrado = true;
+      });
+      return;
+    }
+    setState(() {
+      _cargando = true;
+      _error = null;
     });
+    try {
+      final d = await _repo.detalle(id);
+      if (!mounted) return;
+      setState(() {
+        _detalle = d;
+        _noEncontrado = false;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        if (e.status == 404) {
+          _noEncontrado = true;
+        } else {
+          _error = e.mensaje;
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _cargando = false);
+    }
   }
 
   // ── Navegación ──
   void _irA(String enlace) {
     setState(() => _menuAbierto = false);
     final nav = Navigator.of(context);
+    if (!_haySesion) {
+      if (enlace == 'inicio' || enlace == 'buscar') {
+        nav.pushNamedAndRemoveUntil('/home-guest', (_) => false);
+      } else {
+        nav.pushNamed('/login');
+      }
+      return;
+    }
     switch (enlace) {
       case 'inicio':
+      case 'buscar':
         nav.pushNamedAndRemoveUntil('/home', (_) => false);
       case 'perfil':
         nav.pushNamed('/perfil');
-      default: // buscar | publicar
-        nav.pushNamedAndRemoveUntil('/home', (_) => false, arguments: enlace);
+      case 'publicar':
+        nav.pushNamed('/publicar');
     }
   }
 
@@ -77,36 +137,58 @@ class _DetailScreenState extends State<DetailScreen> {
       );
   }
 
-  void _agregarResena(int estrellas, String comentario) {
-    final d = _detalle;
-    if (d == null) return;
-    const meses = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
-    ];
-    final h = DateTime.now();
-    setState(() {
-      _detalle = d.conResenas([
-        Resena(
-          autor: 'Tú',
-          fecha: '${h.day} de ${meses[h.month - 1]} de ${h.year}',
-          estrellas: estrellas,
-          comentario: comentario,
-        ),
-        ...d.resenas,
-      ]);
-    });
+  // ── Contacto y mapa ──
+
+  Future<void> _abrir(Uri uri, String siFalla) async {
+    var abierto = false;
+    try {
+      abierto = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {}
+    if (!abierto && mounted) _aviso(siFalla);
   }
+
+  Future<void> _contactar(ServicioDetalle d) async {
+    final contacto = d.contacto!.trim();
+    final titulo = d.servicio.titulo;
+    if (contacto.contains('@')) {
+      return _abrir(
+        Uri(
+          scheme: 'mailto',
+          path: contacto,
+          query: 'subject=${Uri.encodeComponent('UniService: $titulo')}',
+        ),
+        'No encontramos una app de correo. Escribe a $contacto',
+      );
+    }
+    final numero = numeroWhatsApp(contacto);
+    if (numero == null) {
+      await Clipboard.setData(ClipboardData(text: contacto));
+      if (mounted) _aviso('Contacto copiado: $contacto');
+      return;
+    }
+    final texto = Uri.encodeComponent(
+      'Hola, vi tu servicio "$titulo" en UniService.',
+    );
+    return _abrir(
+      Uri.parse('https://wa.me/$numero?text=$texto'),
+      'No se pudo abrir WhatsApp. El número es $contacto',
+    );
+  }
+
+  void _abrirMapa(ServicioDetalle d) {
+    final consulta = d.lat != null && d.lng != null
+        ? '${d.lat},${d.lng}'
+        : d.direccion!;
+    _abrir(
+      Uri.https('www.google.com', '/maps/search/', {
+        'api': '1',
+        'query': consulta,
+      }),
+      'No se pudo abrir el mapa.',
+    );
+  }
+
+  void _iniciarSesion() => Navigator.of(context).pushNamed('/login');
 
   @override
   Widget build(BuildContext context) {
@@ -125,14 +207,21 @@ class _DetailScreenState extends State<DetailScreen> {
                 NavbarServicio(
                   movil: movilNav,
                   menuAbierto: _menuAbierto,
+                  invitado: !_haySesion,
                   onToggleMenu: () =>
                       setState(() => _menuAbierto = !_menuAbierto),
                   onEnlace: _irA,
                   onCerrarSesion: _cerrarSesion,
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(children: [_cuerpo(ancho), _footer()]),
+                  child: RefreshIndicator(
+                    color: AppColors.teal,
+                    backgroundColor: AppColors.card,
+                    onRefresh: _cargar,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(children: [_cuerpo(ancho), _footer()]),
+                    ),
                   ),
                 ),
               ],
@@ -142,6 +231,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 top: 62,
                 right: 16,
                 child: MenuMovilServicio(
+                  invitado: !_haySesion,
                   onEnlace: _irA,
                   onCerrarSesion: _cerrarSesion,
                 ),
@@ -153,8 +243,8 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Widget _cuerpo(double ancho) {
-    // Cargando -> esqueleto
-    if (_cargando) {
+    final d = _detalle;
+    if (_cargando && d == null) {
       return Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
@@ -165,19 +255,23 @@ class _DetailScreenState extends State<DetailScreen> {
         ),
       );
     }
-
-    // Sin servicio -> "no encontrado"
-    final d = _detalle;
-    if (d == null) return _noEncontrado();
+    if (_noEncontrado) return _estadoVacio();
+    if (d == null) return _estadoError();
 
     final izquierda = _columnaIzquierda(d, ancho);
     final derecha = _columnaDerecha(d);
+    final movil = ancho <= 540;
 
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1200),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 32, 24, 60),
+          padding: EdgeInsets.fromLTRB(
+            movil ? 16 : 24,
+            movil ? 20 : 32,
+            movil ? 16 : 24,
+            60,
+          ),
           child: ancho > 1024
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +283,7 @@ class _DetailScreenState extends State<DetailScreen> {
                 )
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [izquierda, const SizedBox(height: 0), derecha],
+                  children: [izquierda, derecha],
                 ),
         ),
       ),
@@ -201,24 +295,38 @@ class _DetailScreenState extends State<DetailScreen> {
     final s = d.servicio;
     final movil = ancho <= 768;
     final icono = iconosPorCategoria[s.categoria] ?? iconoPorDefecto;
+    final hayUbicacion =
+        (d.lat != null && d.lng != null) || (d.direccion?.isNotEmpty ?? false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (d.esPropio && d.estado != 'aprobado')
+          _BannerEstado(estado: d.estado, motivo: d.motivoRechazo),
+
         GaleriaServicio(imagenes: d.imagenes, icono: icono),
 
-        if (d.esArriendo && d.tieneUbicacion)
+        if (hayUbicacion)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.only(top: 16),
             child: BtnDetalle(
               label: 'Ver ubicación en el mapa',
               icono: Icons.location_on,
               estilo: EstiloBtn.mapa,
               ancho: false,
               margenInferior: false,
-              onTap: () => _mostrarMapa(d),
+              onTap: () => _abrirMapa(d),
+            ),
+          )
+        else if (d.tieneUbicacion && !_haySesion)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              'Inicia sesión para ver la ubicación.',
+              style: AppText.poppins(13.5, color: AppColors.texto2),
             ),
           ),
+        const SizedBox(height: 16),
 
         // ── Info principal ──
         Padding(
@@ -226,51 +334,44 @@ class _DetailScreenState extends State<DetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _tituloYReportar(s, movil),
-              const SizedBox(height: 20),
+              _tituloYReportar(d, movil),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      StarRating(rating: d.promedio, size: 22),
-                      const SizedBox(height: 4),
-                      Text.rich(
-                        TextSpan(
-                          style: AppText.poppins(
-                            14.4,
-                            color: AppColors.texto2,
-                            height: 1.6,
-                          ),
-                          children: [
-                            TextSpan(
-                              text: d.promedio.toStringAsFixed(1),
-                              style: AppText.poppins(
-                                14.4,
-                                weight: FontWeight.w700,
-                                height: 1.6,
-                              ),
-                            ),
-                            const TextSpan(text: ' de 5.0'),
-                          ],
+                  StarRating(rating: d.promedio, size: 22),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text.rich(
+                      TextSpan(
+                        style: AppText.poppins(
+                          14.4,
+                          color: AppColors.texto2,
+                          height: 1.6,
                         ),
+                        children: d.numResenas == 0
+                            ? const [TextSpan(text: 'Sin reseñas todavía')]
+                            : [
+                                TextSpan(
+                                  text: formatearDecimal(d.promedio),
+                                  style: AppText.poppins(
+                                    14.4,
+                                    weight: FontWeight.w700,
+                                    height: 1.6,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text:
+                                      ' · ${d.numResenas} ${d.numResenas == 1 ? 'reseña' : 'reseñas'}',
+                                ),
+                              ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  Text(
-                    '${d.resenas.length} reseñas',
-                    style: AppText.poppins(
-                      14.4,
-                      color: AppColors.texto2,
-                      height: 1.6,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: AppColors.card,
                   borderRadius: BorderRadius.circular(12),
@@ -280,7 +381,7 @@ class _DetailScreenState extends State<DetailScreen> {
                   s.descripcion.isEmpty
                       ? 'Sin descripción disponible.'
                       : s.descripcion,
-                  style: AppText.poppins(15.2, height: 1.8),
+                  style: AppText.poppins(15.2, height: 1.7),
                 ),
               ),
             ],
@@ -290,28 +391,35 @@ class _DetailScreenState extends State<DetailScreen> {
         // ── Detalles del servicio ──
         SeccionInfo(
           icono: Icons.checklist,
-          titulo: 'Detalles del Servicio',
+          titulo: 'Detalles del servicio',
           margen: const EdgeInsets.only(top: 0, bottom: 24),
           child: Column(
             children: [
-              InfoRow(label: 'Modalidad', value: d.modalidad),
-              InfoRow(label: 'Disponibilidad', value: d.disponibilidad),
-              InfoRow(label: 'Precio por hora', value: '\$${s.precioHora} COP'),
+              InfoRow(
+                label: 'Precio ${unidadesPrecio[s.unidadPrecio] ?? ''}'.trim(),
+                value: '${formatearPrecio(s.precio)} COP',
+              ),
+              InfoRow(
+                label: 'Modalidad',
+                value: modalidades[s.modalidad] ?? s.modalidad,
+              ),
+              InfoRow(
+                label: 'Disponibilidad',
+                value: disponibilidades[s.disponibilidad] ?? s.disponibilidad,
+              ),
               InfoRow(label: 'Universidad', value: d.universidadTexto),
               InfoRow(
                 label: 'Publicado',
                 value: formatearFecha(s.fechaPublicacion),
-                ultima:
-                    !(d.contacto != null) &&
-                    !(d.esArriendo && d.direccion != null),
+                ultima: d.contacto == null && d.direccion == null,
               ),
               if (d.contacto != null)
                 InfoRow(
                   label: 'Contacto',
                   value: d.contacto!,
-                  ultima: !(d.esArriendo && d.direccion != null),
+                  ultima: d.direccion == null,
                 ),
-              if (d.esArriendo && d.direccion != null)
+              if (d.direccion != null)
                 InfoRow(
                   label: 'Dirección',
                   value: d.direccion!,
@@ -325,13 +433,14 @@ class _DetailScreenState extends State<DetailScreen> {
         // ── Reseñas ──
         SeccionInfo(
           icono: Icons.star_rounded,
-          titulo: 'Reseñas de Clientes',
+          titulo: 'Reseñas de clientes',
           child: d.resenas.isEmpty
               ? Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Text(
                       'Aún no hay reseñas para este servicio.',
+                      textAlign: TextAlign.center,
                       style: AppText.poppins(14, color: AppColors.texto2),
                     ),
                   ),
@@ -349,21 +458,24 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
         ),
 
-        // ── Dejar reseña ──
-        FormCalificacion(onNuevaResena: _agregarResena),
+        // ── Dejar reseña (sólo quien tuvo una solicitud completada) ──
+        if (_haySesion && !d.esPropio)
+          FormCalificacion(idServicio: s.id, onGuardada: _cargar),
       ],
     );
   }
 
-  Widget _tituloYReportar(Servicio s, bool movil) {
+  Widget _tituloYReportar(ServicioDetalle d, bool movil) {
+    final s = d.servicio;
     final titulo = Text(
       s.titulo.isEmpty ? 'Sin título' : s.titulo,
-      style: AppText.serif(movil ? 24 : 30.4, height: 1.2),
+      style: AppText.serif(movil ? 26 : 30.4, height: 1.2),
     );
+    if (!_haySesion || d.esPropio) return titulo;
+
     final reportar = _BtnReportar(
       onTap: () => _aviso('Reportar: próxima vista por implementar'),
     );
-
     if (movil) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,61 +495,121 @@ class _DetailScreenState extends State<DetailScreen> {
   // ═════════════ COLUMNA DERECHA ═════════════
   Widget _columnaDerecha(ServicioDetalle d) {
     final s = d.servicio;
+    final p = d.proveedor;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ProveedorCard(
           detalle: d,
-          onTap: () => Navigator.of(context).pushNamed('/perfil-externo'),
+          onTap: _haySesion
+              ? () => Navigator.of(context).pushNamed('/perfil-externo', arguments: p.id)
+              : _iniciarSesion,
         ),
-        if (d.contacto != null)
+        if (d.esPropio)
+          _AccionesDueno(
+            onEditar: () =>
+                Navigator.of(context).pushNamed('/publicar', arguments: s.id),
+            onMisServicios: () =>
+                Navigator.of(context).pushNamed('/mis-servicios'),
+          )
+        else if (!_haySesion)
+          _InvitaSesion(onIniciarSesion: _iniciarSesion)
+        else if (d.contacto != null)
           ContactoBotones(
             contacto: d.contacto!,
-            onContactar: () => _aviso(
-              d.contacto!.contains('@')
-                  ? 'Aquí se abriría Gmail para escribir a ${d.contacto} (url_launcher)'
-                  : 'Aquí se abriría WhatsApp con ${d.contacto} (url_launcher)',
-            ),
+            onContactar: () => _contactar(d),
             onMensaje: () => _aviso('Chat: próxima vista por implementar'),
           ),
         SeccionInfo(
           icono: Icons.person,
-          titulo: 'Información del Proveedor',
+          titulo: 'Información del proveedor',
           child: Column(
             children: [
-              const InfoRow(label: 'Publicaciones', value: '1 servicio'),
-              InfoRow(label: 'Reseñas totales', value: '${d.resenas.length}'),
+              InfoRow(
+                label: 'Publicaciones',
+                value:
+                    '${p.serviciosPublicados} ${p.serviciosPublicados == 1 ? 'servicio' : 'servicios'}',
+              ),
+              InfoRow(label: 'Reseñas totales', value: '${p.numResenas}'),
               InfoRow(
                 label: 'Calificación',
-                value: '${d.promedio.toStringAsFixed(1)} ★',
+                value: p.numResenas == 0
+                    ? 'Sin calificaciones'
+                    : '${formatearDecimal(p.promedio)} ★',
                 ultima: true,
               ),
             ],
           ),
         ),
-        FormSolicitud(categoria: s.categoria, proveedorNombre: s.proveedor),
+        if (_haySesion && !d.esPropio && d.estado == 'aprobado')
+          FormSolicitud(
+            idServicio: s.id,
+            categoria: s.categoria,
+            proveedorNombre: s.proveedor.isEmpty ? 'el proveedor' : s.proveedor,
+            onVerSolicitudes: () =>
+                Navigator.of(context).pushNamed('/solicitudes'),
+          ),
       ],
     );
   }
 
-  // ═════════════ Estado "no encontrado" ═════════════
-  Widget _noEncontrado() {
+  // ═════════════ Estados sin datos ═════════════
+  Widget _estadoVacio() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
       child: Center(
         child: Column(
           children: [
-            const Text('😕', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 8),
-            Text('Servicio no encontrado', style: AppText.serif(32)),
+            const Icon(
+              Icons.search_off_rounded,
+              size: 48,
+              color: AppColors.texto2,
+            ),
             const SizedBox(height: 12),
             Text(
-              'El servicio que buscas no existe o fue eliminado.',
+              'Servicio no encontrado',
+              textAlign: TextAlign.center,
+              style: AppText.serif(30),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'El servicio que buscas no existe, fue retirado o está en revisión.',
               textAlign: TextAlign.center,
               style: AppText.poppins(14.4, color: AppColors.texto2),
             ),
             const SizedBox(height: 24),
-            BtnVerde(label: '← Volver al inicio', onTap: () => _irA('inicio')),
+            BtnVerde(label: 'Volver al inicio', onTap: () => _irA('inicio')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _estadoError() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+      child: Center(
+        child: Column(
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: AppColors.texto2,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No pudimos cargar el servicio',
+              textAlign: TextAlign.center,
+              style: AppText.serif(28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _error ?? '',
+              textAlign: TextAlign.center,
+              style: AppText.poppins(14.4, color: AppColors.texto2),
+            ),
+            const SizedBox(height: 24),
+            BtnVerde(label: 'Reintentar', onTap: _cargar),
           ],
         ),
       ),
@@ -477,100 +649,154 @@ class _DetailScreenState extends State<DetailScreen> {
       ),
     );
   }
+}
 
-  // ═════════════ Modal del mapa ═════════════
-  void _mostrarMapa(ServicioDetalle d) {
-    showDialog<void>(
-      context: context,
-      barrierColor: const Color(0xB3000000),
-      builder: (ctx) => Dialog(
-        backgroundColor: AppColors.card,
-        insetPadding: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.borde),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
+/// Teléfono colombiano en formato de wa.me ("300 123 4567" -> "573001234567").
+/// Devuelve null si no parece un teléfono.
+String? numeroWhatsApp(String contacto) {
+  final digitos = contacto.replaceAll(RegExp(r'\D'), '');
+  if (digitos.length == 10 && digitos.startsWith('3')) return '57$digitos';
+  if (digitos.length == 12 && digitos.startsWith('573')) return digitos;
+  if (digitos.length >= 11 && digitos.length <= 15) return digitos;
+  return null;
+}
+
+/// Aviso para el dueño cuando su servicio no es público.
+class _BannerEstado extends StatelessWidget {
+  final String estado;
+  final String? motivo;
+  const _BannerEstado({required this.estado, this.motivo});
+
+  @override
+  Widget build(BuildContext context) {
+    final (etiqueta, color) = estadoServicio(estado);
+    final texto = switch (estado) {
+      'pendiente' =>
+        'Un administrador lo revisará pronto. Mientras tanto sólo tú puedes verlo.',
+      'pausado' =>
+        'Lo pausaste: no aparece en las búsquedas. Puedes reanudarlo desde Mis servicios.',
+      'rechazado' =>
+        motivo == null || motivo!.isEmpty
+            ? 'No fue aprobado. Edítalo y vuelve a enviarlo a revisión.'
+            : 'Motivo: $motivo\nEdítalo y vuelve a enviarlo a revisión.',
+      _ => '',
+    };
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.a(color, 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.a(color, 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: color, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.location_on,
-                      color: AppColors.teal,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        d.direccion ?? 'Ubicación del servicio',
-                        style: AppText.poppins(15, weight: FontWeight.w700),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      icon: const Icon(Icons.close, color: AppColors.texto2),
-                    ),
-                  ],
+                Text(
+                  'Tu servicio: $etiqueta',
+                  style: AppText.poppins(
+                    14.5,
+                    weight: FontWeight.w600,
+                    color: color,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                // Marcador de posición del mapa (en la web es Google Maps)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    height: 280,
-                    color: AppColors.bg2,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Positioned.fill(
-                          child: CustomPaint(painter: _MapaPainter()),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 48,
-                              color: Color(0xFFEA4335),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.card,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Aquí iría el mapa (google_maps_flutter)',
-                                style: AppText.poppins(
-                                  12,
-                                  color: AppColors.texto2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  texto,
+                  style: AppText.poppins(
+                    13.5,
+                    color: AppColors.texto2,
+                    height: 1.45,
                   ),
                 ),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
+
+class _AccionesDueno extends StatelessWidget {
+  final VoidCallback onEditar;
+  final VoidCallback onMisServicios;
+  const _AccionesDueno({required this.onEditar, required this.onMisServicios});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        children: [
+          BtnDetalle(
+            label: 'Editar servicio',
+            icono: Icons.edit_outlined,
+            onTap: onEditar,
+          ),
+          BtnDetalle(
+            label: 'Mis servicios',
+            icono: Icons.inventory_2_outlined,
+            estilo: EstiloBtn.secundario,
+            onTap: onMisServicios,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Para invitados: el contacto y la solicitud piden sesión.
+class _InvitaSesion extends StatelessWidget {
+  final VoidCallback onIniciarSesion;
+  const _InvitaSesion({required this.onIniciarSesion});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.a(AppColors.teal, 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Icon(Icons.lock_outline, color: AppColors.teal, size: 28),
+          const SizedBox(height: 10),
+          Text(
+            '¿Te interesa este servicio?',
+            textAlign: TextAlign.center,
+            style: AppText.poppins(16, weight: FontWeight.w700),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Inicia sesión con tu correo institucional para ver el contacto y enviar una solicitud.',
+            textAlign: TextAlign.center,
+            style: AppText.poppins(13.5, color: AppColors.texto2, height: 1.5),
+          ),
+          const SizedBox(height: 16),
+          BtnDetalle(
+            label: 'Iniciar sesión',
+            icono: Icons.login,
+            margenInferior: false,
+            onTap: onIniciarSesion,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 // ── Tarjeta de reseña (.resena) ──
 class _ResenaCard extends StatelessWidget {
@@ -628,7 +854,7 @@ class _ResenaCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        resena.fecha,
+                        '${formatearFecha(resena.fecha)}${resena.editada ? ' · editada' : ''}',
                         style: AppText.poppins(12.5, color: AppColors.texto3),
                       ),
                     ],
@@ -694,35 +920,4 @@ class _BtnReportar extends StatelessWidget {
       ),
     );
   }
-}
-
-// Calles dibujadas de forma simple para el marcador del mapa
-class _MapaPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final calle = Paint()
-      ..color = AppColors.a(AppColors.teal, 0.10)
-      ..strokeWidth = 10
-      ..strokeCap = StrokeCap.round;
-    final fina = Paint()
-      ..color = AppColors.a(AppColors.teal, 0.06)
-      ..strokeWidth = 4;
-    for (double x = 40; x < size.width; x += 90) {
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x + 30, size.height),
-        x % 180 < 90 ? calle : fina,
-      );
-    }
-    for (double y = 30; y < size.height; y += 70) {
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y - 20),
-        y % 140 < 70 ? calle : fina,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

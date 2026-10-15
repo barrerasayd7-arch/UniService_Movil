@@ -50,7 +50,7 @@ class ImagenServicioView extends StatelessWidget {
       fit: fit,
       width: double.infinity,
       height: double.infinity,
-      errorBuilder: (_, __, ___) => _marcador(),
+      errorBuilder: (_, _, _) => _marcador(),
     );
   }
 }

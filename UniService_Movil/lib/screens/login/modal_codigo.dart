@@ -15,19 +15,29 @@ Future<VerificacionCorreo?> mostrarModalCodigo(
   BuildContext context, {
   required String correo,
   required int reenviarEn,
+  String textoSalir = 'Cambiar correo',
 }) {
   return showDialog<VerificacionCorreo>(
     context: context,
     barrierDismissible: false,
     barrierColor: const Color(0xB3000000),
-    builder: (_) => _ModalCodigo(correo: correo, reenviarEn: reenviarEn),
+    builder: (_) => _ModalCodigo(
+      correo: correo,
+      reenviarEn: reenviarEn,
+      textoSalir: textoSalir,
+    ),
   );
 }
 
 class _ModalCodigo extends StatefulWidget {
   final String correo;
   final int reenviarEn;
-  const _ModalCodigo({required this.correo, required this.reenviarEn});
+  final String textoSalir;
+  const _ModalCodigo({
+    required this.correo,
+    required this.reenviarEn,
+    required this.textoSalir,
+  });
 
   @override
   State<_ModalCodigo> createState() => _ModalCodigoState();
@@ -200,7 +210,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                         foregroundColor: AppColors.texto2,
                       ),
                       child: Text(
-                        'Cambiar correo',
+                        widget.textoSalir,
                         style: AppText.poppins(12.8, color: AppColors.texto2),
                       ),
                     ),

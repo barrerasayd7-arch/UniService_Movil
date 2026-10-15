@@ -3,19 +3,32 @@ import 'package:flutter/services.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
+import '../../core/categorias.dart' show formatearPrecio;
 import '../../core/solicitud_config.dart';
+import '../../data/api_client.dart';
+import '../../data/solicitudes_repository.dart';
+import '../../models/solicitud.dart';
 import '../login/auth_widgets.dart' show mostrarNotificacion;
 import 'detail_widgets.dart';
 
-/// `.form-solicitud` (FormularioSolicitud.jsx). Los campos dependen de la
-/// categoría del servicio (tutorías, ensayos, arriendo...).
+/// Formulario para solicitar el servicio (`POST /api/solicitudes`). Los campos
+/// dependen de la categoría (tutorías, ensayos, arriendo...).
+///
+/// Si el usuario ya tiene una solicitud activa para este servicio, muestra su
+/// estado y permite cancelarla en lugar del formulario.
 class FormSolicitud extends StatefulWidget {
+  final int idServicio;
   final String categoria;
   final String proveedorNombre;
+  final VoidCallback onVerSolicitudes;
+  final SolicitudesRepository? repositorio;
   const FormSolicitud({
     super.key,
+    required this.idServicio,
     required this.categoria,
     required this.proveedorNombre,
+    required this.onVerSolicitudes,
+    this.repositorio,
   });
 
   @override
@@ -23,23 +36,31 @@ class FormSolicitud extends StatefulWidget {
 }
 
 class _FormSolicitudState extends State<FormSolicitud> {
+  late final SolicitudesRepository _repo =
+      widget.repositorio ?? SolicitudesRepository.instance;
   late final ConfigSolicitud _config = configSolicitud(widget.categoria);
+  // Adjuntar archivos aún no está disponible en la API (necesita un bucket privado).
+  late final List<CampoSolicitud> _campos = _config.campos
+      .where((c) => c.tipo != TipoCampo.file)
+      .toList();
   final Map<String, TextEditingController> _ctrl = {};
   final Map<String, DateTime> _fechas = {};
   final Map<String, TimeOfDay> _horas = {};
   final Map<String, String> _selects = {};
 
-  bool _solicitudExiste = false; 
+  Solicitud? _activa;
+  bool _consultando = true;
   bool _enviando = false;
 
   @override
   void initState() {
     super.initState();
-    for (final c in _config.campos) {
+    for (final c in _campos) {
       if (c.tipo == TipoCampo.textarea || c.tipo == TipoCampo.number) {
         _ctrl[c.nombre] = TextEditingController();
       }
     }
+    _consultarActiva();
   }
 
   @override
@@ -48,6 +69,22 @@ class _FormSolicitudState extends State<FormSolicitud> {
       c.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _consultarActiva() async {
+    setState(() => _consultando = true);
+    Solicitud? activa;
+    try {
+      activa = await _repo.activaPara(widget.idServicio);
+    } on ApiException {
+      // Sin la consulta se muestra el formulario; si ya existe, la API responde 409.
+    }
+    if (mounted) {
+      setState(() {
+        _activa = activa;
+        _consultando = false;
+      });
+    }
   }
 
   // ── Helpers ──
@@ -71,14 +108,14 @@ class _FormSolicitudState extends State<FormSolicitud> {
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
   Future<void> _elegirFecha(CampoSolicitud c) async {
-    final hoy = DateTime.now();
-    // En "fecha de inicio" no se permiten fechas pasadas (como en la web)
-    final primera = c.nombre.contains('inicio') ? DateTime(hoy.year, hoy.month, hoy.day) : DateTime(2020);
+    final ahora = DateTime.now();
+    // La API no acepta fechas pasadas.
+    final hoy = DateTime(ahora.year, ahora.month, ahora.day);
     final d = await showDatePicker(
       context: context,
-      initialDate: _fechas[c.nombre] ?? (primera.isAfter(hoy) ? primera : hoy),
-      firstDate: primera,
-      lastDate: DateTime(hoy.year + 5),
+      initialDate: _fechas[c.nombre] ?? hoy,
+      firstDate: hoy,
+      lastDate: DateTime(hoy.year + 2),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
           colorScheme: const ColorScheme.dark(
@@ -114,18 +151,104 @@ class _FormSolicitudState extends State<FormSolicitud> {
   }
 
   bool _validar() {
-    for (final c in _config.campos) {
+    for (final c in _campos) {
       if (c.obligatorio && !_lleno(c)) {
         mostrarNotificacion(context, "El campo '${c.label}' es obligatorio");
         return false;
       }
     }
-    final p = int.tryParse(_ctrl['presupuesto']?.text ?? '');
-    if (p != null && p > 9999999) {
+    if ((_ctrl['descripcion']?.text.trim().length ?? 0) < 10) {
+      mostrarNotificacion(
+        context,
+        'Describe lo que necesitas (mínimo 10 caracteres)',
+      );
+      return false;
+    }
+    final p = int.tryParse(_ctrl['presupuesto']?.text ?? '') ?? 0;
+    if (p < 1) {
+      mostrarNotificacion(context, 'Indica un presupuesto mayor a 0');
+      return false;
+    }
+    if (p > 99999999) {
       mostrarNotificacion(context, 'El presupuesto es demasiado grande');
       return false;
     }
     return true;
+  }
+
+  Future<void> _enviar() async {
+    if (!_validar()) return;
+    setState(() => _enviando = true);
+    final hora = _horas['hora_deseada'];
+    final inicio = _fechas['fecha_inicio'];
+    try {
+      await _repo.crear(
+        idServicio: widget.idServicio,
+        descripcion: _ctrl['descripcion']!.text,
+        presupuesto: int.parse(_ctrl['presupuesto']!.text),
+        // En arriendo la fecha que importa es la de inicio.
+        fechaDeseada: _fechas['fecha_deseada'] ?? inicio,
+        horaDeseada: hora == null
+            ? null
+            : '${hora.hour.toString().padLeft(2, '0')}:${hora.minute.toString().padLeft(2, '0')}',
+        campos: {
+          for (final e in _selects.entries)
+            if (e.value.isNotEmpty) e.key: e.value,
+          if (inicio != null) 'fecha_inicio': fechaIso(inicio),
+        },
+      );
+      if (!mounted) return;
+      mostrarNotificacion(
+        context,
+        'Solicitud enviada. ${widget.proveedorNombre} recibirá un aviso y podrán hablar por el chat.',
+        exito: true,
+      );
+      _consultarActiva();
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      mostrarNotificacion(context, e.mensaje);
+      if (e.status == 409) _consultarActiva();
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  Future<void> _cancelar(Solicitud s) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.card,
+        title: Text('¿Cancelar la solicitud?', style: AppText.serif(22)),
+        content: Text(
+          'Avisaremos a ${widget.proveedorNombre}. Si cambias de opinión, puedes enviar otra.',
+          style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Volver'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.errorTexto),
+            child: const Text('Cancelar solicitud'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    setState(() => _enviando = true);
+    try {
+      await _repo.cancelar(s.id);
+      if (!mounted) return;
+      _limpiar();
+      mostrarNotificacion(context, 'Solicitud cancelada', exito: true);
+      _consultarActiva();
+    } on ApiException catch (e) {
+      if (mounted) mostrarNotificacion(context, e.mensaje);
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
   }
 
   void _limpiar() {
@@ -137,34 +260,18 @@ class _FormSolicitudState extends State<FormSolicitud> {
     _selects.clear();
   }
 
-  Future<void> _accion() async {
-    if (_solicitudExiste) {
-      
-      setState(() => _solicitudExiste = false);
-      mostrarNotificacion(context, 'Solicitud eliminada', exito: true);
-      return;
-    }
-    if (!_validar()) return;
-    setState(() => _enviando = true);
-    
-    await Future<void>.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() {
-      _enviando = false;
-      _solicitudExiste = true;
-      _limpiar();
-    });
-    mostrarNotificacion(context, 'Solicitud enviada', exito: true);
-  }
-
   // ── Construcción ──
   @override
   Widget build(BuildContext context) {
     final movil = MediaQuery.of(context).size.width <= 540;
+    final activa = _activa;
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: movil ? 20 : 28, horizontal: movil ? 16 : 24),
+      padding: EdgeInsets.symmetric(
+        vertical: movil ? 20 : 28,
+        horizontal: movil ? 16 : 24,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borde),
@@ -184,7 +291,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
             padding: const EdgeInsets.only(bottom: 12),
             margin: const EdgeInsets.only(bottom: 24),
             decoration: const BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppColors.teal, width: 2)),
+              border: Border(
+                bottom: BorderSide(color: AppColors.teal, width: 2),
+              ),
             ),
             child: Row(
               children: [
@@ -192,82 +301,117 @@ class _FormSolicitudState extends State<FormSolicitud> {
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
-                    '${_config.titulo} a ${widget.proveedorNombre}',
+                    activa != null
+                        ? 'Tu solicitud a ${widget.proveedorNombre}'
+                        : '${_config.titulo} a ${widget.proveedorNombre}',
                     style: AppText.poppins(16, weight: FontWeight.w700),
                   ),
                 ),
               ],
             ),
           ),
-          for (final c in _config.campos) _campo(c),
-          BtnDetalle(
-            label: _enviando
-                ? 'Enviando...'
-                : _solicitudExiste
-                    ? 'Eliminar solicitud'
-                    : 'Enviar solicitud',
-            icono: _solicitudExiste ? Icons.delete_outline : Icons.mail_outline,
-            cargando: _enviando,
-            onTap: _accion,
-          ),
-          if (_solicitudExiste)
-            Padding(
-              padding: const EdgeInsets.only(top: 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          if (_consultando)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(color: AppColors.teal),
+              ),
+            )
+          else if (activa != null)
+            ..._solicitudActiva(activa)
+          else ...[
+            for (final c in _campos) _campo(c),
+            BtnDetalle(
+              label: _enviando ? 'Enviando...' : 'Enviar solicitud',
+              icono: Icons.send_outlined,
+              cargando: _enviando,
+              margenInferior: false,
+              onTap: _enviar,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _solicitudActiva(Solicitud s) {
+    final aceptada = s.estado == 'Aceptada';
+    final color = aceptada ? const Color(0xFF34D399) : AppColors.amarillo;
+    return [
+      Container(
+        padding: const EdgeInsets.all(14),
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: AppColors.a(color, 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.a(color, 0.35)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              aceptada ? Icons.check_circle_outline : Icons.schedule,
+              color: color,
+              size: 22,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info_outline, size: 14, color: AppColors.texto2),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      'Ya tienes una solicitud activa para este servicio.',
-                      textAlign: TextAlign.center,
-                      style: AppText.poppins(13.1, color: AppColors.texto2),
-                    ),
+                  Text(
+                    aceptada
+                        ? '${widget.proveedorNombre} aceptó tu solicitud'
+                        : 'Esperando respuesta de ${widget.proveedorNombre}',
+                    style: AppText.poppins(14.5, weight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [
+                      if (s.presupuesto != null)
+                        'Tu presupuesto: ${formatearPrecio(s.presupuesto!)}',
+                      if (s.contraoferta != null)
+                        'Contraoferta: ${formatearPrecio(s.contraoferta!)}',
+                    ].join(' · '),
+                    style: AppText.poppins(13, color: AppColors.texto2),
                   ),
                 ],
               ),
             ),
-        ],
+          ],
+        ),
       ),
-    );
+      BtnDetalle(
+        label: 'Ver mis solicitudes',
+        icono: Icons.list_alt,
+        onTap: widget.onVerSolicitudes,
+      ),
+      BtnDetalle(
+        label: _enviando ? 'Cancelando...' : 'Cancelar solicitud',
+        icono: Icons.close,
+        estilo: EstiloBtn.secundario,
+        cargando: _enviando,
+        margenInferior: false,
+        onTap: () => _cancelar(s),
+      ),
+    ];
   }
 
   /// `.form-grupo-custom`: etiqueta con icono + control.
   Widget _campo(CampoSolicitud c) {
     final lleno = _lleno(c);
 
-    IconData icono;
-    switch (c.tipo) {
-      case TipoCampo.textarea:
-        icono = Icons.edit_note;
-      case TipoCampo.date:
-        icono = Icons.calendar_today_outlined;
-      case TipoCampo.time:
-        icono = Icons.access_time;
-      case TipoCampo.number:
-        icono = Icons.payments_outlined;
-      case TipoCampo.select:
-        icono = Icons.list;
-      case TipoCampo.file:
-        icono = Icons.attach_file;
-    }
+    final icono = switch (c.tipo) {
+      TipoCampo.textarea => Icons.edit_note,
+      TipoCampo.date => Icons.calendar_today_outlined,
+      TipoCampo.time => Icons.access_time,
+      TipoCampo.number => Icons.payments_outlined,
+      TipoCampo.select => Icons.list,
+      TipoCampo.file => Icons.attach_file,
+    };
 
-    // Los campos de archivo traen la etiqueta dentro del propio botón
-    if (c.tipo == TipoCampo.file) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 18),
-        child: _BotonArchivo(
-          label: c.label,
-          onTap: () {
-            
-            mostrarNotificacion(context, 'Aquí se abriría el selector de archivos (file_picker).');
-          },
-        ),
-      );
-    }
-
-    final obligatorioMarca = c.obligatorio ||
+    final obligatorioMarca =
+        c.obligatorio ||
         c.tipo == TipoCampo.time ||
         c.tipo == TipoCampo.number; // la web marca * en hora y presupuesto
 
@@ -278,7 +422,11 @@ class _FormSolicitudState extends State<FormSolicitud> {
         children: [
           Row(
             children: [
-              Icon(icono, size: 15, color: lleno ? AppColors.teal : AppColors.texto2),
+              Icon(
+                icono,
+                size: 15,
+                color: lleno ? AppColors.teal : AppColors.texto2,
+              ),
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
@@ -293,7 +441,10 @@ class _FormSolicitudState extends State<FormSolicitud> {
               if (obligatorioMarca)
                 Padding(
                   padding: const EdgeInsets.only(left: 4),
-                  child: Text('*', style: AppText.poppins(13.6, color: AppColors.teal)),
+                  child: Text(
+                    '*',
+                    style: AppText.poppins(13.6, color: AppColors.teal),
+                  ),
                 ),
             ],
           ),
@@ -314,6 +465,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
             onChanged: (_) => setState(() {}),
             minLines: 4,
             maxLines: 8,
+            maxLength: 2000,
+            buildCounter: _sinContador,
             cursorColor: AppColors.teal,
             style: AppText.poppins(14.08, height: 1.6),
             decoration: _deco(c.placeholder),
@@ -328,7 +481,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
             keyboardType: TextInputType.number,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
+              LengthLimitingTextInputFormatter(8),
             ],
             cursorColor: AppColors.teal,
             style: AppText.poppins(14.08),
@@ -340,7 +493,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
           lleno: lleno,
           onTap: () => _elegirFecha(c),
           child: _valorFalso(
-            _fechas[c.nombre] != null ? _fmtFecha(_fechas[c.nombre]!) : 'Selecciona una fecha',
+            _fechas[c.nombre] != null
+                ? _fmtFecha(_fechas[c.nombre]!)
+                : 'Selecciona una fecha',
             _fechas[c.nombre] != null,
             Icons.calendar_today_outlined,
           ),
@@ -350,7 +505,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
           lleno: lleno,
           onTap: () => _elegirHora(c),
           child: _valorFalso(
-            _horas[c.nombre] != null ? _horas[c.nombre]!.format(context) : '--:-- --',
+            _horas[c.nombre] != null
+                ? _horas[c.nombre]!.format(context)
+                : '--:-- --',
             _horas[c.nombre] != null,
             Icons.access_time,
           ),
@@ -360,7 +517,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
           lleno: lleno,
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: (_selects[c.nombre] ?? '').isEmpty ? null : _selects[c.nombre],
+              value: (_selects[c.nombre] ?? '').isEmpty
+                  ? null
+                  : _selects[c.nombre],
               isExpanded: true,
               hint: Text(
                 c.placeholder ?? 'Selecciona',
@@ -371,7 +530,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
               icon: const Icon(Icons.arrow_drop_down),
               style: AppText.poppins(14.08),
               items: [
-                for (final o in c.opciones) DropdownMenuItem(value: o, child: Text(o)),
+                for (final o in c.opciones)
+                  DropdownMenuItem(value: o, child: Text(o)),
               ],
               onChanged: (v) => setState(() => _selects[c.nombre] = v ?? ''),
             ),
@@ -382,15 +542,22 @@ class _FormSolicitudState extends State<FormSolicitud> {
     }
   }
 
+  static Widget? _sinContador(
+    BuildContext _, {
+    required int currentLength,
+    required bool isFocused,
+    required int? maxLength,
+  }) => null;
+
   InputDecoration _deco(String? hint) => InputDecoration(
-        isDense: true,
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-        hintText: hint,
-        hintStyle: AppText.poppins(14.08, color: AppColors.texto3),
-        contentPadding: EdgeInsets.zero,
-      );
+    isDense: true,
+    border: InputBorder.none,
+    enabledBorder: InputBorder.none,
+    focusedBorder: InputBorder.none,
+    hintText: hint,
+    hintStyle: AppText.poppins(14.08, color: AppColors.texto3),
+    contentPadding: EdgeInsets.zero,
+  );
 
   Widget _valorFalso(String texto, bool tieneValor, IconData icono) {
     return Row(
@@ -467,83 +634,3 @@ class _CampoCajaState extends State<CampoCaja> {
   }
 }
 
-/// `.custom-file-upload`: botón con borde discontinuo.
-class _BotonArchivo extends StatefulWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _BotonArchivo({required this.label, required this.onTap});
-
-  @override
-  State<_BotonArchivo> createState() => _BotonArchivoState();
-}
-
-class _BotonArchivoState extends State<_BotonArchivo> {
-  bool _hover = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = _hover ? AppColors.teal : AppColors.texto2;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: CustomPaint(
-          foregroundPainter: _BordeDiscontinuo(_hover ? AppColors.teal : AppColors.borde2),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: _hover ? AppColors.a(AppColors.teal, 0.08) : AppColors.bg2,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.attach_file, size: 16, color: color),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    widget.label,
-                    textAlign: TextAlign.center,
-                    style: AppText.poppins(14.08, weight: FontWeight.w600, color: color),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BordeDiscontinuo extends CustomPainter {
-  final Color color;
-  _BordeDiscontinuo(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(1, 1, size.width - 2, size.height - 2),
-      const Radius.circular(12),
-    );
-    final path = Path()..addRRect(rrect);
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    for (final m in path.computeMetrics()) {
-      var d = 0.0;
-      while (d < m.length) {
-        canvas.drawPath(m.extractPath(d, d + 6), paint);
-        d += 10;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BordeDiscontinuo old) => old.color != color;
-}

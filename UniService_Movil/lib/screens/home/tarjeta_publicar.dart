@@ -37,7 +37,11 @@ class TarjetaPublicar extends StatelessWidget {
                 Text(
                   'Comparte tu talento con la comunidad universitaria',
                   textAlign: TextAlign.center,
-                  style: AppText.poppins(15, color: AppColors.texto2, height: 1.6),
+                  style: AppText.poppins(
+                    15,
+                    color: AppColors.texto2,
+                    height: 1.6,
+                  ),
                 ),
                 const SizedBox(height: 28),
                 _PublicarCard(onTap: onAbrir, compacto: movil),
@@ -137,7 +141,9 @@ class _PublicarCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Positioned.fill(child: CustomPaint(painter: _PuntosPainter())),
+                      Positioned.fill(
+                        child: CustomPaint(painter: _PuntosPainter()),
+                      ),
                     ],
                   ),
                 ),
@@ -173,7 +179,11 @@ class _PublicarCard extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.add, size: 26, color: AppColors.bg),
+                          child: const Icon(
+                            Icons.add,
+                            size: 26,
+                            color: AppColors.bg,
+                          ),
                         ),
                       ),
                     ),
@@ -184,12 +194,19 @@ class _PublicarCard extends StatelessWidget {
                         children: [
                           Text(
                             'Crear nuevo servicio',
-                            style: AppText.poppins(17.6, weight: FontWeight.w700),
+                            style: AppText.poppins(
+                              17.6,
+                              weight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'Define título, categoría, precio y detalles de tu servicio',
-                            style: AppText.poppins(13.6, color: AppColors.texto2, height: 1.4),
+                            style: AppText.poppins(
+                              13.6,
+                              color: AppColors.texto2,
+                              height: 1.4,
+                            ),
                           ),
                         ],
                       ),

@@ -4,14 +4,20 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'core/app_colors.dart';
+import 'data/admin_repository.dart';
 import 'data/auth_repository.dart';
+import 'screens/admin/admin_acceso_screen.dart';
+import 'screens/admin/admin_panel_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/home_guest/home_guest_screen.dart';
 import 'screens/login/auth_widgets.dart';
 import 'screens/login/login_screen.dart';
 import 'models/servicio.dart';
+import 'screens/mis_servicios/mis_servicios_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/publicar/publicar_screen.dart';
 import 'screens/service_detail/detail_screen.dart';
+import 'screens/solicitudes/solicitudes_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -73,13 +79,42 @@ class UniServiceApp extends StatelessWidget {
         '/home-guest': (_) => const HomeGuestScreen(),
         '/home': (_) => const HomeScreen(),
         '/perfil': (_) => const ProfileScreen(),
-        // El servicio llega como argumento: Navigator.pushNamed('/servicio', arguments: servicio)
+        // Argumento: el Servicio de la tarjeta o el id (int).
         '/servicio': (ctx) {
           final arg = ModalRoute.of(ctx)?.settings.arguments;
-          return DetailScreen(servicio: arg is Servicio ? arg : null);
+          return DetailScreen(
+            servicio: arg is Servicio ? arg : null,
+            idServicio: arg is int ? arg : null,
+          );
         },
-        '/perfil-externo': (_) => const ProfileScreen(externo: true),
+        '/perfil-externo': (ctx) => ProfileScreen(
+          externo: true,
+          idUsuario: ModalRoute.of(ctx)?.settings.arguments as int?,
+        ),
+        // Con un id (int) edita ese servicio; sin argumento publica uno nuevo.
+        '/publicar': (ctx) => _conSesion(() {
+          final arg = ModalRoute.of(ctx)?.settings.arguments;
+          return PublicarScreen(idServicio: arg is int ? arg : null);
+        }),
+        '/mis-servicios': (_) => _conSesion(() => const MisServiciosScreen()),
+        // Argumento opcional: 1 abre la pestaña de enviadas.
+        '/solicitudes': (ctx) => _conSesion(() {
+          final arg = ModalRoute.of(ctx)?.settings.arguments;
+          return SolicitudesScreen(pestanaInicial: arg is int ? arg : 0);
+        }),
+        // Panel admin: sin la contraseña de administrador (o vencida) muestra la puerta de acceso.
+        '/admin': (_) => _conSesion(
+          () => !(AuthRepository.instance.usuario.value?.esAdmin ?? false)
+              ? const HomeScreen()
+              : AdminRepository.instance.dentroDelPanel
+              ? const AdminPanelScreen()
+              : const AdminAccesoScreen(),
+        ),
       },
     );
   }
 }
+
+/// Las pantallas de la cuenta llevan al login si no hay sesión.
+Widget _conSesion(Widget Function() pantalla) =>
+    AuthRepository.instance.haySesion ? pantalla() : const LoginScreen();

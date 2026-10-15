@@ -26,7 +26,10 @@ class FooterHome extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6),
           child: Text(
             texto,
-            style: AppText.poppins(13.6, color: hover ? AppColors.teal : AppColors.texto2),
+            style: AppText.poppins(
+              13.6,
+              color: hover ? AppColors.teal : AppColors.texto2,
+            ),
           ),
         ),
       ),
@@ -39,7 +42,11 @@ class FooterHome extends StatelessWidget {
       children: [
         Text(
           titulo,
-          style: AppText.poppins(16, weight: FontWeight.w700, color: const Color(0xFFE8EDF5)),
+          style: AppText.poppins(
+            16,
+            weight: FontWeight.w700,
+            color: const Color(0xFFE8EDF5),
+          ),
         ),
         const SizedBox(height: 12),
         ...links,
@@ -59,11 +66,19 @@ class FooterHome extends StatelessWidget {
             children: [
               TextSpan(
                 text: 'Uni',
-                style: AppText.poppins(20.8, weight: FontWeight.w800, color: AppColors.teal),
+                style: AppText.poppins(
+                  20.8,
+                  weight: FontWeight.w800,
+                  color: AppColors.teal,
+                ),
               ),
               TextSpan(
                 text: 'Service',
-                style: AppText.poppins(20.8, weight: FontWeight.w800, color: AppColors.amarillo),
+                style: AppText.poppins(
+                  20.8,
+                  weight: FontWeight.w800,
+                  color: AppColors.amarillo,
+                ),
               ),
             ],
           ),
@@ -88,7 +103,13 @@ class FooterHome extends StatelessWidget {
       _link('Perfil', onPerfil),
     ]);
     final categorias = _columna('Categorías', [
-      for (final c in ['Tutorías', 'Ensayos', 'Programación', 'Diseño', 'Arriendo'])
+      for (final c in [
+        'Tutorías',
+        'Ensayos',
+        'Programación',
+        'Diseño',
+        'Arriendo',
+      ])
         _link(c, () => onAncla('buscar')),
     ]);
     final soporte = _columna('Soporte', [
@@ -117,12 +138,18 @@ class FooterHome extends StatelessWidget {
                   const SizedBox(height: 24),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [Expanded(child: plataforma), Expanded(child: cuenta)],
+                    children: [
+                      Expanded(child: plataforma),
+                      Expanded(child: cuenta),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [Expanded(child: categorias), Expanded(child: soporte)],
+                    children: [
+                      Expanded(child: categorias),
+                      Expanded(child: soporte),
+                    ],
                   ),
                 ] else
                   Row(

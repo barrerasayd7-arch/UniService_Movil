@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
-import '../../data/servicios_mock.dart';
 import '../../models/servicio.dart';
 import '../../widgets/explorador_servicios.dart';
 import 'footer_invitado.dart';
@@ -10,7 +9,7 @@ import 'hero_presentacion.dart';
 import 'navbar_invitado.dart';
 
 /// Inicio para invitados: portada + explorador de servicios + pie.
-/// Tocar un servicio lleva al login.
+/// Tocar un servicio abre su detalle (sin el contacto, que pide sesión).
 class HomeGuestScreen extends StatefulWidget {
   const HomeGuestScreen({super.key});
 
@@ -27,8 +26,7 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
   };
   bool _menuAbierto = false;
 
-  // (backend): reemplazar por GET /api/services
-  final List<Servicio> _servicios = serviciosMock;
+  final _explorador = GlobalKey<ExploradorServiciosState>();
 
   @override
   void dispose() {
@@ -73,8 +71,14 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                   onLogin: _login,
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: RefreshIndicator(
+                    color: AppColors.teal,
+                    backgroundColor: AppColors.card,
+                    onRefresh: () async =>
+                        _explorador.currentState?.recargar(),
+                    child: SingleChildScrollView(
                     controller: _scroll,
+                    physics: const AlwaysScrollableScrollPhysics(),
                     child: Column(
                       children: [
                         KeyedSubtree(
@@ -87,8 +91,10 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                         KeyedSubtree(
                           key: _keys['buscar'],
                           child: ExploradorServicios(
-                            servicios: _servicios,
-                            onTapServicio: (_) => _login(),
+                            key: _explorador,
+                            onTapServicio: (Servicio s) => Navigator.of(
+                              context,
+                            ).pushNamed('/servicio', arguments: s),
                             encabezado: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -98,7 +104,7 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Inicia sesión para contactar a quien los ofrece.',
+                                  'Mira los detalles; inicia sesión para contactar a quien los ofrece.',
                                   style: AppText.poppins(
                                     15,
                                     color: AppColors.texto2,
@@ -114,6 +120,7 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ),
               ],

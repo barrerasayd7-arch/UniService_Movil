@@ -8,11 +8,13 @@ import '../home/navbar_home.dart' show NavBoton, EstiloNav;
 
 /// Barra de BarraNavegacionServicio.jsx:
 /// Inicio · Servicios · Publicar servicio · Perfil · Cerrar Sesión.
+/// Para un invitado: Inicio · Servicios · Iniciar sesión.
 class NavbarServicio extends StatelessWidget {
   final bool movil;
   final bool menuAbierto;
+  final bool invitado;
   final VoidCallback onToggleMenu;
-  final ValueChanged<String> onEnlace; // inicio | buscar | publicar | perfil
+  final ValueChanged<String> onEnlace; // inicio | buscar | publicar | perfil | login
   final VoidCallback onCerrarSesion;
 
   const NavbarServicio({
@@ -22,6 +24,7 @@ class NavbarServicio extends StatelessWidget {
     required this.onToggleMenu,
     required this.onEnlace,
     required this.onCerrarSesion,
+    this.invitado = false,
   });
 
   static const enlaces = [
@@ -30,6 +33,9 @@ class NavbarServicio extends StatelessWidget {
     ('Publicar servicio', 'publicar'),
     ('Perfil', 'perfil'),
   ];
+
+  static List<(String, String)> enlacesPara(bool invitado) =>
+      invitado ? enlaces.sublist(0, 2) : enlaces;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +106,7 @@ class NavbarServicio extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          for (final e in enlaces)
+                          for (final e in enlacesPara(invitado))
                             Padding(
                               padding: const EdgeInsets.only(left: 2),
                               child: NavBoton(
@@ -110,11 +116,17 @@ class NavbarServicio extends StatelessWidget {
                             ),
                           Padding(
                             padding: const EdgeInsets.only(left: 2),
-                            child: NavBoton(
-                              label: 'Cerrar Sesión',
-                              estilo: EstiloNav.cerrar,
-                              onTap: onCerrarSesion,
-                            ),
+                            child: invitado
+                                ? NavBoton(
+                                    label: 'Iniciar sesión',
+                                    estilo: EstiloNav.perfil,
+                                    onTap: () => onEnlace('login'),
+                                  )
+                                : NavBoton(
+                                    label: 'Cerrar Sesión',
+                                    estilo: EstiloNav.cerrar,
+                                    onTap: onCerrarSesion,
+                                  ),
                           ),
                         ],
                       ),
@@ -133,10 +145,12 @@ class NavbarServicio extends StatelessWidget {
 class MenuMovilServicio extends StatelessWidget {
   final ValueChanged<String> onEnlace;
   final VoidCallback onCerrarSesion;
+  final bool invitado;
   const MenuMovilServicio({
     super.key,
     required this.onEnlace,
     required this.onCerrarSesion,
+    this.invitado = false,
   });
 
   @override
@@ -164,7 +178,7 @@ class MenuMovilServicio extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final e in NavbarServicio.enlaces)
+            for (final e in NavbarServicio.enlacesPara(invitado))
               fila(
                 NavBoton(
                   label: e.$1,
@@ -173,12 +187,19 @@ class MenuMovilServicio extends StatelessWidget {
                 ),
               ),
             fila(
-              NavBoton(
-                label: 'Cerrar Sesión',
-                bloque: true,
-                estilo: EstiloNav.cerrar,
-                onTap: onCerrarSesion,
-              ),
+              invitado
+                  ? NavBoton(
+                      label: 'Iniciar sesión',
+                      bloque: true,
+                      estilo: EstiloNav.perfil,
+                      onTap: () => onEnlace('login'),
+                    )
+                  : NavBoton(
+                      label: 'Cerrar Sesión',
+                      bloque: true,
+                      estilo: EstiloNav.cerrar,
+                      onTap: onCerrarSesion,
+                    ),
             ),
           ],
         ),

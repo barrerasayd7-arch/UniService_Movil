@@ -133,6 +133,9 @@ class NavbarHome extends StatelessWidget {
   final VoidCallback onPerfil;
   final VoidCallback onCerrarSesion;
 
+  /// Sólo para cuentas admin: abre el panel (null = no se muestra).
+  final VoidCallback? onPanelAdmin;
+
   const NavbarHome({
     super.key,
     required this.movil,
@@ -144,6 +147,7 @@ class NavbarHome extends StatelessWidget {
     required this.onSolicitudes,
     required this.onPerfil,
     required this.onCerrarSesion,
+    this.onPanelAdmin,
   });
 
   @override
@@ -232,6 +236,15 @@ class NavbarHome extends StatelessWidget {
                                 onTap: onSolicitudes,
                               ),
                             ),
+                            if (onPanelAdmin != null)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 2),
+                                child: NavBoton(
+                                  label: 'Panel admin',
+                                  icono: Icons.admin_panel_settings_outlined,
+                                  onTap: onPanelAdmin!,
+                                ),
+                              ),
                             Padding(
                               padding: const EdgeInsets.only(left: 2),
                               child: NavBoton(
@@ -308,6 +321,9 @@ class MenuMovilHome extends StatelessWidget {
   final VoidCallback onPerfil;
   final VoidCallback onCerrarSesion;
 
+  /// Sólo para cuentas admin: abre el panel (null = no se muestra).
+  final VoidCallback? onPanelAdmin;
+
   const MenuMovilHome({
     super.key,
     required this.nombreUsuario,
@@ -315,6 +331,7 @@ class MenuMovilHome extends StatelessWidget {
     required this.onSolicitudes,
     required this.onPerfil,
     required this.onCerrarSesion,
+    this.onPanelAdmin,
   });
 
   @override
@@ -358,6 +375,15 @@ class MenuMovilHome extends StatelessWidget {
                 onTap: onSolicitudes,
               ),
             ),
+            if (onPanelAdmin != null)
+              fila(
+                NavBoton(
+                  label: 'Panel admin',
+                  bloque: true,
+                  icono: Icons.admin_panel_settings_outlined,
+                  onTap: onPanelAdmin!,
+                ),
+              ),
             fila(
               NavBoton(
                 label: nombreUsuario,

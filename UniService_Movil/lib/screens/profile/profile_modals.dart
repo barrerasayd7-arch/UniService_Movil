@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
-import '../../core/categorias.dart';
-import '../../data/usuarios_mock.dart';
-import '../../models/servicio.dart';
+import '../../data/api_client.dart';
+import '../../data/auth_repository.dart';
+import '../../data/perfil_repository.dart';
 import '../../models/usuario.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 import '../login/auth_widgets.dart' show mostrarNotificacion;
@@ -44,7 +45,7 @@ Future<T?> mostrarImageMenu<T>(
         ),
       );
     },
-    pageBuilder: (ctx, _, __) => SafeArea(
+    pageBuilder: (ctx, _, _) => SafeArea(
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -209,6 +210,7 @@ class _CampoModal extends StatelessWidget {
   final bool obscure;
   final TextInputType tipo;
   final int lineas;
+  final int? maxLength;
   const _CampoModal({
     required this.label,
     required this.controller,
@@ -216,6 +218,7 @@ class _CampoModal extends StatelessWidget {
     this.obscure = false,
     this.tipo = TextInputType.text,
     this.lineas = 1,
+    this.maxLength,
   });
 
   @override
@@ -230,9 +233,10 @@ class _CampoModal extends StatelessWidget {
           TextField(
             controller: controller,
             obscureText: obscure,
-            keyboardType: tipo,
-            minLines: lineas,
-            maxLines: obscure ? 1 : lineas,
+            keyboardType: lineas > 1 ? TextInputType.multiline : tipo,
+            maxLines: lineas,
+            minLines: 1,
+            maxLength: maxLength,
             cursorColor: AppColors.teal,
             style: AppText.poppins(14.4),
             decoration: InputDecoration(
@@ -262,11 +266,16 @@ class _CampoModal extends StatelessWidget {
 }
 
 /// Diálogo pequeño que pide un valor (reemplaza a `prompt()` de la web).
+/// Devuelve null si se cancela; si se guarda, el texto recortado (puede ser vacío).
 Future<String?> _pedirValor(
   BuildContext context, {
   required String titulo,
   required String etiqueta,
   String inicial = '',
+  String hint = '',
+  int lineas = 1,
+  int? maxLength,
+  TextInputType tipo = TextInputType.text,
 }) {
   final ctrl = TextEditingController(text: inicial);
   return mostrarImageMenu<String>(
@@ -277,7 +286,14 @@ Future<String?> _pedirValor(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _CampoModal(label: etiqueta, controller: ctrl),
+        _CampoModal(
+          label: etiqueta,
+          hint: hint,
+          controller: ctrl,
+          lineas: lineas,
+          maxLength: maxLength,
+          tipo: tipo,
+        ),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -305,25 +321,74 @@ Future<String?> _pedirValor(
   );
 }
 
+/// Primer error de campo que devuelve la API ({ error, campos: { nombre: "..." } }).
+String _mensaje(ApiException e) {
+  final campos = e.datos?['campos'];
+  if (campos is Map && campos.isNotEmpty) return '${campos.values.first}';
+  return e.mensaje;
+}
+
+/// Foto de perfil: la URL del servidor o la imagen por defecto.
+Widget fotoPerfil(String? url, {double? size}) {
+  final porDefecto = Image.asset(
+    'assets/img/default-avatar.png',
+    errorBuilder: avatarRespaldo,
+    width: size,
+    height: size,
+    fit: BoxFit.cover,
+  );
+  if (url == null || url.isEmpty) return porDefecto;
+  return Image.network(
+    url,
+    width: size,
+    height: size,
+    fit: BoxFit.cover,
+    errorBuilder: (_, _, _) => porDefecto,
+  );
+}
+
 // ═════════════════════════════════════════════════════════════
-// Editar perfil
+// Editar perfil (PUT /api/perfil/me, un campo cada vez)
 // ═════════════════════════════════════════════════════════════
-Future<void> mostrarEditarPerfil(BuildContext context, Usuario u) {
+Future<void> mostrarEditarPerfil(
+  BuildContext context,
+  Usuario u, {
+  required void Function(Usuario actualizado) onActualizado,
+}) {
   return mostrarImageMenu<void>(
     context,
     titulo: 'Editar Perfil',
     icono: Icons.edit_outlined,
     builder: (ctx) {
-      Future<void> campo(String titulo, String etiqueta, String inicial) async {
+      Future<void> campo(
+        String clave,
+        String titulo,
+        String etiqueta,
+        String inicial, {
+        String hint = '',
+        int lineas = 1,
+        int? maxLength,
+        TextInputType tipo = TextInputType.text,
+      }) async {
         final v = await _pedirValor(
           ctx,
           titulo: titulo,
           etiqueta: etiqueta,
           inicial: inicial,
+          hint: hint,
+          lineas: lineas,
+          maxLength: maxLength,
+          tipo: tipo,
         );
-        if (v != null && v.isNotEmpty && ctx.mounted) {
-          //  PUT /api/users/{id} con el campo modificado
-          mostrarNotificacion(ctx, 'Aquí se guardaría: $v', exito: true);
+        if (v == null || v == inicial || !ctx.mounted) return;
+        try {
+          final nuevo = await PerfilRepository.instance.actualizar({clave: v});
+          onActualizado(nuevo);
+          if (ctx.mounted) {
+            mostrarNotificacion(ctx, 'Perfil actualizado', exito: true);
+          }
+        } on ApiException catch (e) {
+          if (ctx.mounted) mostrarNotificacion(ctx, _mensaje(e));
         }
       }
 
@@ -333,26 +398,37 @@ Future<void> mostrarEditarPerfil(BuildContext context, Usuario u) {
           ImageOption(
             icono: Icons.edit_outlined,
             texto: 'Cambiar Nombre',
-            onTap: () => campo('Cambiar Nombre', 'Nuevo nombre', u.nombre),
+            onTap: () => campo(
+              'nombre',
+              'Cambiar Nombre',
+              'Nombre y apellido',
+              u.nombre,
+              maxLength: 50,
+            ),
           ),
           const SizedBox(height: 14),
           ImageOption(
             icono: Icons.menu_book_outlined,
             texto: 'Cambiar Descripción',
             onTap: () => campo(
+              'descripcion',
               'Cambiar Descripción',
-              'Nueva descripción',
+              'Cuéntales a los demás qué ofreces',
               u.descripcion,
+              lineas: 4,
+              maxLength: 500,
             ),
           ),
           const SizedBox(height: 14),
           ImageOption(
-            icono: Icons.apartment,
-            texto: 'Cambiar Universidad',
+            icono: Icons.school_outlined,
+            texto: 'Programa académico',
             onTap: () => campo(
-              'Cambiar Universidad',
-              'Nueva universidad',
-              u.universidad,
+              'programa',
+              'Programa académico',
+              'Ej.: Ingeniería de Sistemas',
+              u.programa,
+              maxLength: 120,
             ),
           ),
           const SizedBox(height: 14),
@@ -360,9 +436,12 @@ Future<void> mostrarEditarPerfil(BuildContext context, Usuario u) {
             icono: Icons.phone_outlined,
             texto: 'Cambiar Teléfono',
             onTap: () => campo(
+              'telefono',
               'Cambiar Teléfono',
-              'Nuevo número de teléfono',
-              u.telefono,
+              'Número de teléfono (solo tú lo ves)',
+              u.telefono ?? '',
+              tipo: TextInputType.phone,
+              maxLength: 16,
             ),
           ),
         ],
@@ -372,54 +451,94 @@ Future<void> mostrarEditarPerfil(BuildContext context, Usuario u) {
 }
 
 // ═════════════════════════════════════════════════════════════
-// Cambiar avatar
+// Cambiar avatar (POST/DELETE /api/perfil/me/avatar)
 // ═════════════════════════════════════════════════════════════
-Future<void> mostrarCambiarAvatar(BuildContext context) {
+Future<void> mostrarCambiarAvatar(
+  BuildContext context, {
+  required bool tieneAvatar,
+  required void Function(String? url) onCambio,
+}) {
   return mostrarImageMenu<void>(
     context,
     titulo: 'Cambiar Avatar',
     emoji: '📸',
-    builder: (ctx) => Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ImageOption(
-          icono: Icons.public,
-          texto: 'Usar URL',
-          onTap: () async {
-            final v = await _pedirValor(
-              ctx,
-              titulo: 'URL de la imagen',
-              etiqueta: 'URL de la imagen',
-            );
-            if (v != null && v.isNotEmpty && ctx.mounted) {
-              //  PUT /api/users/{id} { avatar: url }
-              mostrarNotificacion(
-                ctx,
-                'Aquí se guardaría la URL del avatar.',
-                exito: true,
-              );
-            }
-          },
-        ),
-        const SizedBox(height: 14),
-        ImageOption(
-          icono: Icons.folder_outlined,
-          texto: 'Subir Imagen',
-          onTap: () {
-            //  abrir la galería con el paquete image_picker
-            mostrarNotificacion(
-              ctx,
-              'Aquí se abriría la galería (image_picker).',
-            );
-          },
-        ),
-      ],
-    ),
+    builder: (ctx) {
+      Future<void> elegir(ImageSource origen) async {
+        XFile? foto;
+        try {
+          // Reducida y recomprimida en el teléfono; el servidor además le quita EXIF/GPS.
+          foto = await ImagePicker().pickImage(
+            source: origen,
+            maxWidth: 1024,
+            maxHeight: 1024,
+            imageQuality: 85,
+          );
+        } catch (_) {
+          if (ctx.mounted) {
+            mostrarNotificacion(ctx, 'No se pudo abrir la cámara o la galería');
+          }
+          return;
+        }
+        if (foto == null) return;
+        final bytes = await foto.readAsBytes();
+        if (bytes.length > 2 * 1024 * 1024) {
+          if (ctx.mounted) {
+            mostrarNotificacion(ctx, 'La imagen debe pesar menos de 2 MB');
+          }
+          return;
+        }
+        try {
+          onCambio(await PerfilRepository.instance.subirAvatar(bytes, foto.name));
+          if (ctx.mounted) Navigator.of(ctx).pop();
+          if (context.mounted) {
+            mostrarNotificacion(context, 'Foto actualizada', exito: true);
+          }
+        } on ApiException catch (e) {
+          if (ctx.mounted) mostrarNotificacion(ctx, e.mensaje);
+        }
+      }
+
+      Future<void> quitar() async {
+        try {
+          await PerfilRepository.instance.quitarAvatar();
+          onCambio(null);
+          if (ctx.mounted) Navigator.of(ctx).pop();
+        } on ApiException catch (e) {
+          if (ctx.mounted) mostrarNotificacion(ctx, e.mensaje);
+        }
+      }
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ImageOption(
+            icono: Icons.photo_library_outlined,
+            texto: 'Elegir de la galería',
+            onTap: () => elegir(ImageSource.gallery),
+          ),
+          const SizedBox(height: 14),
+          ImageOption(
+            icono: Icons.photo_camera_outlined,
+            texto: 'Tomar una foto',
+            onTap: () => elegir(ImageSource.camera),
+          ),
+          if (tieneAvatar) ...[
+            const SizedBox(height: 14),
+            ImageOption(
+              icono: Icons.delete_outline,
+              texto: 'Quitar foto',
+              peligro: true,
+              onTap: quitar,
+            ),
+          ],
+        ],
+      );
+    },
   );
 }
 
 // ═════════════════════════════════════════════════════════════
-// Seguridad (menú -> cambiar contraseña / correo)
+// Seguridad (cambiar contraseña)
 // ═════════════════════════════════════════════════════════════
 Future<void> mostrarSeguridad(BuildContext context) {
   return mostrarImageMenu<void>(
@@ -438,81 +557,65 @@ class _SeguridadContenido extends StatefulWidget {
 }
 
 class _SeguridadContenidoState extends State<_SeguridadContenido> {
-  String? _paso; // null | password | correo
+  bool _cambiandoPassword = false;
+  bool _guardando = false;
   final _actual = TextEditingController();
   final _nueva = TextEditingController();
   final _confirmar = TextEditingController();
-  final _correo = TextEditingController();
-  final _passCorreo = TextEditingController();
 
   @override
   void dispose() {
-    for (final c in [_actual, _nueva, _confirmar, _correo, _passCorreo]) {
+    for (final c in [_actual, _nueva, _confirmar]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  void _guardarPassword() {
-    if (_actual.text.isEmpty ||
-        _nueva.text.isEmpty ||
-        _confirmar.text.isEmpty) {
+  // Las mismas reglas que valida el servidor.
+  String? _errorNueva(String p) {
+    if (p.length < 8) return 'La nueva contraseña debe tener mínimo 8 caracteres';
+    if (p.length > 72) return 'La nueva contraseña es demasiado larga';
+    if (!p.contains(RegExp(r'\p{L}', unicode: true)) || !p.contains(RegExp(r'\d'))) {
+      return 'La nueva contraseña debe combinar letras y números';
+    }
+    return null;
+  }
+
+  Future<void> _guardarPassword() async {
+    if (_guardando) return;
+    if (_actual.text.isEmpty || _nueva.text.isEmpty || _confirmar.text.isEmpty) {
       mostrarNotificacion(context, 'Completa todos los campos');
-    } else if (_nueva.text.length < 8) {
-      mostrarNotificacion(
-        context,
-        'La nueva contraseña debe tener mínimo 8 caracteres',
-      );
-    } else if (_nueva.text != _confirmar.text) {
+      return;
+    }
+    final error = _errorNueva(_nueva.text);
+    if (error != null) {
+      mostrarNotificacion(context, error);
+      return;
+    }
+    if (_nueva.text != _confirmar.text) {
       mostrarNotificacion(context, 'Las contraseñas no coinciden');
-    } else {
-      //  PUT /api/users/{id}/password
-      mostrarNotificacion(
+      return;
+    }
+    setState(() => _guardando = true);
+    try {
+      await AuthRepository.instance.cambiarPassword(_actual.text, _nueva.text);
+      if (!mounted) return;
+      await mostrarNotificacion(
         context,
-        'Aquí se cambiaría la contraseña.',
+        'Contraseña cambiada. Se cerró la sesión en tus otros dispositivos.',
         exito: true,
       );
+      if (mounted) Navigator.of(context).pop();
+    } on ApiException catch (e) {
+      if (mounted) mostrarNotificacion(context, e.mensaje);
+    } finally {
+      if (mounted) setState(() => _guardando = false);
     }
-  }
-
-  void _guardarCorreo() {
-    if (!regexCorreo.hasMatch(_correo.text)) {
-      mostrarNotificacion(context, 'Ingresa un correo válido');
-    } else if (_passCorreo.text.isEmpty) {
-      mostrarNotificacion(context, 'Ingresa tu contraseña actual');
-    } else {
-      //  PUT /api/users/{id}/email
-      mostrarNotificacion(context, 'Aquí se cambiaría el correo.', exito: true);
-    }
-  }
-
-  Widget _botonesPaso(VoidCallback guardar) {
-    return Row(
-      children: [
-        Expanded(
-          child: ImageOption(
-            icono: Icons.arrow_back,
-            texto: 'Volver',
-            centrado: true,
-            onTap: () => setState(() => _paso = null),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ImageOption(
-            icono: Icons.check,
-            texto: 'Guardar',
-            centrado: true,
-            onTap: guardar,
-          ),
-        ),
-      ],
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_paso == 'password') {
+    if (_cambiandoPassword) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -525,7 +628,7 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
           ),
           _CampoModal(
             label: 'Nueva contraseña',
-            hint: 'Mínimo 8 caracteres',
+            hint: 'Mínimo 8 caracteres, letras y números',
             controller: _nueva,
             obscure: true,
           ),
@@ -536,29 +639,27 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
             obscure: true,
           ),
           const SizedBox(height: 4),
-          _botonesPaso(_guardarPassword),
-        ],
-      );
-    }
-    if (_paso == 'correo') {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _CampoModal(
-            label: 'Nuevo correo electrónico',
-            hint: 'nuevo@correo.com',
-            controller: _correo,
-            tipo: TextInputType.emailAddress,
+          Row(
+            children: [
+              Expanded(
+                child: ImageOption(
+                  icono: Icons.arrow_back,
+                  texto: 'Volver',
+                  centrado: true,
+                  onTap: () => setState(() => _cambiandoPassword = false),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ImageOption(
+                  icono: Icons.check,
+                  texto: _guardando ? 'Guardando…' : 'Guardar',
+                  centrado: true,
+                  onTap: _guardando ? null : _guardarPassword,
+                ),
+              ),
+            ],
           ),
-          _CampoModal(
-            label: 'Contraseña actual (para confirmar)',
-            hint: '••••••••',
-            controller: _passCorreo,
-            obscure: true,
-          ),
-          const SizedBox(height: 4),
-          _botonesPaso(_guardarCorreo),
         ],
       );
     }
@@ -568,452 +669,18 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
         ImageOption(
           icono: Icons.key,
           texto: 'Cambiar Contraseña',
-          onTap: () => setState(() => _paso = 'password'),
+          onTap: () => setState(() => _cambiandoPassword = true),
         ),
         const SizedBox(height: 14),
         ImageOption(
           icono: Icons.mail_outline,
-          texto: 'Cambiar Correo Electrónico',
-          onTap: () => setState(() => _paso = 'correo'),
+          texto: 'Correo institucional',
+          onTap: () => mostrarNotificacion(
+            context,
+            'Tu correo @unicesar.edu.co está verificado y no se puede cambiar desde la app.',
+          ),
         ),
       ],
-    );
-  }
-}
-
-final RegExp regexCorreo = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-
-// ═════════════════════════════════════════════════════════════
-// Mis servicios (lista con acciones) + editar / eliminar / imágenes
-// ═════════════════════════════════════════════════════════════
-Future<void> mostrarMisServicios(
-  BuildContext context,
-  List<Servicio> servicios,
-) {
-  return mostrarImageMenu<void>(
-    context,
-    titulo: 'Mis servicios (${servicios.length})',
-    icono: Icons.inventory_2,
-    maxWidth: 624,
-    builder: (ctx) {
-      if (servicios.isEmpty) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            'Aún no has publicado ningún servicio.',
-            style: AppText.poppins(13.6, color: AppColors.texto2),
-          ),
-        );
-      }
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final s in servicios)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: MenuItem(
-                icono: iconosPorCategoria[s.categoria] ?? iconoPorDefecto,
-                title: s.titulo,
-                desc: '\$${s.precioHora}/hr · ${s.categoria}',
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _BtnCuadrado(
-                      Icons.image_outlined,
-                      'Gestionar imágenes',
-                      () => mostrarImagenesServicio(ctx, s),
-                    ),
-                    const SizedBox(width: 8),
-                    _BtnCuadrado(
-                      Icons.edit_outlined,
-                      'Editar',
-                      () => mostrarEditarServicio(ctx, s),
-                    ),
-                    const SizedBox(width: 8),
-                    _BtnCuadrado(
-                      Icons.delete_outline,
-                      'Eliminar',
-                      () => mostrarConfirmarEliminar(ctx),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      );
-    },
-  );
-}
-
-class _BtnCuadrado extends StatelessWidget {
-  final IconData icono;
-  final String tooltip;
-  final VoidCallback onTap;
-  const _BtnCuadrado(this.icono, this.tooltip, this.onTap);
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: HoverBuilder(
-        builder: (context, hover) => GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: hover ? AppColors.teal2 : AppColors.teal,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icono, size: 16, color: AppColors.bg),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-Future<void> mostrarEditarServicio(BuildContext context, Servicio s) {
-  final titulo = TextEditingController(text: s.titulo);
-  final precio = TextEditingController(text: '${s.precioHora}');
-  final contacto = TextEditingController();
-  final descripcion = TextEditingController(text: s.descripcion);
-  return mostrarImageMenu<void>(
-    context,
-    titulo: 'Editar servicio',
-    icono: Icons.edit_outlined,
-    maxWidth: 500,
-    builder: (ctx) => Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _CampoModal(label: 'Título', controller: titulo),
-        _CampoModal(
-          label: 'Precio/hora',
-          controller: precio,
-          tipo: TextInputType.number,
-        ),
-        _CampoModal(label: 'Contacto', controller: contacto),
-        _CampoModal(label: 'Descripción', controller: descripcion, lineas: 4),
-        Row(
-          children: [
-            Expanded(
-              child: ImageOption(
-                icono: Icons.arrow_back,
-                texto: 'Cancelar',
-                centrado: true,
-                onTap: () => Navigator.of(ctx).pop(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ImageOption(
-                icono: Icons.save_outlined,
-                texto: 'Guardar',
-                centrado: true,
-                onTap: () {
-                  //  PUT /api/services/{id}
-                  Navigator.of(ctx).pop();
-                  mostrarNotificacion(
-                    context,
-                    'Aquí se guardarían los cambios.',
-                    exito: true,
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-Future<void> mostrarConfirmarEliminar(BuildContext context) {
-  return mostrarImageMenu<void>(
-    context,
-    titulo: 'Eliminar servicio',
-    icono: Icons.delete_outline,
-    builder: (ctx) => Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 20),
-          child: Text(
-            '¿Estás seguro? Esto eliminará también todas las solicitudes asociadas y no se puede deshacer.',
-            style: AppText.poppins(
-              14,
-              color: AppColors.texto.withAlpha(179),
-              height: 1.5,
-            ),
-          ),
-        ),
-        ImageOption(
-          icono: Icons.undo,
-          texto: 'Cancelar',
-          onTap: () => Navigator.of(ctx).pop(),
-        ),
-        const SizedBox(height: 14),
-        ImageOption(
-          icono: Icons.delete_outline,
-          texto: 'Sí, eliminar',
-          peligro: true,
-          onTap: () {
-            //  DELETE /api/services/{id}
-            Navigator.of(ctx).pop();
-            mostrarNotificacion(context, 'Aquí se eliminaría el servicio.');
-          },
-        ),
-      ],
-    ),
-  );
-}
-
-Future<void> mostrarImagenesServicio(BuildContext context, Servicio s) {
-  return mostrarImageMenu<void>(
-    context,
-    titulo: 'Imágenes de "${s.titulo}"',
-    icono: Icons.photo_library_outlined,
-    maxWidth: 550,
-    builder: (ctx) => _ImagenesContenido(servicio: s),
-  );
-}
-
-class _ImagenesContenido extends StatefulWidget {
-  final Servicio servicio;
-  const _ImagenesContenido({required this.servicio});
-
-  @override
-  State<_ImagenesContenido> createState() => _ImagenesContenidoState();
-}
-
-class _ImagenesContenidoState extends State<_ImagenesContenido> {
-  // Marcadores de ejemplo (en la web son imágenes subidas por el usuario)
-  final List<int> _imgs = [1, 2, 3];
-
-  void _mover(int i, int d) {
-    setState(() {
-      final x = _imgs.removeAt(i);
-      _imgs.insert(i + d, x);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Text(
-            '${_imgs.length}/5 — Usa ↑↓ para cambiar el orden. La primera es la portada.',
-            style: AppText.poppins(13.6, color: AppColors.texto.withAlpha(153)),
-          ),
-        ),
-        if (_imgs.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Text(
-              'No hay imágenes. ¡Agrega una!',
-              textAlign: TextAlign.center,
-              style: AppText.poppins(14, color: AppColors.texto.withAlpha(128)),
-            ),
-          )
-        else
-          for (var i = 0; i < _imgs.length; i++)
-            Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: i == 0
-                    ? const Color(0x1434D399)
-                    : const Color(0x08FFFFFF),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: i == 0
-                      ? const Color(0x4D34D399)
-                      : const Color(0x14FFFFFF),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: i == 0
-                          ? const Color(0xFF34D399)
-                          : const Color(0x1AFFFFFF),
-                    ),
-                    child: Text(
-                      '${i + 1}',
-                      style: AppText.poppins(
-                        12,
-                        weight: FontWeight.w700,
-                        color: i == 0 ? Colors.black : AppColors.texto,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.bg3,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.image_outlined,
-                      color: AppColors.texto3,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (i == 0)
-                          Text(
-                            '⭐ Portada',
-                            style: AppText.poppins(
-                              12.8,
-                              weight: FontWeight.w700,
-                            ),
-                          ),
-                        Text(
-                          'Click para ver imagen',
-                          style: AppText.poppins(
-                            11.2,
-                            color: AppColors.texto.withAlpha(128),
-                          ).copyWith(decoration: TextDecoration.underline),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _FlechaOrden('↑', i == 0 ? null : () => _mover(i, -1)),
-                      const SizedBox(height: 2),
-                      _FlechaOrden(
-                        '↓',
-                        i == _imgs.length - 1 ? null : () => _mover(i, 1),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 10),
-                  GestureDetector(
-                    onTap: () => setState(() => _imgs.removeAt(i)),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: const Color(0x26EF4444),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0x4DEF4444)),
-                      ),
-                      child: const Icon(
-                        Icons.delete_outline,
-                        size: 16,
-                        color: Color(0xFFF87171),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        if (_imgs.length < 5)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16, top: 4),
-            child: GestureDetector(
-              onTap: () => mostrarNotificacion(
-                context,
-                'Aquí se abriría la galería (image_picker).',
-              ),
-              child: Opacity(
-                opacity: 0.6,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: const Color(0x26FFFFFF),
-                      width: 2,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.add, size: 16, color: AppColors.texto),
-                      const SizedBox(width: 8),
-                      Text('Agregar imágenes', style: AppText.poppins(13.6)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        Row(
-          children: [
-            Expanded(
-              child: ImageOption(
-                icono: Icons.arrow_back,
-                texto: 'Cancelar',
-                centrado: true,
-                onTap: () => Navigator.of(context).pop(),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: ImageOption(
-                icono: Icons.save_outlined,
-                texto: 'Guardar orden',
-                centrado: true,
-                onTap: _imgs.isEmpty
-                    ? null
-                    : () {
-                        //PUT orden de imágenes
-                        Navigator.of(context).pop();
-                      },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _FlechaOrden extends StatelessWidget {
-  final String texto;
-  final VoidCallback? onTap;
-  const _FlechaOrden(this.texto, this.onTap);
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 28,
-        height: 24,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: const Color(0x26FFFFFF)),
-        ),
-        child: Text(
-          texto,
-          style: AppText.poppins(
-            11.2,
-            color: onTap == null ? const Color(0x33FFFFFF) : AppColors.texto,
-          ),
-        ),
-      ),
     );
   }
 }
@@ -1025,52 +692,194 @@ Future<void> mostrarListaPersonas(
   BuildContext context, {
   required String titulo,
   required IconData icono,
-  required List<PersonaLista> personas,
+  required Future<List<PersonaResumen>> personas,
   required String vacio,
-  required void Function(PersonaLista) onTapPersona,
+  required void Function(PersonaResumen) onTapPersona,
 }) {
   return mostrarImageMenu<void>(
     context,
-    titulo: '$titulo (${personas.length})',
+    titulo: titulo,
     icono: icono,
-    builder: (ctx) {
-      if (personas.isEmpty) {
-        return Padding(
+    builder: (ctx) => FutureBuilder<List<PersonaResumen>>(
+      future: personas,
+      builder: (ctx, snap) {
+        Widget aviso(String texto) => Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            vacio,
+            texto,
             textAlign: TextAlign.center,
             style: AppText.poppins(14, color: AppColors.texto2),
           ),
         );
-      }
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final p in personas)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: MenuItem(
-                icono: Icons.person,
-                title: p.nombre,
-                desc: p.universidad,
-                leading: ClipOval(
-                  child: Image.asset(
-                    'assets/img/default-avatar.png',
-                    errorBuilder: avatarRespaldo,
-                    width: 44,
-                    height: 44,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.of(ctx).pop();
-                  onTapPersona(p);
-                },
-              ),
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(
+              child: CircularProgressIndicator(color: AppColors.teal),
             ),
-        ],
-      );
-    },
+          );
+        }
+        if (snap.hasError) {
+          final e = snap.error;
+          return aviso(e is ApiException ? e.mensaje : 'No se pudo cargar la lista');
+        }
+        final lista = snap.data!;
+        if (lista.isEmpty) return aviso(vacio);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final p in lista)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: MenuItem(
+                  icono: Icons.person,
+                  title: p.nombre,
+                  desc: p.universidad.isEmpty ? 'Sin universidad' : p.universidad,
+                  leading: ClipOval(child: fotoPerfil(p.avatarUrl, size: 44)),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    onTapPersona(p);
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    ),
   );
+}
+
+// ═════════════════════════════════════════════════════════════
+// Reportar (POST /api/reportes): a un usuario o un problema general
+// ═════════════════════════════════════════════════════════════
+const Map<String, String> _motivosUsuario = {
+  'usuario_acoso': 'Acoso',
+  'usuario_fraude': 'Fraude o estafa',
+  'usuario_suplantacion': 'Suplantación de identidad',
+  'usuario_spam': 'Spam',
+  'usuario_abuso': 'Lenguaje abusivo',
+  'usuario_comportamiento': 'Otro comportamiento',
+};
+const Map<String, String> _motivosGenerales = {
+  'bug_tecnico': 'Error de la app',
+  'queja_general': 'Queja',
+  'sugerencia': 'Sugerencia',
+  'otro': 'Otro',
+};
+
+Future<void> mostrarReportar(
+  BuildContext context, {
+  int? idUsuario,
+  String? nombreUsuario,
+}) {
+  return mostrarImageMenu<void>(
+    context,
+    titulo: idUsuario == null ? 'Reportar un problema' : 'Reportar a ${nombreUsuario ?? 'usuario'}',
+    icono: Icons.flag_outlined,
+    builder: (ctx) => _ReporteContenido(idUsuario: idUsuario),
+  );
+}
+
+class _ReporteContenido extends StatefulWidget {
+  final int? idUsuario;
+  const _ReporteContenido({this.idUsuario});
+
+  @override
+  State<_ReporteContenido> createState() => _ReporteContenidoState();
+}
+
+class _ReporteContenidoState extends State<_ReporteContenido> {
+  late final Map<String, String> _motivos =
+      widget.idUsuario == null ? _motivosGenerales : _motivosUsuario;
+  late String _tipo = _motivos.keys.first;
+  final _titulo = TextEditingController();
+  final _descripcion = TextEditingController();
+  bool _enviando = false;
+
+  @override
+  void dispose() {
+    _titulo.dispose();
+    _descripcion.dispose();
+    super.dispose();
+  }
+
+  Future<void> _enviar() async {
+    final titulo = _titulo.text.trim();
+    final descripcion = _descripcion.text.trim();
+    if (titulo.length < 5) {
+      mostrarNotificacion(context, 'El título debe tener al menos 5 caracteres');
+      return;
+    }
+    if (descripcion.length < 10) {
+      mostrarNotificacion(context, 'Describe lo ocurrido (mínimo 10 caracteres)');
+      return;
+    }
+    setState(() => _enviando = true);
+    try {
+      await PerfilRepository.instance.reportar(
+        tipo: _tipo,
+        titulo: titulo,
+        descripcion: descripcion,
+        idUsuarioReportado: widget.idUsuario,
+      );
+      if (!mounted) return;
+      await mostrarNotificacion(context, 'Reporte enviado. El equipo lo revisará.', exito: true);
+      if (mounted) Navigator.of(context).pop();
+    } on ApiException catch (e) {
+      if (mounted) mostrarNotificacion(context, e.mensaje);
+    } finally {
+      if (mounted) setState(() => _enviando = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Motivo', style: AppText.poppins(13.6, color: AppColors.texto2)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final m in _motivos.entries)
+              ChoiceChip(
+                label: Text(m.value),
+                selected: _tipo == m.key,
+                onSelected: (_) => setState(() => _tipo = m.key),
+                selectedColor: AppColors.a(AppColors.teal, 0.25),
+                backgroundColor: const Color(0x0DFFFFFF),
+                labelStyle: AppText.poppins(12.8),
+                side: BorderSide(
+                  color: _tipo == m.key ? AppColors.teal : const Color(0x26FFFFFF),
+                ),
+                showCheckmark: false,
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _CampoModal(
+          label: 'Título',
+          hint: 'Resumen en pocas palabras',
+          controller: _titulo,
+          maxLength: 150,
+        ),
+        _CampoModal(
+          label: 'Descripción',
+          hint: '¿Qué pasó? Incluye fechas o detalles útiles',
+          controller: _descripcion,
+          lineas: 5,
+          maxLength: 2000,
+        ),
+        ImageOption(
+          icono: Icons.send,
+          texto: _enviando ? 'Enviando…' : 'Enviar reporte',
+          centrado: true,
+          onTap: _enviando ? null : _enviar,
+        ),
+      ],
+    );
+  }
 }
