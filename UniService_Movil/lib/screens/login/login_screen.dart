@@ -1,16 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
-import '../../core/app_text.dart';
+import '../../widgets/animacion_ambiental.dart';
 import '../../widgets/cosmos_background.dart';
 import 'auth_lateral.dart';
 import 'auth_widgets.dart';
 import 'login_form.dart';
-import '../../widgets/animacion_ambiental.dart';
 import 'register_form.dart';
 
-/// Vista de Login + Registro (InicioSesion.jsx).
-/// En la web ambos formularios viven en la misma página con dos tabs.
+/// Login + registro en una sola tarjeta con dos pestañas.
+/// Celular: franja de marca arriba y formulario debajo, sin desplazarse.
+/// Pantallas anchas: marca a la izquierda y formulario a la derecha.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -19,46 +21,67 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  int _tab = 0; // 0 = iniciar sesión, 1 = registrarse
+  /// Alto aproximado de la tarjeta con la pestaña de login (marca + formulario).
+  static const double _altoLogin = 570;
+
+  int _tab = 0; // 0 = iniciar sesión, 1 = crear cuenta
+  String _correoLogin = ''; // para pasar el correo del registro al login
+
+  void _irALogin([String? correo]) => setState(() {
+    _tab = 0;
+    if (correo != null) _correoLogin = correo;
+  });
 
   @override
   Widget build(BuildContext context) {
-    final ancho = MediaQuery.of(context).size.width;
-    final apilado = ancho < Breakpoints.authStack; // una sola columna
+    final apilado = MediaQuery.sizeOf(context).width < Breakpoints.authStack;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: Stack(
         children: [
-          // La escena cósmica solo se muestra en pantallas anchas (igual que la web)
           if (!apilado)
             const Positioned.fill(
               child: AnimacionAmbiental(child: CosmosBackground()),
             ),
           SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 24,
+            child: LayoutBuilder(
+              builder: (context, box) => SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: apilado ? 14 : 16,
+                  vertical: 14,
                 ),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: apilado ? 420 : 820),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: 1),
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeOut,
-                    builder: (context, v, child) => Opacity(
-                      opacity: v,
-                      child: Transform.translate(
-                        offset: Offset(0, (1 - v) * 20),
-                        child: child,
+                  // Desplazable sólo si no cabe (teclado abierto, texto grande).
+                  constraints: BoxConstraints(minHeight: box.maxHeight - 28),
+                  child: Align(
+                    // Celular: la tarjeta se ancla arriba a la altura que centra el login,
+                    // así marca y pestañas no saltan al cambiar a "Crear cuenta".
+                    alignment: apilado ? Alignment.topCenter : Alignment.center,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: apilado
+                            ? math.max(0, (box.maxHeight - _altoLogin) / 2)
+                            : 0,
                       ),
-                    ),
-                    child: _AuthBox(
-                      apilado: apilado,
-                      tab: _tab,
-                      onTab: (i) => setState(() => _tab = i),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: apilado ? 440 : 820,
+                          ),
+                          child: _AuthBox(
+                            apilado: apilado,
+                            tab: _tab,
+                            onTab: (i) => setState(() => _tab = i),
+                            formulario: _Formulario(
+                              tab: _tab,
+                              correoLogin: _correoLogin,
+                              onTab: (i) => setState(() => _tab = i),
+                              onIrALogin: _irALogin,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -71,21 +94,21 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// `.auth-box`: tarjeta con la columna lateral y el formulario.
+/// Tarjeta con la marca y el formulario.
 class _AuthBox extends StatelessWidget {
   final bool apilado;
   final int tab;
   final ValueChanged<int> onTab;
+  final Widget formulario;
   const _AuthBox({
     required this.apilado,
     required this.tab,
     required this.onTab,
+    required this.formulario,
   });
 
   @override
   Widget build(BuildContext context) {
-    final formulario = _Formulario(apilado: apilado, tab: tab, onTab: onTab);
-
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -95,10 +118,9 @@ class _AuthBox extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(77),
-            blurRadius: 60,
-            offset: const Offset(0, 20),
+            blurRadius: 40,
+            offset: const Offset(0, 16),
           ),
-          BoxShadow(color: AppColors.a(AppColors.teal, 0.05), spreadRadius: 1),
         ],
       ),
       child: apilado
@@ -107,19 +129,28 @@ class _AuthBox extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const AnimacionAmbiental(child: AuthLateral(compacto: true)),
-                formulario,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                  child: formulario,
+                ),
               ],
             )
+          // La marca usa LayoutBuilder (no admite IntrinsicHeight): se posiciona sobre
+          // la mitad izquierda y toma la altura que dicte el formulario.
           : ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 460),
+              constraints: const BoxConstraints(minHeight: 540),
               child: LayoutBuilder(
                 builder: (context, box) => Stack(
                   children: [
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Expanded(child: SizedBox.shrink()),
-                        Expanded(child: formulario),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(32, 32, 32, 20),
+                            child: formulario,
+                          ),
+                        ),
                       ],
                     ),
                     Positioned(
@@ -139,85 +170,37 @@ class _AuthBox extends StatelessWidget {
   }
 }
 
-/// `.auth-formulario`: título, tabs y los dos paneles.
+/// Pestañas y los dos formularios (ambos montados: conservan lo escrito al cambiar).
 class _Formulario extends StatelessWidget {
-  final bool apilado;
   final int tab;
+  final String correoLogin;
   final ValueChanged<int> onTab;
+  final void Function([String? correo]) onIrALogin;
   const _Formulario({
-    required this.apilado,
     required this.tab,
+    required this.correoLogin,
     required this.onTab,
+    required this.onIrALogin,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: apilado ? 24 : 32,
-        vertical: 32,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // .auth-logo
-          Padding(
-            padding: const EdgeInsets.only(bottom: 18),
-            child: Column(
-              children: [
-                Text(
-                  'BIENVENIDO 👋',
-                  style: AppText.poppins(
-                    12,
-                    weight: FontWeight.w600,
-                    color: AppColors.teal,
-                    spacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text.rich(
-                  textAlign: TextAlign.center,
-                  TextSpan(
-                    style: AppText.serif(22.4, height: 1.3),
-                    children: [
-                      const TextSpan(text: 'Accede a la '),
-                      TextSpan(
-                        text: 'plataforma',
-                        style: AppText.serif(
-                          22.4,
-                          color: AppColors.teal,
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: 40,
-                  height: 2,
-                  color: AppColors.a(AppColors.teal, 0.7),
-                ),
-              ],
-            ),
-          ),
-
-          AuthTabs(index: tab, onChanged: onTab),
-
-          // Ambos paneles se mantienen montados (conservan lo escrito al cambiar de tab)
-          Visibility(
-            visible: tab == 0,
-            maintainState: true,
-            child: LoginForm(onIrARegistro: () => onTab(1)),
-          ),
-          Visibility(
-            visible: tab == 1,
-            maintainState: true,
-            child: RegisterForm(onIrALogin: () => onTab(0)),
-          ),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AuthTabs(index: tab, onChanged: onTab),
+        Visibility(
+          visible: tab == 0,
+          maintainState: true,
+          child: LoginForm(correoInicial: correoLogin),
+        ),
+        Visibility(
+          visible: tab == 1,
+          maintainState: true,
+          child: RegisterForm(onIrALogin: onIrALogin),
+        ),
+      ],
     );
   }
 }

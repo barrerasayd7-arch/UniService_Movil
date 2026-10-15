@@ -195,6 +195,29 @@ try {
     await alternative.query('SELECT uniservice_mobile.exigir_correo_verificado(1)');
     check((await alternative.query('SELECT count(*)::integer AS n FROM uniservice_mobile.migraciones')).rows[0].n === 3,
       'Ruta 001 + 002 + 004 funciona sin ejecutar 003');
+
+    // 007: simula una tabla y función antiguas abiertas a anon, como en Supabase.
+    await alternative.exec(`
+      CREATE TABLE public.servicios_legado (id serial PRIMARY KEY, titulo text);
+      GRANT ALL ON public.servicios_legado TO anon, authenticated;
+      GRANT ALL ON SEQUENCE public.servicios_legado_id_seq TO anon;
+      CREATE FUNCTION public.sp_legado() RETURNS integer LANGUAGE sql AS 'SELECT 1';
+      GRANT EXECUTE ON FUNCTION public.sp_legado() TO anon;
+      ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated;`);
+    await alternative.exec(await readFile(new URL('../migrations/005_panel_admin.sql', import.meta.url), 'utf8'));
+    await alternative.exec(await readFile(new URL('../migrations/007_cerrar_acceso_publico.sql', import.meta.url), 'utf8'));
+    const acceso = async (sql) => (await alternative.query(sql)).rows[0].v;
+    for (const rol of ['anon', 'authenticated']) {
+      check(await acceso(`SELECT has_table_privilege('${rol}','public.usuarios','SELECT') AS v`) === false, `007 quita SELECT de usuarios a ${rol}`);
+      check(await acceso(`SELECT has_table_privilege('${rol}','public.servicios_legado','DELETE') AS v`) === false, `007 quita DELETE de tablas antiguas a ${rol}`);
+      check(await acceso(`SELECT has_function_privilege('${rol}','public.sp_legado()','EXECUTE') AS v`) === false, `007 quita EXECUTE de funciones a ${rol}`);
+    }
+    check(await acceso(`SELECT has_sequence_privilege('anon','public.servicios_legado_id_seq','USAGE') AS v`) === false, '007 quita secuencias a anon');
+    check(await acceso(`SELECT bool_and(c.relrowsecurity) AS v FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='public' AND c.relkind='r'`) === true, '007 activa RLS en todas las tablas públicas');
+    await alternative.exec('CREATE TABLE public.tabla_futura (id int)');
+    check(await acceso(`SELECT has_table_privilege('anon','public.tabla_futura','SELECT') AS v`) === false, '007 cierra tablas futuras a anon');
+    await alternative.query('SELECT uniservice_mobile.exigir_correo_verificado(1)');
   } finally { await alternative.close(); }
   console.log(`PASS: ${assertions} comprobaciones SQL en PostgreSQL/PGlite; sin conexión remota.`);
 } finally {

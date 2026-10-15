@@ -22,8 +22,10 @@ class _CosmosBackgroundState extends State<CosmosBackground>
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: _ciclo))
-      ..repeat();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: _ciclo),
+    )..repeat();
   }
 
   @override
@@ -69,7 +71,10 @@ class _CosmosBackgroundState extends State<CosmosBackground>
               gradient: RadialGradient(
                 center: const Alignment(0.4, 0.6),
                 radius: 0.8,
-                colors: [AppColors.a(AppColors.amarillo, 0.04), Colors.transparent],
+                colors: [
+                  AppColors.a(AppColors.amarillo, 0.04),
+                  Colors.transparent,
+                ],
                 stops: const [0, 0.5],
               ),
             ),
@@ -77,9 +82,8 @@ class _CosmosBackgroundState extends State<CosmosBackground>
           // Anillos, puntos, estrellas
           AnimatedBuilder(
             animation: _c,
-            builder: (context, _) => CustomPaint(
-              painter: _CosmosPainter(_c.value * _ciclo),
-            ),
+            builder: (context, _) =>
+                CustomPaint(painter: _CosmosPainter(_c.value * _ciclo)),
           ),
           // Viñeta
           DecoratedBox(
@@ -105,8 +109,17 @@ class _Ring {
   final double rx, ry, rz; // grados totales por ciclo
   final double dur;
   final bool reversa;
-  const _Ring(this.size, this.borde, this.grosor, this.bordeDiagonal, this.rx,
-      this.ry, this.rz, this.dur, this.reversa);
+  const _Ring(
+    this.size,
+    this.borde,
+    this.grosor,
+    this.bordeDiagonal,
+    this.rx,
+    this.ry,
+    this.rz,
+    this.dur,
+    this.reversa,
+  );
 }
 
 class _CosmosPainter extends CustomPainter {
@@ -119,13 +132,83 @@ class _CosmosPainter extends CustomPainter {
 
   // r1..r7 de StyleLogin.css
   static final List<_Ring> _anillos = [
-    _Ring(1500, _teal.withAlpha(31), 2, _teal.withAlpha(13), 720, 360, 720, 120, false),
-    _Ring(1300, _oro.withAlpha(26), 2, _oro.withAlpha(10), 360, 720, 360, 100, true),
-    _Ring(1100, _violeta.withAlpha(26), 2, _teal.withAlpha(15), 540, 360, 540, 90, false),
-    _Ring(900, _teal.withAlpha(33), 1.5, _oro.withAlpha(15), 360, 540, 360, 110, true),
-    _Ring(700, _oro.withAlpha(26), 1.5, _teal.withAlpha(20), 360, 360, 720, 70, false),
-    _Ring(520, _teal.withAlpha(41), 2, _oro.withAlpha(18), 720, 180, 360, 80, true),
-    _Ring(340, _oro.withAlpha(38), 1.5, _teal.withAlpha(31), 360, 360, 360, 80, false),
+    _Ring(
+      1500,
+      _teal.withAlpha(31),
+      2,
+      _teal.withAlpha(13),
+      720,
+      360,
+      720,
+      120,
+      false,
+    ),
+    _Ring(
+      1300,
+      _oro.withAlpha(26),
+      2,
+      _oro.withAlpha(10),
+      360,
+      720,
+      360,
+      100,
+      true,
+    ),
+    _Ring(
+      1100,
+      _violeta.withAlpha(26),
+      2,
+      _teal.withAlpha(15),
+      540,
+      360,
+      540,
+      90,
+      false,
+    ),
+    _Ring(
+      900,
+      _teal.withAlpha(33),
+      1.5,
+      _oro.withAlpha(15),
+      360,
+      540,
+      360,
+      110,
+      true,
+    ),
+    _Ring(
+      700,
+      _oro.withAlpha(26),
+      1.5,
+      _teal.withAlpha(20),
+      360,
+      360,
+      720,
+      70,
+      false,
+    ),
+    _Ring(
+      520,
+      _teal.withAlpha(41),
+      2,
+      _oro.withAlpha(18),
+      720,
+      180,
+      360,
+      80,
+      true,
+    ),
+    _Ring(
+      340,
+      _oro.withAlpha(38),
+      1.5,
+      _teal.withAlpha(31),
+      360,
+      360,
+      360,
+      80,
+      false,
+    ),
   ];
 
   static final List<List<double>> _estrellas = () {
@@ -279,7 +362,8 @@ class _CosmosPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(s[0] * size.width, s[1] * size.height),
         s[2] * (0.6 + 0.6 * u),
-        Paint()..color = Colors.white.withAlpha((op.clamp(0.0, 1.0) * 255).round()),
+        Paint()
+          ..color = Colors.white.withAlpha((op.clamp(0.0, 1.0) * 255).round()),
       );
     }
   }

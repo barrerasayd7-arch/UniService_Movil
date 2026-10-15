@@ -96,7 +96,10 @@ class _Resplandor extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: RadialGradient(colors: [color, Colors.transparent], stops: const [0, 0.7]),
+        gradient: RadialGradient(
+          colors: [color, Colors.transparent],
+          stops: const [0, 0.7],
+        ),
       ),
     );
   }
@@ -167,7 +170,9 @@ class _StarsPainter extends CustomPainter {
     final rnd = math.Random(5);
     for (var i = 0; i < 80; i++) {
       final p = Paint()
-        ..color = Colors.white.withAlpha(((0.08 + rnd.nextDouble() * 0.35) * 255).round());
+        ..color = Colors.white.withAlpha(
+          ((0.08 + rnd.nextDouble() * 0.35) * 255).round(),
+        );
       canvas.drawCircle(
         Offset(rnd.nextDouble() * size.width, rnd.nextDouble() * size.height),
         0.5 + rnd.nextDouble() * 1.1,

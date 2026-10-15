@@ -161,8 +161,8 @@ public sealed class AdminController(IConfiguration config, AccountStatus account
               (SELECT count(*) FROM usuarios WHERE fecha_registro >= now() - interval '7 days') AS usuarios_nuevos_7d,
               (SELECT count(*) FROM usuarios WHERE id_rol = 1) AS administradores,
               (SELECT count(*) FROM servicios) AS servicios_total,
-              (SELECT count(*) FROM servicios WHERE COALESCE(disponibilidad >= 0, false)) AS servicios_publicados,
-              (SELECT count(*) FROM servicios WHERE NOT COALESCE(disponibilidad >= 0, false)) AS servicios_pendientes,
+              (SELECT count(*) FROM servicios WHERE estado = 'aprobado') AS servicios_publicados,
+              (SELECT count(*) FROM servicios WHERE estado = 'pendiente') AS servicios_pendientes,
               (SELECT count(*) FROM reportes WHERE estado IN ('Pendiente', 'En_revision')) AS reportes_abiertos
             """, conn);
         var resumen = (await Rows(totals, ct)).Single();
@@ -241,7 +241,7 @@ public sealed class AdminController(IConfiguration config, AccountStatus account
             """, conn);
         reportes.Parameters.AddWithValue("id", id);
         await using var servicios = new NpgsqlCommand("""
-            SELECT id_servicio, titulo, disponibilidad, COALESCE(disponibilidad >= 0, false) AS publicado, fecha_publicacion
+            SELECT id_servicio, titulo, estado, estado = 'aprobado' AS publicado, motivo_rechazo, fecha_publicacion
             FROM servicios WHERE id_proveedor = @id ORDER BY fecha_publicacion DESC NULLS LAST LIMIT 20
             """, conn);
         servicios.Parameters.AddWithValue("id", id);
@@ -318,49 +318,70 @@ public sealed class AdminController(IConfiguration config, AccountStatus account
 
     // =========================
     // SERVICIOS
-    // disponibilidad = -1 → pendiente de revisión u oculto; >= 0 → publicado.
+    // estado: pendiente (espera revisión) → aprobado (público) ⇄ pausado (lo pausa el proveedor).
+    // Rechazar u ocultar deja el servicio en 'rechazado' con motivo; el proveedor puede corregirlo
+    // y vuelve a 'pendiente'. Ya no se borra nada al moderar.
     // =========================
+    private static readonly string[] EstadosServicio = ["pendiente", "aprobado", "rechazado", "pausado"];
+
     [HttpGet("servicios")]
     public async Task<IActionResult> Servicios([FromQuery] string? estado, [FromQuery] string? busqueda,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
     {
-        if (estado is not (null or "" or "publicados" or "pendientes"))
-            return BadRequest(new { error = "estado debe ser 'publicados' o 'pendientes'" });
-        bool? publicado = string.IsNullOrEmpty(estado) ? null : estado == "publicados";
+        // 'publicados' y 'pendientes' se mantienen por compatibilidad con el panel.
+        estado = estado switch { "publicados" => "aprobado", "pendientes" => "pendiente", "" => null, _ => estado };
+        if (estado != null && !EstadosServicio.Contains(estado))
+            return BadRequest(new { error = "estado debe ser pendiente, aprobado, rechazado o pausado" });
         await using var conn = await Open(ct);
         await using var cmd = new NpgsqlCommand("""
-            SELECT s.id_servicio, s.titulo, s.descripcion, s.precio_hora, s.disponibilidad,
-                   COALESCE(s.disponibilidad >= 0, false) AS publicado, s.fecha_publicacion, c.nombre_categoria,
+            SELECT s.id_servicio, s.titulo, s.descripcion, s.precio_hora, s.unidad_precio, s.estado,
+                   s.estado = 'aprobado' AS publicado, s.motivo_rechazo, s.revisado_en, s.fecha_publicacion, c.nombre_categoria,
                    s.id_proveedor, u.nombre AS proveedor, u.correo AS correo_proveedor, u.estado IS TRUE AS proveedor_activo,
+                   (SELECT i.url_imagen FROM servicios_imagenes i WHERE i.id_servicio = s.id_servicio ORDER BY i.orden LIMIT 1) AS imagen,
                    (SELECT count(*) FROM reportes r WHERE r.id_servicio = s.id_servicio) AS reportes,
                    count(*) OVER() AS total_filas
             FROM servicios s
             LEFT JOIN usuarios u ON u.id_usuario = s.id_proveedor
             LEFT JOIN categorias c ON c.id_categoria = s.id_categoria
-            WHERE (@publicado IS NULL OR COALESCE(s.disponibilidad >= 0, false) = @publicado)
+            WHERE (@estado IS NULL OR s.estado = @estado)
               AND (@q IS NULL OR s.titulo ILIKE '%' || @q || '%' OR u.nombre ILIKE '%' || @q || '%')
-            ORDER BY s.fecha_publicacion DESC NULLS LAST, s.id_servicio DESC
+            ORDER BY (s.estado = 'pendiente') DESC,
+                     CASE WHEN s.estado = 'pendiente' THEN s.fecha_publicacion END ASC,
+                     s.fecha_publicacion DESC, s.id_servicio DESC
             LIMIT @limit OFFSET @offset
             """, conn);
-        Param(cmd, "publicado", NpgsqlDbType.Boolean, publicado);
+        Param(cmd, "estado", NpgsqlDbType.Text, estado);
         Param(cmd, "q", NpgsqlDbType.Text, string.IsNullOrWhiteSpace(busqueda) ? null : busqueda.Trim());
         return Ok(await Paged(cmd, page, pageSize, ct));
     }
 
-    private sealed record ServicioInfo(bool Publicado, string Titulo, string? Correo, string? Nombre);
+    private sealed record ServicioInfo(string Estado, string Titulo, string? Correo, string? Nombre);
 
     private static async Task<ServicioInfo?> LockServicio(NpgsqlConnection conn, NpgsqlTransaction tx, int id, CancellationToken ct)
     {
         await using var cmd = new NpgsqlCommand("""
-            SELECT COALESCE(s.disponibilidad >= 0, false), COALESCE(s.titulo, ''), u.correo, u.nombre
+            SELECT s.estado, COALESCE(s.titulo, ''), u.correo, u.nombre
             FROM servicios s LEFT JOIN usuarios u ON u.id_usuario = s.id_proveedor
             WHERE s.id_servicio = @id FOR UPDATE OF s
             """, conn, tx);
         cmd.Parameters.AddWithValue("id", id);
         await using var r = await cmd.ExecuteReaderAsync(ct);
         return await r.ReadAsync(ct)
-            ? new(r.GetBoolean(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3))
+            ? new(r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2), r.IsDBNull(3) ? null : r.GetString(3))
             : null;
+    }
+
+    private async Task Revisar(NpgsqlConnection conn, NpgsqlTransaction tx, int id, string estado, string? motivo, CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand("""
+            UPDATE servicios SET estado = @estado, motivo_rechazo = @motivo, revisado_en = now(), revisado_por = @admin
+            WHERE id_servicio = @id
+            """, conn, tx);
+        cmd.Parameters.AddWithValue("id", id);
+        cmd.Parameters.AddWithValue("estado", estado);
+        cmd.Parameters.AddWithValue("admin", AdminId);
+        Param(cmd, "motivo", NpgsqlDbType.Text, motivo);
+        await cmd.ExecuteNonQueryAsync(ct);
     }
 
     private void NotificarRevision(ServicioInfo info, bool aprobado, string? razon)
@@ -368,7 +389,11 @@ public sealed class AdminController(IConfiguration config, AccountStatus account
         if (string.IsNullOrEmpty(info.Correo)) return;
         _ = Task.Run(async () =>
         {
-            try { await email.EnviarResultadoRevision(info.Correo, info.Nombre ?? "", info.Titulo, aprobado, razon); }
+            try
+            {
+                await email.EnviarResultadoRevision(info.Correo, ServiciosComun.Html(info.Nombre),
+                    ServiciosComun.Html(info.Titulo), aprobado, razon == null ? null : ServiciosComun.Html(razon));
+            }
             catch (Exception ex) { Console.WriteLine($"[EMAIL] Error enviando revisión: {ex.Message}"); }
         });
     }
@@ -380,19 +405,16 @@ public sealed class AdminController(IConfiguration config, AccountStatus account
         await using var tx = await conn.BeginTransactionAsync(ct);
         var info = await LockServicio(conn, tx, id, ct);
         if (info == null) return NotFound(new { error = "Servicio no encontrado" });
-        if (info.Publicado) return Conflict(new { error = "El servicio ya está publicado" });
+        if (info.Estado != "pendiente") return Conflict(new { error = $"Sólo se aprueban servicios pendientes (este está {info.Estado})" });
 
-        await using (var cmd = new NpgsqlCommand("UPDATE servicios SET disponibilidad = 2 WHERE id_servicio = @id", conn, tx))
-        {
-            cmd.Parameters.AddWithValue("id", id);
-            await cmd.ExecuteNonQueryAsync(ct);
-        }
+        await Revisar(conn, tx, id, "aprobado", null, ct);
         await Audit(conn, tx, "aprobar", "servicio", id, info.Titulo, ct);
         await tx.CommitAsync(ct);
         NotificarRevision(info, aprobado: true, razon: null);
-        return Ok(new { ok = true });
+        return Ok(new { ok = true, estado = "aprobado" });
     }
 
+    // Retira de la vista pública un servicio ya publicado (o pausado) por incumplir las normas.
     [HttpPatch("servicios/{id:int}/ocultar")]
     public async Task<IActionResult> OcultarServicio(int id, AdminMotivoRequest dto, CancellationToken ct)
     {
@@ -400,16 +422,14 @@ public sealed class AdminController(IConfiguration config, AccountStatus account
         await using var tx = await conn.BeginTransactionAsync(ct);
         var info = await LockServicio(conn, tx, id, ct);
         if (info == null) return NotFound(new { error = "Servicio no encontrado" });
-        if (!info.Publicado) return Conflict(new { error = "El servicio ya está oculto" });
+        if (info.Estado is not ("aprobado" or "pausado")) return Conflict(new { error = $"El servicio no está publicado (está {info.Estado})" });
 
-        await using (var cmd = new NpgsqlCommand("UPDATE servicios SET disponibilidad = -1 WHERE id_servicio = @id", conn, tx))
-        {
-            cmd.Parameters.AddWithValue("id", id);
-            await cmd.ExecuteNonQueryAsync(ct);
-        }
-        await Audit(conn, tx, "ocultar", "servicio", id, $"{info.Titulo}: {dto.motivo.Trim()}", ct);
+        var motivo = dto.motivo.Trim();
+        await Revisar(conn, tx, id, "rechazado", motivo, ct);
+        await Audit(conn, tx, "ocultar", "servicio", id, $"{info.Titulo}: {motivo}", ct);
         await tx.CommitAsync(ct);
-        return Ok(new { ok = true });
+        NotificarRevision(info, aprobado: false, motivo);
+        return Ok(new { ok = true, estado = "rechazado" });
     }
 
     [HttpPost("servicios/{id:int}/rechazar")]
@@ -419,22 +439,14 @@ public sealed class AdminController(IConfiguration config, AccountStatus account
         await using var tx = await conn.BeginTransactionAsync(ct);
         var info = await LockServicio(conn, tx, id, ct);
         if (info == null) return NotFound(new { error = "Servicio no encontrado" });
+        if (info.Estado != "pendiente") return Conflict(new { error = $"Sólo se rechazan servicios pendientes (este está {info.Estado}); usa ocultar" });
 
-        try
-        {
-            await using var cmd = new NpgsqlCommand("DELETE FROM servicios WHERE id_servicio = @id", conn, tx);
-            cmd.Parameters.AddWithValue("id", id);
-            await cmd.ExecuteNonQueryAsync(ct);
-        }
-        catch (PostgresException ex) when (ex.SqlState == PostgresErrorCodes.ForeignKeyViolation)
-        {
-            return Conflict(new { error = "El servicio tiene solicitudes o calificaciones asociadas. Ocúltalo en lugar de rechazarlo" });
-        }
-        var razon = string.IsNullOrWhiteSpace(dto.razon) ? null : dto.razon.Trim();
-        await Audit(conn, tx, "rechazar", "servicio", id, razon == null ? info.Titulo : $"{info.Titulo}: {razon}", ct);
+        var razon = string.IsNullOrWhiteSpace(dto.razon) ? "No cumple las normas de publicación" : dto.razon.Trim();
+        await Revisar(conn, tx, id, "rechazado", razon, ct);
+        await Audit(conn, tx, "rechazar", "servicio", id, $"{info.Titulo}: {razon}", ct);
         await tx.CommitAsync(ct);
         NotificarRevision(info, aprobado: false, razon);
-        return Ok(new { ok = true });
+        return Ok(new { ok = true, estado = "rechazado" });
     }
 
     // =========================

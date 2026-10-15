@@ -127,7 +127,13 @@ class _TesseractPainter extends CustomPainter {
   }();
 
   /// Proyecta un punto 3D (ya escalado y desplazado) a pantalla.
-  Offset _pantalla(Size size, double x, double y, double z, double pxPorUnidad) {
+  Offset _pantalla(
+    Size size,
+    double x,
+    double y,
+    double z,
+    double pxPorUnidad,
+  ) {
     final f = _camZ / (_camZ - z);
     return Offset(
       size.width / 2 + x * f * pxPorUnidad,
@@ -167,8 +173,11 @@ class _TesseractPainter extends CustomPainter {
       proyectados.add([x1 * sc, y1 * sc, z1 * sc]);
     }
 
-    List<double> mundo(List<double> p) =>
-        [p[0] * escala + posX, p[1] * escala + posY, p[2] * escala];
+    List<double> mundo(List<double> p) => [
+      p[0] * escala + posX,
+      p[1] * escala + posY,
+      p[2] * escala,
+    ];
 
     final lineas = Paint()
       ..color = AppColors.a(color, 0.7)
@@ -204,7 +213,14 @@ class _TesseractPainter extends CustomPainter {
     _dibujarInfinito(canvas, size, pxPorUnidad, color);
   }
 
-  List<double> _rotar(double x, double y, double z, double rx, double ry, double rz) {
+  List<double> _rotar(
+    double x,
+    double y,
+    double z,
+    double rx,
+    double ry,
+    double rz,
+  ) {
     // Rotación Z, luego Y, luego X
     var x1 = x * math.cos(rz) - y * math.sin(rz);
     var y1 = x * math.sin(rz) + y * math.cos(rz);
@@ -216,15 +232,35 @@ class _TesseractPainter extends CustomPainter {
     return [x2, y3, z3];
   }
 
-  void _dibujarCuboInterior(Canvas canvas, Size size, double pxPorUnidad, Color color) {
+  void _dibujarCuboInterior(
+    Canvas canvas,
+    Size size,
+    double pxPorUnidad,
+    Color color,
+  ) {
     const cubo = [
-      [-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1],
-      [-1, 1, -1], [1, 1, -1], [1, 1, 1], [-1, 1, 1],
+      [-1, -1, -1],
+      [1, -1, -1],
+      [1, -1, 1],
+      [-1, -1, 1],
+      [-1, 1, -1],
+      [1, 1, -1],
+      [1, 1, 1],
+      [-1, 1, 1],
     ];
     const aristas = [
-      [0, 1], [1, 2], [2, 3], [3, 0],
-      [4, 5], [5, 6], [6, 7], [7, 4],
-      [0, 4], [1, 5], [2, 6], [3, 7],
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 0],
+      [4, 5],
+      [5, 6],
+      [6, 7],
+      [7, 4],
+      [0, 4],
+      [1, 5],
+      [2, 6],
+      [3, 7],
     ];
     const tam = 0.45;
     final pts = cubo.map((v) {
@@ -236,11 +272,7 @@ class _TesseractPainter extends CustomPainter {
         t * 0.08,
         0,
       );
-      return [
-        r[0] * escala + posX,
-        r[1] * escala + posY,
-        r[2] * escala,
-      ];
+      return [r[0] * escala + posX, r[1] * escala + posY, r[2] * escala];
     }).toList();
 
     final l = Paint()
@@ -262,7 +294,12 @@ class _TesseractPainter extends CustomPainter {
     }
   }
 
-  void _dibujarInfinito(Canvas canvas, Size size, double pxPorUnidad, Color color) {
+  void _dibujarInfinito(
+    Canvas canvas,
+    Size size,
+    double pxPorUnidad,
+    Color color,
+  ) {
     const a = 0.5;
     const grupoEscala = 0.3;
     final rx = t * 0.15;
@@ -311,5 +348,8 @@ class _TesseractPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TesseractPainter old) =>
-      old.t != t || old.escala != escala || old.posX != posX || old.posY != posY;
+      old.t != t ||
+      old.escala != escala ||
+      old.posX != posX ||
+      old.posY != posY;
 }

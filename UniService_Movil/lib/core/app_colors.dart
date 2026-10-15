@@ -20,6 +20,15 @@ class AppColors {
   static const texto3 = Color(0xFF4A6080);
 
   static const error = Color(0xFFF0292C);
+
+  // Formularios (contraste medido sobre bg2 #0B1420 / bg #070D16):
+  static const placeholder = Color(0xFF6B82A3); // 4.7:1
+
+  // Borde visible del campo en reposo.
+  static const bordeCampo = Color(0xFF2B4466);
+
+  // 7.0:1 (el rojo de marca da 4.7:1).
+  static const errorTexto = Color(0xFFFF6B6B);
   static const verificado = Color(0xFF00C851);
   static const tealBrillante = Color(0xFF2DD4BF); // iconos / tesseract del hero
   static const estrella = Color(0xFFF5A623);

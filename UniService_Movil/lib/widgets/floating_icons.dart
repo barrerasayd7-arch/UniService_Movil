@@ -62,8 +62,10 @@ class _FloatingIconsState extends State<FloatingIcons>
         (1.2 + r.nextDouble() * 0.8) * 16, // tamaño en px
       );
     });
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: _ciclo))
-      ..repeat();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: _ciclo),
+    )..repeat();
   }
 
   @override
@@ -151,8 +153,10 @@ class _FloatingIconsState extends State<FloatingIcons>
                 final seg = _c.value * _ciclo;
                 return Stack(
                   children: [
-                    for (final g in _glows) _glow(g, box.maxWidth, box.maxHeight, seg),
-                    for (final it in _items) _icono(it, box.maxWidth, box.maxHeight, seg),
+                    for (final g in _glows)
+                      _glow(g, box.maxWidth, box.maxHeight, seg),
+                    for (final it in _items)
+                      _icono(it, box.maxWidth, box.maxHeight, seg),
                   ],
                 );
               },

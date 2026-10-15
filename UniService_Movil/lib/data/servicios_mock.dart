@@ -1,6 +1,7 @@
 import '../models/servicio.dart';
 
 /// Datos de ejemplo para ver el diseño sin backend.
+/// Las fotos son de ejemplo (picsum.photos); las reales vendrán de Supabase Storage.
 /// En la web venían de GET /api/services; aquí los reemplazas luego por tu API.
 final List<Servicio> serviciosMock = [
   Servicio(
@@ -15,6 +16,7 @@ final List<Servicio> serviciosMock = [
     estrellas: 4.8,
     numResenas: 24,
     fechaPublicacion: DateTime(2026, 9, 28),
+    imagenUrl: 'https://picsum.photos/seed/uniservice-calculo/800/450',
   ),
   Servicio(
     id: 2,
@@ -27,6 +29,7 @@ final List<Servicio> serviciosMock = [
     precioHora: 15000,
     estrellas: 4.5,
     numResenas: 18,
+    imagenUrl: 'https://picsum.photos/seed/uniservice-ensayos/800/450',
     fechaPublicacion: DateTime(2026, 9, 26),
   ),
   Servicio(
@@ -39,6 +42,7 @@ final List<Servicio> serviciosMock = [
     proveedor: 'Sayd Barrera',
     precioHora: 350,
     estrellas: 5.0,
+    imagenUrl: 'https://picsum.photos/seed/uniservice-flutter/800/450',
     numResenas: 31,
     fechaPublicacion: DateTime(2026, 9, 25),
   ),
@@ -50,6 +54,7 @@ final List<Servicio> serviciosMock = [
     categoria: 'Diseño',
     proveedor: 'Juan David Torres',
     precioHora: 30000,
+    imagenUrl: 'https://picsum.photos/seed/uniservice-logos/800/450',
     estrellas: 4.7,
     numResenas: 12,
     fechaPublicacion: DateTime(2026, 9, 22),
@@ -74,6 +79,8 @@ final List<Servicio> serviciosMock = [
         'Habitación con baño privado, wifi y servicios incluidos a 5 minutos caminando de la sede principal.',
     categoria: 'Arriendo de habitaciones',
     proveedor: 'Andrea Villazón',
+    imagenUrl: 'https://picsum.photos/seed/uniservice-habitacion/800/450',
+    unidadPrecio: 'mes',
     precioHora: 450000,
     estrellas: 4.0,
     numResenas: 7,
@@ -86,6 +93,7 @@ final List<Servicio> serviciosMock = [
         'Repaso de cinemática, dinámica y energía con talleres tipo parcial para que llegues preparado.',
     categoria: 'Tutorías',
     universidad: 'Universidad Popular del Cesar',
+    imagenUrl: 'https://picsum.photos/seed/uniservice-fisica/800/450',
     proveedor: 'Sebastián Mejía',
     precioHora: 18000,
     estrellas: 4.6,
@@ -97,6 +105,7 @@ final List<Servicio> serviciosMock = [
     titulo: 'Maquetación de páginas web',
     descripcion:
         'Páginas web responsivas con HTML, CSS y JavaScript para tus trabajos de programación web.',
+    imagenUrl: 'https://picsum.photos/seed/uniservice-web/800/450',
     categoria: 'Programación',
     proveedor: 'Valentina Ortiz',
     precioHora: 25000,

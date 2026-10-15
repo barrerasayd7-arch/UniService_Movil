@@ -7,10 +7,12 @@ import '../../data/auth_repository.dart';
 import 'auth_widgets.dart';
 import 'modal_codigo.dart';
 
-/// Panel "Registrarse". Flujo: correo institucional → código de 6 dígitos →
-/// datos personales → POST /api/auth/register.
+/// Pestaña "Crear cuenta", en dos pasos:
+/// 1. Correo institucional → código de 6 dígitos.
+/// 2. Datos personales y contraseña → POST /api/auth/register.
 class RegisterForm extends StatefulWidget {
-  final VoidCallback onIrALogin;
+  /// Lleva a "Iniciar sesión" (con el correo, si ya tenía cuenta).
+  final void Function([String? correo]) onIrALogin;
   const RegisterForm({super.key, required this.onIrALogin});
 
   @override
@@ -18,75 +20,57 @@ class RegisterForm extends StatefulWidget {
 }
 
 class _RegisterFormState extends State<RegisterForm> {
+  final _correo = TextEditingController();
   final _nombre = TextEditingController();
   final _apellido = TextEditingController();
   final _telefono = TextEditingController();
-  final _correo = TextEditingController();
   final _pass = TextEditingController();
-  final _pass2 = TextEditingController();
-  final Map<String, String> _errores = {};
+  final Map<String, String?> _errores = {};
   static final _regexTelefono = RegExp(r'^[0-9+\-\s()]{7,20}$');
 
-  bool _terminos = false;
-  bool _enviandoCodigo = false;
   String? _verificacionToken; // token de 15 min devuelto al validar el código
+  String? _aviso;
+  bool _terminos = false;
   bool _cargando = false;
 
-  bool get _correoVerificado => _verificacionToken != null;
+  bool get _verificado => _verificacionToken != null;
 
   @override
   void dispose() {
-    for (final c in [_nombre, _apellido, _telefono, _correo, _pass, _pass2]) {
+    for (final c in [_correo, _nombre, _apellido, _telefono, _pass]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  // ── Validaciones en tiempo real (mismas reglas que el backend) ──
-  String _errorNombre(String v, String campo) {
+  // ── Validaciones (mismas reglas que el backend) ──
+  String? _errorNombre(String v, String campo) {
     final t = v.trim();
-    if (t.length < 2) return '$campo: mínimo 2 caracteres';
-    if (t.length > 50) return '$campo: máximo 50 caracteres';
-    return '';
+    if (t.length < 2) return 'Escribe tu $campo';
+    if (t.length > 50) return 'Máximo 50 caracteres';
+    return null;
   }
 
-  String _errorCorreo(String v) =>
-      regexCorreoInstitucional.hasMatch(normalizarCorreo(v))
-      ? ''
-      : 'Usa tu correo @unicesar.edu.co';
-
-  String _errorTelefono(String v) =>
-      _regexTelefono.hasMatch(v.trim()) ? '' : 'Entre 7 y 20 dígitos';
-
-  void _validarPass(String v) {
-    setState(() {
-      _errores['pass'] = v.length < 8 ? 'Mínimo 8 caracteres' : '';
-      if (_pass2.text.isNotEmpty) {
-        _errores['pass2'] = v != _pass2.text
-            ? 'Las contraseñas no coinciden'
-            : '';
-      }
-    });
-  }
-
-  void _validarPass2(String v) {
-    setState(() {
-      _errores['pass2'] = v != _pass.text ? 'Las contraseñas no coinciden' : '';
-    });
-  }
+  void _limpiar(String campo) => setState(() {
+    _errores[campo] = null;
+    _aviso = null;
+  });
 
   Future<void> _enviarCodigo() async {
     final correo = normalizarCorreo(_correo.text);
-    final error = _errorCorreo(correo);
-    if (error.isNotEmpty) {
-      setState(() => _errores['correo'] = error);
+    if (!regexCorreoInstitucional.hasMatch(correo)) {
+      setState(() => _errores['correo'] = 'Usa tu correo @unicesar.edu.co');
       return;
     }
-    setState(() => _enviandoCodigo = true);
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _cargando = true;
+      _aviso = null;
+    });
     try {
       final espera = await AuthRepository.instance.enviarCodigo(correo);
       if (!mounted) return;
-      setState(() => _enviandoCodigo = false);
+      setState(() => _cargando = false);
       final r = await mostrarModalCodigo(
         context,
         correo: correo,
@@ -94,48 +78,48 @@ class _RegisterFormState extends State<RegisterForm> {
       );
       if (r == null || !mounted) return;
       if (r.cuentaExistente) {
-        await mostrarNotificacion(
-          context,
-          'Ya tienes una cuenta con este correo. Inicia sesión con tu contraseña.',
-        );
-        widget.onIrALogin();
+        // Ya tiene cuenta: a "Iniciar sesión" con el correo escrito.
+        widget.onIrALogin(correo);
         return;
       }
       setState(() => _verificacionToken = r.token);
     } on ApiException catch (e) {
       if (!mounted) return;
-      setState(() => _enviandoCodigo = false);
-      mostrarNotificacion(context, e.mensaje);
+      setState(() {
+        _cargando = false;
+        _aviso = e.mensaje;
+      });
     }
   }
+
+  void _cambiarCorreo() => setState(() {
+    _verificacionToken = null;
+    _aviso = null;
+  });
 
   Future<void> _crearCuenta() async {
     if (_cargando) return;
     setState(() {
-      _errores['nombre'] = _errorNombre(_nombre.text, 'Nombre');
-      _errores['apellido'] = _errorNombre(_apellido.text, 'Apellido');
-      _errores['telefono'] = _errorTelefono(_telefono.text);
-      _errores['pass'] = _pass.text.length < 8 ? 'Mínimo 8 caracteres' : '';
-      _errores['pass2'] = _pass.text != _pass2.text
-          ? 'Las contraseñas no coinciden'
-          : '';
+      _errores['nombre'] = _errorNombre(_nombre.text, 'nombre');
+      _errores['apellido'] = _errorNombre(_apellido.text, 'apellido');
+      _errores['telefono'] = _regexTelefono.hasMatch(_telefono.text.trim())
+          ? null
+          : 'Escribe un teléfono de 7 a 20 dígitos';
+      _errores['pass'] = _pass.text.length < 8
+          ? 'Usa al menos 8 caracteres'
+          : null;
+      _aviso = null;
     });
-    if (!_correoVerificado) {
-      mostrarNotificacion(
-        context,
-        'Primero verifica tu correo con el código que te enviamos.',
-      );
-      return;
-    }
-    if (_errores.values.any((e) => e.isNotEmpty)) return;
+    if (_errores.values.any((e) => e != null)) return;
     if (!_terminos) {
-      mostrarNotificacion(
-        context,
-        'Acepta los términos y la política de privacidad para continuar.',
+      setState(
+        () => _aviso =
+            'Acepta los términos y la política de privacidad para continuar.',
       );
       return;
     }
 
+    FocusScope.of(context).unfocus();
     setState(() => _cargando = true);
     try {
       await AuthRepository.instance.registrar(
@@ -152,213 +136,212 @@ class _RegisterFormState extends State<RegisterForm> {
       if (!mounted) return;
       setState(() {
         _cargando = false;
+        _aviso = e.mensaje;
         // El token de verificación dura 15 min: si venció, hay que pedir otro código.
-        if (e.status == 400 && e.mensaje.contains('Verificación')) {
+        if (e.status == 400 && e.mensaje.contains('Verificación'))
           _verificacionToken = null;
-        }
       });
-      if (e.status == 409) {
-        await mostrarNotificacion(context, e.mensaje);
-        widget.onIrALogin();
-      } else {
-        mostrarNotificacion(context, e.mensaje);
-      }
+      if (e.status == 409) widget.onIrALogin(normalizarCorreo(_correo.text));
     }
-  }
-
-  Widget _botonEnviarCodigo() {
-    if (_correoVerificado) {
-      return Text(
-        '✓ Verificado',
-        style: AppText.poppins(
-          13.12,
-          weight: FontWeight.w700,
-          color: AppColors.verificado,
-        ),
-      );
-    }
-    return Opacity(
-      opacity: _enviandoCodigo ? 0.5 : 1,
-      child: GestureDetector(
-        onTap: _enviandoCodigo ? null : _enviarCodigo,
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.a(AppColors.teal, 0.12),
-              border: Border.all(color: AppColors.a(AppColors.teal, 0.4)),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              _enviandoCodigo ? 'Enviando...' : 'Enviar código',
-              style: AppText.poppins(
-                12.48,
-                weight: FontWeight.w600,
-                color: AppColors.teal,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return AutofillGroup(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 220),
+        alignment: Alignment.topCenter,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: _verificado ? _pasoDatos() : _pasoCorreo(),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _pasoCorreo() => [
+    AuthField(
+      label: 'Correo institucional',
+      hint: 'usuario@unicesar.edu.co',
+      icon: Icons.mail_outline_rounded,
+      controller: _correo,
+      keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.send,
+      autofillHints: const [AutofillHints.email],
+      onChanged: (_) => _limpiar('correo'),
+      onSubmitted: (_) => _enviarCodigo(),
+      errorText: _errores['correo'],
+    ),
+    Padding(
+      padding: const EdgeInsets.only(left: 2, bottom: 16),
+      child: Text(
+        'Te enviaremos un código de 6 dígitos para confirmar que es tuyo.',
+        style: AppText.poppins(13, color: AppColors.texto2, height: 1.45),
+      ),
+    ),
+    AuthAviso(mensaje: _aviso),
+    AuthPrimaryButton(
+      label: 'Enviar código',
+      cargando: _cargando,
+      onTap: _enviarCodigo,
+    ),
+    const SizedBox(height: 8),
+  ];
+
+  List<Widget> _pasoDatos() => [
+    // Correo ya verificado, con opción de cambiarlo.
+    Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(left: 12),
+      decoration: BoxDecoration(
+        color: AppColors.a(AppColors.verificado, 0.08),
+        border: Border.all(color: AppColors.a(AppColors.verificado, 0.35)),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
         children: [
-          AuthField(
-            label: 'Correo institucional',
-            hint: 'usuario@unicesar.edu.co',
-            controller: _correo,
-            keyboardType: TextInputType.emailAddress,
-            onChanged: (v) =>
-                setState(() => _errores['correo'] = _errorCorreo(v)),
-            errorText: _errores['correo'],
-            enabled: !_correoVerificado,
-            verified: _correoVerificado,
-            trailing: _botonEnviarCodigo(),
+          const Icon(
+            Icons.verified_outlined,
+            size: 18,
+            color: AppColors.verificado,
           ),
-          Row(
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              normalizarCorreo(_correo.text),
+              overflow: TextOverflow.ellipsis,
+              style: AppText.poppins(14, color: AppColors.texto),
+            ),
+          ),
+          AuthTextButton(
+            label: 'Cambiar',
+            onTap: _cargando ? null : _cambiarCorreo,
+          ),
+        ],
+      ),
+    ),
+    Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: AuthField(
+            label: 'Nombre',
+            hint: 'Nombre',
+            controller: _nombre,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.givenName],
+            onChanged: (_) => _limpiar('nombre'),
+            errorText: _errores['nombre'],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: AuthField(
+            label: 'Apellido',
+            hint: 'Apellido',
+            controller: _apellido,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.familyName],
+            onChanged: (_) => _limpiar('apellido'),
+            errorText: _errores['apellido'],
+          ),
+        ),
+      ],
+    ),
+    AuthField(
+      label: 'Teléfono',
+      hint: '300 123 4567',
+      icon: Icons.phone_outlined,
+      controller: _telefono,
+      keyboardType: TextInputType.phone,
+      textInputAction: TextInputAction.next,
+      autofillHints: const [AutofillHints.telephoneNumber],
+      onChanged: (_) => _limpiar('telefono'),
+      errorText: _errores['telefono'],
+    ),
+    AuthField(
+      label: 'Contraseña',
+      hint: 'Mínimo 8 caracteres',
+      icon: Icons.lock_outline_rounded,
+      controller: _pass,
+      obscure: true,
+      textInputAction: TextInputAction.done,
+      autofillHints: const [AutofillHints.newPassword],
+      onChanged: (_) => _limpiar('pass'),
+      errorText: _errores['pass'],
+    ),
+    _Terminos(
+      valor: _terminos,
+      onChanged: (v) => setState(() => _terminos = v),
+    ),
+    AuthAviso(mensaje: _aviso),
+    AuthPrimaryButton(
+      label: 'Crear cuenta',
+      cargando: _cargando,
+      onTap: _crearCuenta,
+    ),
+    const SizedBox(height: 8),
+  ];
+}
+
+/// Casilla de aceptación; toda la fila es tocable.
+class _Terminos extends StatelessWidget {
+  final bool valor;
+  final ValueChanged<bool> onChanged;
+  const _Terminos({required this.valor, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final enlace = AppText.poppins(
+      13,
+      weight: FontWeight.w600,
+      color: AppColors.teal,
+      height: 1.45,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => onChanged(!valor),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: AuthField(
-                  label: 'Nombre',
-                  hint: 'Tu nombre',
-                  controller: _nombre,
-                  onChanged: (v) => setState(
-                    () => _errores['nombre'] = _errorNombre(v, 'Nombre'),
-                  ),
-                  errorText: _errores['nombre'],
+              SizedBox(
+                width: 32,
+                height: 24,
+                child: Checkbox(
+                  value: valor,
+                  onChanged: (v) => onChanged(v ?? false),
+                  activeColor: AppColors.teal,
+                  checkColor: AppColors.bg,
+                  side: const BorderSide(color: AppColors.texto2, width: 1.5),
+                  visualDensity: VisualDensity.compact,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Expanded(
-                child: AuthField(
-                  label: 'Apellido',
-                  hint: 'Tu apellido',
-                  controller: _apellido,
-                  onChanged: (v) => setState(
-                    () => _errores['apellido'] = _errorNombre(v, 'Apellido'),
+                child: Text.rich(
+                  TextSpan(
+                    style: AppText.poppins(
+                      13,
+                      color: AppColors.texto2,
+                      height: 1.45,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Acepto los '),
+                      // Pendiente: enlazar cuando existan las páginas de términos y privacidad.
+                      TextSpan(text: 'términos', style: enlace),
+                      const TextSpan(text: ' y la '),
+                      TextSpan(text: 'política de privacidad', style: enlace),
+                    ],
                   ),
-                  errorText: _errores['apellido'],
                 ),
               ),
             ],
           ),
-          AuthField(
-            label: 'Teléfono',
-            hint: '300 123 4567',
-            controller: _telefono,
-            keyboardType: TextInputType.phone,
-            onChanged: (v) =>
-                setState(() => _errores['telefono'] = _errorTelefono(v)),
-            errorText: _errores['telefono'],
-          ),
-          AuthField(
-            label: 'Contraseña',
-            hint: 'Mínimo 8 caracteres',
-            controller: _pass,
-            obscure: true,
-            onChanged: _validarPass,
-            errorText: _errores['pass'],
-          ),
-          AuthField(
-            label: 'Confirmar contraseña',
-            hint: 'Repite tu contraseña',
-            controller: _pass2,
-            obscure: true,
-            onChanged: _validarPass2,
-            errorText: _errores['pass2'],
-          ),
-
-          // .terminos
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.a(AppColors.teal, 0.05),
-              border: Border.all(color: AppColors.a(AppColors.teal, 0.12)),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: Checkbox(
-                      value: _terminos,
-                      onChanged: (v) => setState(() => _terminos = v ?? false),
-                      activeColor: AppColors.teal,
-                      checkColor: AppColors.bg,
-                      side: const BorderSide(
-                        color: AppColors.texto2,
-                        width: 1.5,
-                      ),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text.rich(
-                    TextSpan(
-                      style: AppText.poppins(
-                        12.16,
-                        color: AppColors.texto2,
-                        height: 1.55,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Acepto los '),
-                        TextSpan(
-                          text: 'Términos y Condiciones',
-                          style: AppText.poppins(
-                            12.16,
-                            weight: FontWeight.w600,
-                            color: AppColors.teal,
-                            height: 1.55,
-                          ),
-                          // navegar a /terminos con un TapGestureRecognizer
-                        ),
-                        const TextSpan(text: ' y la '),
-                        TextSpan(
-                          text: 'Política de Privacidad',
-                          style: AppText.poppins(
-                            12.16,
-                            weight: FontWeight.w600,
-                            color: AppColors.teal,
-                            height: 1.55,
-                          ),
-                        ),
-                        const TextSpan(text: '.'),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          AuthPrimaryButton(
-            label: _cargando ? 'Creando cuenta...' : 'Crear cuenta →',
-            onTap: _cargando ? null : _crearCuenta,
-          ),
-          const SizedBox(height: 12),
-
-          AuthPie(
-            texto: '¿Ya tienes cuenta?',
-            link: 'Inicia sesión',
-            onTap: widget.onIrALogin,
-          ),
-        ],
+        ),
       ),
     );
   }

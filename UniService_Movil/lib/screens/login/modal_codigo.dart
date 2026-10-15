@@ -182,7 +182,8 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                         ),
                 ),
                 AuthPrimaryButton(
-                  label: _verificando ? 'Verificando...' : 'Verificar correo',
+                  label: 'Verificar correo',
+                  cargando: _verificando,
                   onTap: _verificando || _codigo.text.length != _largo
                       ? null
                       : _verificar,

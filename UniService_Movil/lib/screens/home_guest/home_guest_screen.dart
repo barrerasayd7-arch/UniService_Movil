@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../core/app_text.dart';
 import '../../data/servicios_mock.dart';
 import '../../models/servicio.dart';
-import 'busqueda_invitado.dart';
+import '../../widgets/explorador_servicios.dart';
 import 'footer_invitado.dart';
 import 'hero_presentacion.dart';
 import 'navbar_invitado.dart';
-import 'secciones_servicios.dart';
 
-/// Vista HomeGuest (InicioInvitado.jsx): navbar fija + hero + buscador
-/// + recientes + destacados + footer.
+/// Inicio para invitados: portada + explorador de servicios + pie.
+/// Tocar un servicio lleva al login.
 class HomeGuestScreen extends StatefulWidget {
   const HomeGuestScreen({super.key});
 
@@ -23,7 +23,6 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
   final _keys = {
     'inicio': GlobalKey(),
     'buscar': GlobalKey(),
-    'mejor-calificados': GlobalKey(),
     'soporte': GlobalKey(),
   };
   bool _menuAbierto = false;
@@ -39,6 +38,8 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
 
   void _irA(String ancla) {
     setState(() => _menuAbierto = false);
+    // "Top destacados" está dentro del explorador.
+    if (ancla == 'mejor-calificados') ancla = 'buscar';
     final ctx = _keys[ancla]?.currentContext;
     if (ctx == null) return;
     Scrollable.ensureVisible(
@@ -85,20 +86,26 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                         ),
                         KeyedSubtree(
                           key: _keys['buscar'],
-                          child: BusquedaInvitado(
+                          child: ExploradorServicios(
                             servicios: _servicios,
                             onTapServicio: (_) => _login(),
-                          ),
-                        ),
-                        SeccionRecientes(
-                          servicios: _servicios,
-                          onTapServicio: (_) => _login(),
-                        ),
-                        KeyedSubtree(
-                          key: _keys['mejor-calificados'],
-                          child: SeccionDestacados(
-                            servicios: _servicios,
-                            onTapServicio: (_) => _login(),
+                            encabezado: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Explora servicios',
+                                  style: AppText.serif(30, height: 1.15),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Inicia sesión para contactar a quien los ofrece.',
+                                  style: AppText.poppins(
+                                    15,
+                                    color: AppColors.texto2,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         KeyedSubtree(

@@ -4,10 +4,9 @@ import '../../core/app_colors.dart';
 import '../../data/auth_repository.dart';
 import '../../data/servicios_mock.dart';
 import '../../models/servicio.dart';
-import '../home_guest/hero_presentacion.dart';
-import '../home_guest/secciones_servicios.dart';
+import '../../core/app_text.dart';
+import '../../widgets/explorador_servicios.dart';
 import 'botones_flotantes.dart';
-import 'busqueda_home.dart';
 import 'footer_home.dart';
 import 'navbar_home.dart';
 import 'tarjeta_publicar.dart';
@@ -26,8 +25,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final _scroll = ScrollController();
   final _keys = {
     'inicio': GlobalKey(),
-    'buscar': GlobalKey(),
-    'mejor-calificados': GlobalKey(),
     'publicar': GlobalKey(),
     'soporte': GlobalKey(),
   };
@@ -71,6 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _irA(String ancla) {
     setState(() => _menuAbierto = false);
+    // Buscar y "Top destacados" viven ahora en el explorador del inicio.
+    if (ancla == 'buscar' || ancla == 'mejor-calificados') ancla = 'inicio';
     final ctx = _keys[ancla]?.currentContext;
     if (ctx == null) return;
     Scrollable.ensureVisible(
@@ -140,29 +139,29 @@ class _HomeScreenState extends State<HomeScreen> {
                     controller: _scroll,
                     child: Column(
                       children: [
+                        // Lo primero: buscar. (La portada de marketing queda para invitados.)
                         KeyedSubtree(
                           key: _keys['inicio'],
-                          child: HeroPresentacion(
-                            onExplorar: () => _irA('buscar'),
-                            onPublicar: () => _irA('publicar'),
-                          ),
-                        ),
-                        KeyedSubtree(
-                          key: _keys['buscar'],
-                          child: BusquedaHome(
+                          child: ExploradorServicios(
                             servicios: _servicios,
                             onTapServicio: _abrirServicio,
-                          ),
-                        ),
-                        SeccionRecientes(
-                          servicios: _servicios,
-                          onTapServicio: _abrirServicio,
-                        ),
-                        KeyedSubtree(
-                          key: _keys['mejor-calificados'],
-                          child: SeccionDestacados(
-                            servicios: _servicios,
-                            onTapServicio: _abrirServicio,
+                            encabezado: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Hola, $_nombreUsuario',
+                                  style: AppText.serif(30, height: 1.15),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '¿Qué necesitas hoy?',
+                                  style: AppText.poppins(
+                                    15,
+                                    color: AppColors.texto2,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         KeyedSubtree(

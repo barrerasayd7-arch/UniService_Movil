@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
-import '../../widgets/google_g_logo.dart';
 
 // ─────────────────────────────────────────────────────────────
-// Campo de texto (.campo + .campo-label + input + .error-msg)
+// Campo de texto: etiqueta, campo con ícono y error debajo.
 // ─────────────────────────────────────────────────────────────
 class AuthField extends StatefulWidget {
   final String label;
   final String hint;
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
-  final bool obscure;
+  final ValueChanged<String>? onSubmitted;
+  final bool obscure; // contraseña: añade el botón de mostrar/ocultar
   final TextInputType keyboardType;
+  final TextInputAction? textInputAction;
+  final Iterable<String>? autofillHints;
+  final IconData? icon;
   final String? errorText;
   final bool enabled;
-  final bool verified;
-
-  /// Widget a la derecha del input (botón "Enviar código" / badge "Verificado").
   final Widget? trailing;
 
   const AuthField({
@@ -29,11 +28,14 @@ class AuthField extends StatefulWidget {
     required this.hint,
     required this.controller,
     this.onChanged,
+    this.onSubmitted,
     this.obscure = false,
     this.keyboardType = TextInputType.text,
+    this.textInputAction,
+    this.autofillHints,
+    this.icon,
     this.errorText,
     this.enabled = true,
-    this.verified = false,
     this.trailing,
   });
 
@@ -43,6 +45,10 @@ class AuthField extends StatefulWidget {
 
 class _AuthFieldState extends State<AuthField> {
   final FocusNode _focus = FocusNode();
+  bool _oculto = true;
+
+  bool get _hayError =>
+      widget.errorText != null && widget.errorText!.isNotEmpty;
 
   @override
   void initState() {
@@ -59,52 +65,72 @@ class _AuthFieldState extends State<AuthField> {
   @override
   Widget build(BuildContext context) {
     final focused = _focus.hasFocus;
-    final borderColor = widget.verified
-        ? AppColors.verificado
+    final borde = _hayError
+        ? AppColors.errorTexto
         : focused
         ? AppColors.teal
-        : AppColors.borde;
+        : AppColors.bordeCampo;
+    final colorIcono = focused ? AppColors.teal : AppColors.placeholder;
 
     final input = AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
         color: focused ? AppColors.bg3 : AppColors.bg2,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor, width: 1.5),
-        boxShadow: focused
-            ? [
-                BoxShadow(
-                  color: AppColors.a(AppColors.teal, 0.12),
-                  spreadRadius: 3,
-                  blurRadius: 0,
-                ),
-              ]
-            : const [],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borde, width: focused ? 1.6 : 1.2),
       ),
       child: TextField(
         controller: widget.controller,
         focusNode: _focus,
         onChanged: widget.onChanged,
-        obscureText: widget.obscure,
+        onSubmitted: widget.onSubmitted,
+        obscureText: widget.obscure && _oculto,
         enabled: widget.enabled,
         keyboardType: widget.keyboardType,
+        textInputAction: widget.textInputAction,
+        autofillHints: widget.autofillHints,
+        autocorrect:
+            !widget.obscure &&
+            widget.keyboardType != TextInputType.emailAddress,
+        enableSuggestions: !widget.obscure,
         cursorColor: AppColors.teal,
         style: AppText.poppins(
-          13.76,
-          color: widget.verified ? AppColors.texto2 : AppColors.texto,
+          15,
+          color: widget.enabled ? AppColors.texto : AppColors.texto2,
         ),
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
-          disabledBorder: InputBorder.none,
           hintText: widget.hint,
-          hintStyle: AppText.poppins(13.76, color: const Color(0xFF1E3D5C)),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 11,
+          hintStyle: AppText.poppins(15, color: AppColors.placeholder),
+          contentPadding: EdgeInsets.fromLTRB(
+            widget.icon == null ? 14 : 0,
+            14,
+            14,
+            14,
           ),
+          prefixIcon: widget.icon == null
+              ? null
+              : Icon(widget.icon, size: 20, color: colorIcono),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 46,
+            minHeight: 48,
+          ),
+          suffixIcon: widget.obscure
+              ? IconButton(
+                  tooltip: _oculto
+                      ? 'Mostrar contraseña'
+                      : 'Ocultar contraseña',
+                  onPressed: () => setState(() => _oculto = !_oculto),
+                  icon: Icon(
+                    _oculto
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    size: 20,
+                    color: AppColors.placeholder,
+                  ),
+                )
+              : null,
         ),
       ),
     );
@@ -115,14 +141,13 @@ class _AuthFieldState extends State<AuthField> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(bottom: 5),
+            padding: const EdgeInsets.only(bottom: 6, left: 2),
             child: Text(
-              widget.label.toUpperCase(),
+              widget.label,
               style: AppText.poppins(
-                11.84,
-                weight: FontWeight.w700,
+                13,
+                weight: FontWeight.w500,
                 color: AppColors.texto2,
-                spacing: 1.2,
               ),
             ),
           ),
@@ -136,12 +161,12 @@ class _AuthFieldState extends State<AuthField> {
                 widget.trailing!,
               ],
             ),
-          if (widget.errorText != null && widget.errorText!.isNotEmpty)
+          if (_hayError)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
+              padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
                 widget.errorText!,
-                style: AppText.poppins(12, color: AppColors.error),
+                style: AppText.poppins(12.5, color: AppColors.errorTexto),
               ),
             ),
         ],
@@ -151,7 +176,7 @@ class _AuthFieldState extends State<AuthField> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Tabs "Iniciar sesión" / "Registrarse" (.tabs)
+// Selector "Iniciar sesión" / "Crear cuenta" (control segmentado)
 // ─────────────────────────────────────────────────────────────
 class AuthTabs extends StatelessWidget {
   final int index;
@@ -163,24 +188,29 @@ class AuthTabs extends StatelessWidget {
     Widget tab(String label, int i) {
       final activo = index == i;
       return Expanded(
-        child: GestureDetector(
-          onTap: () => onChanged(i),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: activo ? AppColors.teal : Colors.transparent,
-                borderRadius: BorderRadius.circular(9),
-              ),
-              child: Text(
-                label,
-                style: AppText.poppins(
-                  12.96,
-                  weight: activo ? FontWeight.w700 : FontWeight.w600,
-                  color: activo ? AppColors.bg : AppColors.texto2,
+        child: Semantics(
+          button: true,
+          selected: activo,
+          child: GestureDetector(
+            onTap: () => onChanged(i),
+            behavior: HitTestBehavior.opaque,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: activo ? AppColors.teal : Colors.transparent,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Text(
+                  label,
+                  style: AppText.poppins(
+                    14,
+                    weight: FontWeight.w600,
+                    color: activo ? AppColors.bg : AppColors.texto2,
+                  ),
                 ),
               ),
             ),
@@ -191,17 +221,17 @@ class AuthTabs extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(4),
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: AppColors.bg2,
         border: Border.all(color: AppColors.borde),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
         children: [
           tab('Iniciar sesión', 0),
           const SizedBox(width: 4),
-          tab('Registrarse', 1),
+          tab('Crear cuenta', 1),
         ],
       ),
     );
@@ -209,252 +239,173 @@ class AuthTabs extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Botón principal (.btn-principal)
+// Botón principal (acción del formulario)
 // ─────────────────────────────────────────────────────────────
 class AuthPrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
-  const AuthPrimaryButton({super.key, required this.label, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final deshabilitado = onTap == null;
-    return HoverBuilder(
-      builder: (context, hover) {
-        final h = hover && !deshabilitado;
-        return GestureDetector(
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            transform: Matrix4.translationValues(0, h ? -2 : 0, 0),
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: (h ? AppColors.teal2 : AppColors.teal).withAlpha(
-                deshabilitado ? 150 : 255,
-              ),
-              border: Border.all(color: AppColors.teal2),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: h
-                  ? [
-                      BoxShadow(
-                        color: AppColors.a(AppColors.teal, 0.3),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ]
-                  : const [],
-            ),
-            child: Text(
-              label,
-              style: AppText.poppins(
-                14.08,
-                weight: FontWeight.w700,
-                color: AppColors.bg,
-                spacing: 0.5,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Botón secundario (.btn-secundario)
-// ─────────────────────────────────────────────────────────────
-class AuthSecondaryButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const AuthSecondaryButton({
+  final bool cargando;
+  const AuthPrimaryButton({
     super.key,
     required this.label,
-    required this.onTap,
+    this.onTap,
+    this.cargando = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return HoverBuilder(
-      builder: (context, hover) => GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          transform: Matrix4.translationValues(0, hover ? -1 : 0, 0),
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.a(AppColors.teal, hover ? 0.14 : 0.08),
-            border: Border.all(color: AppColors.a(AppColors.teal, 0.3)),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: hover
-                ? [
-                    BoxShadow(
-                      color: AppColors.a(AppColors.teal, 0.12),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+    final deshabilitado = onTap == null || cargando;
+    return Semantics(
+      button: true,
+      enabled: !deshabilitado,
+      child: HoverBuilder(
+        builder: (context, hover) {
+          final h = hover && !deshabilitado;
+          return GestureDetector(
+            onTap: deshabilitado ? null : onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              height: 50,
+              width: double.infinity,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: (h ? AppColors.teal2 : AppColors.teal).withAlpha(
+                  deshabilitado && !cargando ? 140 : 255,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: h
+                    ? [
+                        BoxShadow(
+                          color: AppColors.a(AppColors.teal, 0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
+                      ]
+                    : const [],
+              ),
+              child: cargando
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: AppColors.bg,
+                      ),
+                    )
+                  : Text(
+                      label,
+                      style: AppText.poppins(
+                        15,
+                        weight: FontWeight.w700,
+                        color: AppColors.bg,
+                      ),
                     ),
-                  ]
-                : const [],
-          ),
-          child: Text(
-            label,
-            style: AppText.poppins(
-              14.08,
-              weight: FontWeight.w700,
-              color: AppColors.teal,
-              spacing: 0.5,
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Botón "Continuar con Google" (aspecto del GoogleLogin outline)
+// Acción secundaria de bajo énfasis (texto en teal)
 // ─────────────────────────────────────────────────────────────
-class GoogleButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const GoogleButton({super.key, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return HoverBuilder(
-      builder: (context, hover) => GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 40,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: hover ? const Color(0xFFF7FAFF) : Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFFDADCE0)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const GoogleGLogo(size: 18),
-              const SizedBox(width: 10),
-              Text(
-                'Continuar con Google',
-                style: GoogleFonts.roboto(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF3C4043),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Separador "o continúa con" (.separator)
-// ─────────────────────────────────────────────────────────────
-class AuthSeparator extends StatelessWidget {
-  final String text;
-  const AuthSeparator({super.key, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    Widget linea() => Expanded(
-      child: Container(
-        height: 1,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.transparent, AppColors.borde, Colors.transparent],
-          ),
-        ),
-      ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 14),
-      child: Row(
-        children: [
-          linea(),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Opacity(
-              opacity: 0.7,
-              child: Text(
-                text,
-                style: AppText.poppins(
-                  11.52,
-                  weight: FontWeight.w500,
-                  color: const Color(0xFF5A7A9A),
-                  spacing: 0.5,
-                ),
-              ),
-            ),
-          ),
-          linea(),
-        ],
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// Texto con link: "¿No tienes cuenta? Regístrate gratis" (.pie)
-// ─────────────────────────────────────────────────────────────
-class AuthPie extends StatelessWidget {
-  final String texto;
-  final String link;
-  final VoidCallback onTap;
-  const AuthPie({
+class AuthTextButton extends StatelessWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final Color color;
+  const AuthTextButton({
     super.key,
-    required this.texto,
-    required this.link,
-    required this.onTap,
+    required this.label,
+    this.onTap,
+    this.color = AppColors.teal,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(
-          '$texto ',
-          textAlign: TextAlign.center,
-          style: AppText.poppins(12.64, color: AppColors.texto2),
-        ),
-        GestureDetector(
-          onTap: onTap,
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: Text(
-              link,
-              style: AppText.poppins(
-                12.64,
-                weight: FontWeight.w600,
-                color: AppColors.teal,
-              ),
-            ),
-          ),
-        ),
-      ],
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: color,
+        minimumSize: const Size(48, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        tapTargetSize: MaterialTapTargetSize.padded,
+      ),
+      child: Text(
+        label,
+        style: AppText.poppins(14, weight: FontWeight.w600, color: color),
+      ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Modal de notificación (.modal-box error / success)
+// Aviso dentro del formulario (errores de la API, junto a la acción)
+// ─────────────────────────────────────────────────────────────
+class AuthAviso extends StatelessWidget {
+  final String? mensaje;
+  final bool exito;
+  const AuthAviso({super.key, required this.mensaje, this.exito = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = exito ? AppColors.verificado : AppColors.errorTexto;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 180),
+      alignment: Alignment.topCenter,
+      child: mensaje == null
+          ? const SizedBox(width: double.infinity)
+          : Semantics(
+              liveRegion: true,
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.a(color, 0.08),
+                  border: Border.all(color: AppColors.a(color, 0.35)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      exito ? Icons.check_circle_outline : Icons.error_outline,
+                      size: 18,
+                      color: color,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        mensaje!,
+                        style: AppText.poppins(
+                          13,
+                          color: AppColors.texto,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Ventana de aviso (para confirmaciones fuera de un formulario)
 // ─────────────────────────────────────────────────────────────
 Future<void> mostrarNotificacion(
   BuildContext context,
   String mensaje, {
   bool exito = false,
 }) {
+  final color = exito ? AppColors.verificado : AppColors.errorTexto;
   return showDialog<void>(
     context: context,
     barrierColor: const Color(0x99000000),
@@ -462,52 +413,36 @@ Future<void> mostrarNotificacion(
       child: Material(
         color: Colors.transparent,
         child: Container(
-          width: 300,
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 25),
+          width: 320,
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.fromLTRB(22, 22, 22, 12),
           decoration: BoxDecoration(
             color: AppColors.card,
-            borderRadius: BorderRadius.circular(12),
-            border: Border(
-              left: BorderSide(
-                color: exito
-                    ? const Color(0xFF00C851)
-                    : const Color(0xFFFF4D4F),
-                width: 5,
-              ),
-              top: const BorderSide(color: AppColors.borde2),
-              right: const BorderSide(color: AppColors.borde2),
-              bottom: const BorderSide(color: AppColors.borde2),
-            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.borde2),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(
+                exito ? Icons.check_circle_outline : Icons.info_outline,
+                color: color,
+                size: 30,
+              ),
+              const SizedBox(height: 12),
               Text(
                 mensaje,
                 textAlign: TextAlign.center,
-                style: AppText.poppins(14, color: Colors.white),
-              ),
-              const SizedBox(height: 15),
-              GestureDetector(
-                onTap: () => Navigator.of(ctx).pop(),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 15,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.teal,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Cerrar',
-                    style: AppText.poppins(
-                      14,
-                      weight: FontWeight.w700,
-                      color: Colors.black,
-                    ),
-                  ),
+                style: AppText.poppins(
+                  14.5,
+                  color: AppColors.texto,
+                  height: 1.45,
                 ),
+              ),
+              const SizedBox(height: 8),
+              AuthTextButton(
+                label: 'Entendido',
+                onTap: () => Navigator.of(ctx).pop(),
               ),
             ],
           ),

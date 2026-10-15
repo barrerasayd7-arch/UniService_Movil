@@ -5,6 +5,7 @@ using System.Text;
 using Google.Apis.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using UniserviceAPI.DTOs;
@@ -41,6 +42,67 @@ public class AuthController : ControllerBase
     [HttpPost("verify-code")]
     public IActionResult VerificarCodigo([FromBody] VerificarCodigoDTO data) => StatusCode(403, new { error = "Usa /api/auth/institutional-email/send-code y verify-code" });
 
+    // Devuelve el correo que acredita el JWT efímero de verify-code, o null si no es válido o venció.
+    private static string? CorreoVerificado(string? token, string codeKey)
+    {
+        try
+        {
+            // MapInboundClaims = false: si no, el claim "email" se renombra a
+            // ClaimTypes.Email y FindFirst("email") devuelve null.
+            var principal = new JwtSecurityTokenHandler { MapInboundClaims = false }.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(codeKey)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+            return principal.FindFirst("purpose")?.Value == "institutional_email_verify"
+                ? principal.FindFirst("email")?.Value
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    // =========================
+    // RECUPERAR CONTRASEÑA con el mismo código OTP del registro:
+    // send-code → verify-code → este endpoint con el token devuelto.
+    // =========================
+    [AllowAnonymous]
+    [EnableRateLimiting("InstitutionalEmail")]
+    [HttpPost("reset-password-verificado")]
+    public async Task<IActionResult> ResetPasswordVerificado([FromBody] ResetPasswordVerificadoDTO dto)
+    {
+        var email = InstitutionalAccess.NormalizeEmail(dto.correo);
+        if (email == null)
+            return BadRequest(new { error = "Usa tu correo @unicesar.edu.co" });
+
+        var codeKey = _config["InstitutionalEmail:CodeKey"];
+        if (string.IsNullOrWhiteSpace(codeKey) || Encoding.UTF8.GetByteCount(codeKey) < 32)
+            return StatusCode(503, new { error = "La recuperación de contraseña aún no está configurada" });
+
+        var verificado = CorreoVerificado(dto.verificacion_token, codeKey);
+        if (verificado == null)
+            return BadRequest(new { error = "El código venció. Solicita uno nuevo" });
+        if (!string.Equals(verificado, email, StringComparison.Ordinal))
+            return BadRequest(new { error = "Verificación de correo inválida" });
+
+        await using var conn = new NpgsqlConnection(_config.GetConnectionString("DefaultConnection"));
+        await conn.OpenAsync();
+        await using var cmd = new NpgsqlCommand(
+            "UPDATE usuarios SET password_hash = @hash WHERE lower(trim(correo)) = @email", conn);
+        cmd.Parameters.AddWithValue("@hash", BCrypt.Net.BCrypt.HashPassword(dto.nueva_password));
+        cmd.Parameters.AddWithValue("@email", email);
+        if (await cmd.ExecuteNonQueryAsync() == 0)
+            return NotFound(new { error = "No hay una cuenta con este correo" });
+
+        return Ok(new { ok = true });
+    }
+
     // =========================
     // REGISTER: crea la cuenta a partir del JWT efímero
     // emitido por /api/auth/institutional-email/verify-code.
@@ -59,28 +121,10 @@ public class AuthController : ControllerBase
             string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
             return StatusCode(503, new { error = "El registro aún no está configurado" });
 
-        ClaimsPrincipal principal;
-        try
-        {
-            // MapInboundClaims = false: si no, el claim "email" se renombra a
-            // ClaimTypes.Email y FindFirst("email") devuelve null.
-            principal = new JwtSecurityTokenHandler { MapInboundClaims = false }.ValidateToken(dto.verificacion_token, new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(codeKey)),
-                ValidateIssuer = false,
-                ValidateAudience = false,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
-            }, out _);
-        }
-        catch
-        {
+        var verificado = CorreoVerificado(dto.verificacion_token, codeKey);
+        if (verificado == null)
             return BadRequest(new { error = "Verificación de correo inválida o vencida. Solicita un código nuevo" });
-        }
-
-        if (principal.FindFirst("purpose")?.Value != "institutional_email_verify" ||
-            !string.Equals(principal.FindFirst("email")?.Value, email, StringComparison.Ordinal))
+        if (!string.Equals(verificado, email, StringComparison.Ordinal))
             return BadRequest(new { error = "Verificación de correo inválida" });
 
         var nombre = dto.nombre.Trim();

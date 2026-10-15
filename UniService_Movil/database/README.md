@@ -4,6 +4,16 @@
 
 Esta carpeta amplía la base **existente** de Supabase. No reconstruye ni reemplaza los datos de la página web. El repositorio móvil revisado usa datos mock y no tiene todavía un cliente de Supabase ni llamadas reales a la API.
 
+**Migraciones posteriores** (ruta aplicada: 001 → 002 → 004 → 005 → 007; no aplicar 003):
+
+| Migración | Qué hace | Cuándo aplicarla |
+|---|---|---|
+| `005_panel_admin.sql` | Columnas de suspensión en `usuarios` y tabla `auditoria_admin` | Aplicada |
+| `007_cerrar_acceso_publico.sql` | Quita a `anon`/`authenticated` el acceso a tablas, secuencias y funciones de `public`; RLS en todas las tablas; borra las políticas de Storage de subida/borrado | Aplicada |
+| `008_servicios_movil.sql` | `servicios.estado` (pendiente/aprobado/rechazado/pausado), `unidad_precio`, `orden` de imágenes, validaciones de solicitudes, `uniservice_mobile.listar_servicios` | **Junto con el backend nuevo de servicios**: la API anterior usa `disponibilidad = -1` y `es_principal`, que dejan de existir |
+
+Las pruebas (`tests/`, `npm test`) recrean en memoria las tablas antiguas y validan cada migración.
+
 ## Arquitectura que sigue esta propuesta
 
 ```text

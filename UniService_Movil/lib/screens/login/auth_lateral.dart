@@ -22,8 +22,17 @@ class _FI {
   final double? top, bottom, left, right; // en %
   final double dur, delay, size;
   final Color color;
-  const _FI(this.icono, this.dur, this.delay, this.color,
-      {this.top, this.bottom, this.left, this.right, this.size = 25.6});
+  const _FI(
+    this.icono,
+    this.dur,
+    this.delay,
+    this.color, {
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+    this.size = 25.6,
+  });
 }
 
 class _Orbe {
@@ -31,15 +40,32 @@ class _Orbe {
   final double? top, bottom, left, right; // px
   final double? topPct, leftPct; // %
   final Color color;
-  const _Orbe(this.size, this.dur, this.delay, this.color,
-      {this.top, this.bottom, this.left, this.right, this.topPct, this.leftPct});
+  const _Orbe(
+    this.size,
+    this.dur,
+    this.delay,
+    this.color, {
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+    this.topPct,
+    this.leftPct,
+  });
 }
 
 class _Destello {
   final double? top, bottom, left, right; // %
   final Color color;
   final double delay;
-  const _Destello(this.color, this.delay, {this.top, this.bottom, this.left, this.right});
+  const _Destello(
+    this.color,
+    this.delay, {
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+  });
 }
 
 class _AuthLateralState extends State<AuthLateral>
@@ -57,8 +83,24 @@ class _AuthLateralState extends State<AuthLateral>
     _FI(Icons.palette_outlined, 15, 2.2, _oro, top: 40, right: 6),
     _FI(Icons.inventory_2_outlined, 18, 3, _teal, bottom: 20, left: 6),
     _FI(Icons.home_outlined, 16, 1, _teal.withAlpha(153), bottom: 6, right: 8),
-    _FI(Icons.school_outlined, 20, 0.3, _oro.withAlpha(128), top: 22, left: 28, size: 20.8),
-    _FI(Icons.lightbulb_outline, 13, 2.8, _teal.withAlpha(128), bottom: 38, right: 3, size: 19.2),
+    _FI(
+      Icons.school_outlined,
+      20,
+      0.3,
+      _oro.withAlpha(128),
+      top: 22,
+      left: 28,
+      size: 20.8,
+    ),
+    _FI(
+      Icons.lightbulb_outline,
+      13,
+      2.8,
+      _teal.withAlpha(128),
+      bottom: 38,
+      right: 3,
+      size: 19.2,
+    ),
     _FI(Icons.star_border, 22, 1.8, _oro, bottom: 10, left: 38, size: 16),
   ];
 
@@ -82,8 +124,10 @@ class _AuthLateralState extends State<AuthLateral>
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: _ciclo))
-      ..repeat();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: _ciclo),
+    )..repeat();
   }
 
   @override
@@ -264,56 +308,96 @@ class _AuthLateralState extends State<AuthLateral>
           ),
 
           // Contenido
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: compacto ? 36 : 32, horizontal: 28),
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _LogoCircular(),
-              const SizedBox(height: 18),
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Uni',
-                      style: AppText.poppins(
-                        24,
-                        weight: FontWeight.w700,
-                        color: AppColors.teal,
-                        height: 1.25,
-                      ),
+          if (compacto)
+            // Celular: franja horizontal corta (logo + nombre + una línea) para que el
+            // formulario quepa sin desplazarse.
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 24),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _LogoCircular(size: 56),
+                  const SizedBox(width: 14),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const _Marca(size: 24),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Servicios entre estudiantes',
+                          style: AppText.poppins(
+                            13,
+                            color: Colors.white.withAlpha(170),
+                          ),
+                        ),
+                      ],
                     ),
-                    TextSpan(
-                      text: 'Service',
-                      style: AppText.poppins(
-                        24,
-                        weight: FontWeight.w700,
-                        color: AppColors.amarillo,
-                        height: 1.25,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 260),
-                child: Text(
-                  'Intercambia tutorías, proyectos, diseño y más con otros estudiantes universitarios.',
-                  textAlign: TextAlign.center,
-                  style: AppText.poppins(
-                    13.12,
-                    color: Colors.white.withAlpha(140),
-                    height: 1.65,
                   ),
-                ),
+                ],
               ),
-              if (!compacto) ...[
-                const SizedBox(height: 18),
-                const _ChipsCategorias(),
-              ],
-            ],
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _LogoCircular(size: 76),
+                  const SizedBox(height: 18),
+                  const _Marca(size: 24),
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    child: Text(
+                      'Intercambia tutorías, proyectos, diseño y más con otros estudiantes universitarios.',
+                      textAlign: TextAlign.center,
+                      style: AppText.poppins(
+                        13.12,
+                        color: Colors.white.withAlpha(140),
+                        height: 1.65,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const _ChipsCategorias(),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// "UniService" en teal + amarillo.
+class _Marca extends StatelessWidget {
+  final double size;
+  const _Marca({required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(
+            text: 'Uni',
+            style: AppText.poppins(
+              size,
+              weight: FontWeight.w700,
+              color: AppColors.teal,
+              height: 1.25,
+            ),
           ),
+          TextSpan(
+            text: 'Service',
+            style: AppText.poppins(
+              size,
+              weight: FontWeight.w700,
+              color: AppColors.amarillo,
+              height: 1.25,
+            ),
           ),
         ],
       ),
@@ -322,26 +406,26 @@ class _AuthLateralState extends State<AuthLateral>
 }
 
 class _LogoCircular extends StatelessWidget {
+  final double size;
+  const _LogoCircular({required this.size});
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 76,
-      height: 76,
+      width: size,
+      height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.a(AppColors.teal, 0.12),
         border: Border.all(color: AppColors.a(AppColors.teal, 0.35), width: 2),
         boxShadow: [
-          BoxShadow(
-            color: AppColors.a(AppColors.teal, 0.08),
-            blurRadius: 30,
-          ),
+          BoxShadow(color: AppColors.a(AppColors.teal, 0.08), blurRadius: 30),
         ],
       ),
       child: Image.asset(
         'assets/img/logo_color_noBG.png',
-        width: 76,
+        width: size,
         fit: BoxFit.contain,
       ),
     );

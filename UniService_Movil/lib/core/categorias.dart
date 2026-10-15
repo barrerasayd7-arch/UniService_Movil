@@ -33,8 +33,10 @@ const Map<String, CategoriaColor> coloresCategoria = {
   'Tutorías': CategoriaColor(Color(0x1AA78BFA), Color(0xFFA78BFA)),
   'Ensayos y redacción': CategoriaColor(Color(0x1AFBBF24), Color(0xFFFBBF24)),
   'Proyectos': CategoriaColor(Color(0x1A34D399), Color(0xFF34D399)),
-  'Arriendo de habitaciones':
-      CategoriaColor(Color(0x1AFB923C), Color(0xFFFB923C)),
+  'Arriendo de habitaciones': CategoriaColor(
+    Color(0x1AFB923C),
+    Color(0xFFFB923C),
+  ),
   'Otros servicios': CategoriaColor(Color(0x1A94A3B8), Color(0xFF94A3B8)),
 };
 
@@ -74,7 +76,10 @@ String normalizar(String? texto) {
   const destino = 'aaaaaeeeeiiiiooooouuuunAAAAAEEEEIIIIOOOOOUUUUN';
   var salida = (texto ?? '').toLowerCase().trim();
   for (var i = 0; i < origen.length; i++) {
-    salida = salida.replaceAll(origen[i].toLowerCase(), destino[i].toLowerCase());
+    salida = salida.replaceAll(
+      origen[i].toLowerCase(),
+      destino[i].toLowerCase(),
+    );
   }
   return salida;
 }
@@ -85,12 +90,46 @@ String truncar(String? texto, [int max = 90]) {
   return texto.length > max ? '${texto.substring(0, max)}...' : texto;
 }
 
+/// Nombre corto para chips y etiquetas ("Arriendo de habitaciones" -> "Arriendo").
+String etiquetaCategoria(String categoria) => switch (categoria) {
+  'Ensayos y redacción' => 'Ensayos',
+  'Arriendo de habitaciones' => 'Arriendo',
+  'Otros servicios' => 'Otros',
+  '' => 'Servicio',
+  _ => categoria,
+};
+
+/// 20000 -> "$20.000" (pesos colombianos, sin decimales).
+String formatearPrecio(int valor) {
+  final digitos = valor.abs().toString();
+  final buffer = StringBuffer();
+  for (var i = 0; i < digitos.length; i++) {
+    if (i > 0 && (digitos.length - i) % 3 == 0) buffer.write('.');
+    buffer.write(digitos[i]);
+  }
+  return '\$$buffer';
+}
+
+/// 4.75 -> "4,8" (decimal con coma, como se lee en Colombia).
+String formatearDecimal(double valor) =>
+    valor.toStringAsFixed(1).replaceAll('.', ',');
+
 /// "12 de octubre de 2026" (helpers.js -> formatearFecha con es-CO).
 String formatearFecha(DateTime? f) {
   if (f == null) return '—';
   const meses = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
   ];
   return '${f.day} de ${meses[f.month - 1]} de ${f.year}';
 }

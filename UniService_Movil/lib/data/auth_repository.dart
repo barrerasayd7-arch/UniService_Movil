@@ -90,6 +90,20 @@ class AuthRepository {
     return _abrirSesion(data as Map<String, dynamic>);
   }
 
+  /// Cambia la contraseña con el token de [verificarCodigo] y abre sesión con la nueva.
+  Future<AuthUser> restablecerPassword({
+    required String correo,
+    required String verificacionToken,
+    required String nuevaPassword,
+  }) async {
+    await api.post('/api/auth/reset-password-verificado', {
+      'correo': correo,
+      'verificacion_token': verificacionToken,
+      'nueva_password': nuevaPassword,
+    });
+    return iniciarSesion(correo, nuevaPassword);
+  }
+
   Future<void> cerrarSesion() async {
     final actual = usuario.value;
     if (actual != null) {

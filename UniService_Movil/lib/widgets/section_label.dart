@@ -67,14 +67,8 @@ class AcentoText extends StatelessWidget {
             style: FontStyle.italic,
             height: 1.15,
             shadows: [
-              Shadow(
-                color: AppColors.a(AppColors.teal, 0.3),
-                blurRadius: 20,
-              ),
-              Shadow(
-                color: AppColors.a(AppColors.teal, 0.1),
-                blurRadius: 60,
-              ),
+              Shadow(color: AppColors.a(AppColors.teal, 0.3), blurRadius: 20),
+              Shadow(color: AppColors.a(AppColors.teal, 0.1), blurRadius: 60),
             ],
           ),
         ),
@@ -87,7 +81,11 @@ class AcentoText extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(2),
               gradient: const LinearGradient(
-                colors: [Colors.transparent, AppColors.teal2, Colors.transparent],
+                colors: [
+                  Colors.transparent,
+                  AppColors.teal2,
+                  Colors.transparent,
+                ],
               ),
             ),
           ),
