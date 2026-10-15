@@ -81,10 +81,7 @@ public class InstitutionalAuthController(IConfiguration config) : ControllerBase
             await upsert.ExecuteNonQueryAsync(ct);
         }
         await tx.CommitAsync(ct);
-        var key = config["Jwt:Key"]!;
-        var token = new JwtSecurityToken(claims: [new Claim("id", id.ToString()), new Claim("id_rol", rol.ToString())],
-            expires: expires, signingCredentials: new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256));
-        return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token), expires_at = expires,
+        return Ok(new { token = Sesiones.Emitir(config, id, rol, DateTime.UtcNow, expires), expires_at = expires,
             user = new { id, nombre, correo, id_rol = rol, estudiante_activo = true } });
     }
 }

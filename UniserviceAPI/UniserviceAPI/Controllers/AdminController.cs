@@ -63,16 +63,12 @@ public sealed class AdminAuthController(IConfiguration config) : ControllerBase
             await cmd.ExecuteNonQueryAsync(ct);
         }
 
-        var expires = DateTime.UtcNow.AddHours(8);
-        var token = new JwtSecurityToken(
-            claims: [new Claim("id", id.ToString()), new Claim("id_rol", "1")],
-            expires: expires,
-            signingCredentials: new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!)), SecurityAlgorithms.HmacSha256));
+        var ahora = DateTime.UtcNow;
+        var expires = ahora.AddHours(8);
 
         return Ok(new
         {
-            token = new JwtSecurityTokenHandler().WriteToken(token),
+            token = Sesiones.Emitir(config, id, 1, ahora, expires),
             expires_at = expires,
             admin = new { id, nombre, correo }
         });

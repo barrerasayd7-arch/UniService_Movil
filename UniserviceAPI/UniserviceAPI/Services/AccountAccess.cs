@@ -6,10 +6,11 @@ using Npgsql;
 
 namespace UniserviceAPI.Services;
 
-public sealed record AccountState(bool Activa, int Rol);
+// SesionesDesde: segundos Unix; los tokens con "iat" anterior están revocados (0 = ninguno).
+public sealed record AccountState(bool Activa, int Rol, long SesionesDesde = 0);
 
-// Estado de cuenta leído de la BD (no del JWT): una suspensión o un cambio de rol
-// aplica en segundos aunque el token del usuario siga vigente.
+// Estado de cuenta leído de la BD (no del JWT): una suspensión, un cambio de rol o un cierre
+// de sesión aplica en segundos aunque el token del usuario siga vigente.
 public sealed class AccountStatus(IConfiguration config, IMemoryCache cache)
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(30);
@@ -21,10 +22,15 @@ public sealed class AccountStatus(IConfiguration config, IMemoryCache cache)
         await using var conn = new NpgsqlConnection(config.GetConnectionString("DefaultConnection"));
         await conn.OpenAsync(ct);
         await using var cmd = new NpgsqlCommand(
-            "SELECT estado IS TRUE, COALESCE(id_rol, 2) FROM usuarios WHERE id_usuario = @id", conn);
+            """
+            SELECT estado IS TRUE, COALESCE(id_rol, 2),
+                   COALESCE(floor(extract(epoch FROM sesiones_validas_desde))::bigint, 0)
+            FROM usuarios WHERE id_usuario = @id
+            """, conn);
         cmd.Parameters.AddWithValue("id", id);
         await using var reader = await cmd.ExecuteReaderAsync(ct);
-        AccountState? state = await reader.ReadAsync(ct) ? new(reader.GetBoolean(0), reader.GetInt32(1)) : null;
+        AccountState? state = await reader.ReadAsync(ct)
+            ? new(reader.GetBoolean(0), reader.GetInt32(1), reader.GetInt64(2)) : null;
         cache.Set(Key(id), state, Ttl);
         return state;
     }
@@ -52,20 +58,31 @@ public sealed class ActiveAccountFilter(AccountStatus status) : IAsyncActionFilt
     }
 }
 
-public sealed class AdminFilter(AccountStatus status) : IAsyncActionFilter
+public sealed class AdminFilter(AccountStatus status, AdminElevation elevation, bool requiereElevacion) : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        var id = InstitutionalAccess.UserId(context.HttpContext.User);
-        var state = id == null ? null : await status.Get(id.Value, context.HttpContext.RequestAborted);
+        var http = context.HttpContext;
+        var id = InstitutionalAccess.UserId(http.User);
+        var state = id == null ? null : await status.Get(id.Value, http.RequestAborted);
         if (state is not { Activa: true, Rol: 1 })
         {
             context.Result = new ObjectResult(new { error = "No tienes permisos de administrador" }) { StatusCode = 403 };
+            return;
+        }
+        // 403 y no 401: la sesión sigue siendo válida, sólo falta (o venció) la contraseña de admin.
+        if (requiereElevacion && !await elevation.Valida(http.Request.Headers[AdminElevation.Header].ToString(), id!.Value, http.RequestAborted))
+        {
+            context.Result = new ObjectResult(new { error = "Confirma tu contraseña de administrador para continuar", requiere_elevacion = true }) { StatusCode = 403 };
             return;
         }
         await next();
     }
 }
 
-// Exige rol administrador (id_rol = 1) y cuenta activa, comprobados contra la BD.
-public sealed class AdminOnlyAttribute() : TypeFilterAttribute(typeof(AdminFilter));
+// Exige rol administrador (id_rol = 1) y cuenta activa, comprobados contra la BD, y por defecto
+// también la contraseña de admin (cabecera X-Admin-Elevacion). elevacion: false sólo para el acceso.
+public sealed class AdminOnlyAttribute : TypeFilterAttribute
+{
+    public AdminOnlyAttribute(bool elevacion = true) : base(typeof(AdminFilter)) => Arguments = [elevacion];
+}

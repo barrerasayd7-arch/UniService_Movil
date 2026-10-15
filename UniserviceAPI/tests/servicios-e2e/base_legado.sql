@@ -61,7 +61,16 @@ CREATE TABLE reportes (
   tipo_reporte varchar(30) NOT NULL, titulo varchar(150) NOT NULL, descripcion text NOT NULL, evidencia text,
   estado varchar(20) DEFAULT 'Pendiente', fecha_creacion timestamp DEFAULT now(), fecha_resolucion timestamp,
   resolucion_notas text, id_admin_responde integer REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
-  id_usuario_reportado integer REFERENCES usuarios(id_usuario) ON DELETE SET NULL);
+  id_usuario_reportado integer REFERENCES usuarios(id_usuario) ON DELETE SET NULL,
+  CONSTRAINT chk_estado CHECK (estado IN ('Pendiente', 'En_revision', 'Resuelto', 'Rechazado', 'Cerrado')),
+  CONSTRAINT chk_tipo_reporte CHECK (tipo_reporte IN ('servicio_fraude', 'servicio_inapropiado', 'contenido_inapropiado',
+    'pago_problema', 'usuario_acoso', 'usuario_fraude', 'usuario_abuso', 'usuario_spam', 'usuario_suplantacion',
+    'usuario_comportamiento', 'bug_tecnico', 'queja_general', 'sugerencia', 'otro')));
+-- Como en producción: FKs sin ON DELETE (la 009 las pasa a CASCADE).
+CREATE TABLE seguidores (
+  id_seguidor integer NOT NULL CONSTRAINT fk_usuario_seguidor REFERENCES usuarios(id_usuario),
+  id_seguido integer NOT NULL CONSTRAINT fk_usuario_seguido REFERENCES usuarios(id_usuario),
+  fecha_seguimiento timestamp DEFAULT now(), PRIMARY KEY (id_seguidor, id_seguido));
 
 -- Triggers de la web antigua (la 008 los elimina).
 CREATE FUNCTION fn_servicio_asignar_imagen_default() RETURNS trigger LANGUAGE plpgsql AS $$

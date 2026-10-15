@@ -62,6 +62,33 @@ builder.Services.AddRateLimiter(options =>
             PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0,
             AutoReplenishment = true
         }));
+
+    // Cupos ajustables con RateLimit__<Política> (las pruebas e2e los suben: todo sale de una misma IP).
+    var cupo = (string nombre, int porDefecto) => builder.Configuration.GetValue($"RateLimit:{nombre}", porDefecto);
+
+    // Por IP: login y registro (además del bloqueo por cuenta que aplica AuthController).
+    var cupoLogin = cupo("Login", 10);
+    options.AddPolicy("Login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = cupoLogin, Window = TimeSpan.FromMinutes(1), QueueLimit = 0, AutoReplenishment = true
+        }));
+    // Por usuario autenticado (o IP si no lo está). Requiere UseRateLimiter después de UseAuthentication.
+    void PorUsuario(string nombre, int permitidos, TimeSpan ventana)
+    {
+        var limite = cupo(nombre, permitidos);
+        options.AddPolicy(nombre, context => RateLimitPartition.GetFixedWindowLimiter(
+            InstitutionalAccess.UserId(context.User) is { } id ? $"u:{id}" : $"ip:{context.Connection.RemoteIpAddress}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = limite, Window = ventana, QueueLimit = 0, AutoReplenishment = true
+            }));
+    }
+    PorUsuario("Password", 5, TimeSpan.FromMinutes(10));
+    PorUsuario("Perfil", 30, TimeSpan.FromMinutes(1));
+    PorUsuario("Avatar", 5, TimeSpan.FromMinutes(10));
+    PorUsuario("Chat", 40, TimeSpan.FromMinutes(1));
+    PorUsuario("Reportes", 5, TimeSpan.FromMinutes(10));
 });
 builder.Services.AddHttpClient("InstitutionalEmail", client => client.Timeout = TimeSpan.FromSeconds(15));
 
@@ -81,6 +108,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         ValidateAudience = false,
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero
+    };
+    options.MapInboundClaims = false;
+    options.Events = new JwtBearerEvents
+    {
+        // SignalR (WebSocket) no puede enviar cabeceras: el token llega en ?access_token= sólo para /chathub.
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Query["access_token"].ToString();
+            if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/chathub"))
+                context.Token = token;
+            return Task.CompletedTask;
+        },
+        // Firma y vigencia no bastan: el token debe ser de una cuenta que existe y no estar revocado
+        // (cerrar sesión, cambio o recuperación de contraseña). La suspensión la responde ActiveAccountFilter.
+        OnTokenValidated = async context =>
+        {
+            var id = InstitutionalAccess.UserId(context.Principal!);
+            if (id == null) { context.Fail("Token sin usuario"); return; }
+            var estado = await context.HttpContext.RequestServices.GetRequiredService<AccountStatus>()
+                .Get(id.Value, context.HttpContext.RequestAborted);
+            if (estado == null) { context.Fail("La cuenta no existe"); return; }
+            if (Sesiones.EmitidoEn(context.Principal!) < estado.SesionesDesde) context.Fail("Sesión cerrada");
+        }
     };
 })
 .AddJwtBearer("MicrosoftInstitutional", options =>
@@ -123,6 +173,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<ActiveStudentFilter>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<AccountStatus>();
+builder.Services.AddSingleton<AdminElevation>();
 builder.Services.AddAuthorization();
 
 // 2. Configuración de Base de Datos (PostgreSQL - Supabase)
@@ -222,9 +273,10 @@ builder.Services.AddResponseCompression(options =>
 });
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 52428800; // 50MB
-    options.ValueLengthLimit = int.MaxValue;
-    options.MultipartHeadersLengthLimit = int.MaxValue;
+    // Cada endpoint de subida fija además su propio RequestSizeLimit.
+    options.MultipartBodyLengthLimit = 30 * 1024 * 1024;
+    options.ValueLengthLimit = 64 * 1024;
+    options.ValueCountLimit = 200;
 });
 builder.Services.AddEndpointsApiExplorer();
 
@@ -240,6 +292,14 @@ builder.Services.AddSwaggerGen(options =>
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Description = "Escribe: Bearer {tu_token}"
     });
+    // Token de POST /api/admin/acceso/verificar: lo exige el resto de /api/admin/*.
+    options.AddSecurityDefinition("AdminElevacion", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = UniserviceAPI.Services.AdminElevation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Token de /api/admin/acceso/verificar (contraseña de administrador)"
+    });
 
     options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
@@ -250,6 +310,17 @@ builder.Services.AddSwaggerGen(options =>
                 {
                     Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
                     Id = "Bearer"
+                }
+            },
+            new string[] {}
+        },
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "AdminElevacion"
                 }
             },
             new string[] {}
@@ -283,7 +354,18 @@ app.UseExceptionHandler(errorApp =>
     {
         var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
         var ex = exceptionHandlerPathFeature?.Error;
-        
+
+        // Petición inválida del cliente (cuerpo demasiado grande, cortado...): su código, no un 500.
+        if (ex is BadHttpRequestException bad)
+        {
+            context.Response.StatusCode = bad.StatusCode;
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = bad.StatusCode == StatusCodes.Status413PayloadTooLarge ? "La petición es demasiado grande" : "Petición inválida"
+            });
+            return;
+        }
+
         Console.WriteLine($"[ERROR GLOBAL] {ex?.GetType().Name}: {ex?.Message}");
         Console.WriteLine($"[ERROR GLOBAL] Stack: {ex?.StackTrace}");
         
@@ -318,15 +400,20 @@ app.Use(async (context, next) =>
 {
     context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups";
     context.Response.Headers["Cross-Origin-Embedder-Policy"] = "unsafe-none";
+    // El navegador no debe adivinar tipos (un archivo subido no se ejecuta como HTML) ni incrustar la API.
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
     await next();
 });
 
 app.UseCors("AllowReact");
 // B. El orden de estos es vital para el funcionamiento de los controladores
 app.UseRouting();
-app.UseRateLimiter();
 
 app.UseAuthentication();
+// Después de autenticar: las políticas por usuario necesitan el id del token.
+app.UseRateLimiter();
 app.UseAuthorization();
 
 // C. Mantenemos comentada la redirección HTTPS para facilitar la conexión local

@@ -25,11 +25,22 @@ function token(id, rol = 2) {
   const body = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ id: String(id), id_rol: String(rol), exp: Math.floor(Date.now() / 1000) + 3600 })}`;
   return `${body}.${crypto.createHmac('sha256', JWT_KEY).update(body).digest('base64url')}`;
 }
-const ANA = token(1), BETO = token(2), CARLA = token(4), ADMIN = token(5, 1), INACTIVA = token(3);
+const ANA = token(1), BETO = token(2), CARLA = token(4), INACTIVA = token(3);
+let ADMIN = token(5, 1); // se renueva tras restablecer su contraseña (eso cierra sus sesiones)
 
-async function api(method, path, { as, body, form } = {}) {
+// ── Token de verify-code (código OTP del correo) firmado con la CodeKey de la prueba ──
+const CODE_KEY = crypto.randomBytes(48).toString('base64');
+function otp(correo) {
+  const body = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ purpose: 'institutional_email_verify', email: correo, exp: Math.floor(Date.now() / 1000) + 900 })}`;
+  return `${body}.${crypto.createHmac('sha256', CODE_KEY).update(body).digest('base64url')}`;
+}
+let ADMIN_ELEV = null; // token de la contraseña de admin: se añade a las llamadas del admin a /api/admin
+
+async function api(method, path, { as, body, form, elev } = {}) {
   const headers = {};
   if (as) headers.Authorization = `Bearer ${as}`;
+  elev ??= as === ADMIN && path.startsWith('/api/admin/') && !path.startsWith('/api/admin/acceso') ? ADMIN_ELEV : null;
+  if (elev) headers['X-Admin-Elevacion'] = elev;
   let payload;
   if (form) payload = form;
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
@@ -66,7 +77,7 @@ const proc = spawn('dotnet', [dll], {
     ...process.env,
     ASPNETCORE_ENVIRONMENT: 'Development', ASPNETCORE_URLS: API,
     ConnectionStrings__DefaultConnection: 'Host=localhost;Port=55432;Database=postgres;Username=postgres;Password=prueba',
-    Jwt__Key: JWT_KEY,
+    Jwt__Key: JWT_KEY, InstitutionalEmail__CodeKey: CODE_KEY,
     Supabase__Url: `http://localhost:${STORAGE_PORT}`, Supabase__ServiceKey: 'falsa',
     Brevo__ApiKey: 'deshabilitada-en-pruebas', Brevo__FromEmail: ''
   }
@@ -128,6 +139,48 @@ try {
   await expect(404, 'DELETE', `/api/servicios/${S}`, { as: BETO }, 'Beto no borra lo de Ana');
   await expect(404, 'POST', `/api/servicios/${S}/imagenes`, { as: BETO, form: formImagenes(png(1)) }, 'Beto no sube imágenes a lo de Ana');
   await expect(409, 'PATCH', `/api/servicios/${S}/pausa`, { as: ANA, body: { pausado: true } }, 'No se pausa un pendiente');
+
+  // ═══ Acceso al panel: contraseña de administrador ═══
+  const CORREO_ADMIN = 'admin@unicesar.edu.co';
+  ok((await expect(403, 'GET', '/api/admin/dashboard', { as: ADMIN }, 'Panel exige contraseña de admin')).requiere_elevacion === true,
+    'Indica que falta la contraseña de admin');
+  await expect(403, 'GET', '/api/admin/acceso/estado', { as: BETO }, 'Usuario normal no usa el acceso admin');
+  const estado = await expect(200, 'GET', '/api/admin/acceso/estado', { as: ADMIN }, 'Estado del acceso');
+  ok(estado.configurada === false && estado.correo === CORREO_ADMIN, 'Aún sin contraseña de admin');
+  await expect(409, 'POST', '/api/admin/acceso/verificar', { as: ADMIN, body: { clave: 'Cualquiera123' } }, 'Verificar sin haberla creado');
+  await expect(200, 'POST', '/api/auth/reset-password-verificado',
+    { body: { correo: CORREO_ADMIN, verificacion_token: otp(CORREO_ADMIN), nueva_password: 'CuentaAdmin2026' } }, 'Contraseña de la cuenta del admin');
+  await expect(401, 'GET', '/api/admin/acceso/estado', { as: ADMIN }, 'Restablecer la contraseña cierra las sesiones abiertas');
+  ADMIN = (await expect(200, 'POST', '/api/auth/login', { body: { correo: CORREO_ADMIN, password: 'CuentaAdmin2026' } }, 'Admin inicia sesión de nuevo')).token;
+  const crear = (clave, correo = CORREO_ADMIN) => ({ as: ADMIN, body: { verificacion_token: otp(correo), clave } });
+  await expect(400, 'POST', '/api/admin/acceso/clave', { as: ADMIN, body: { verificacion_token: 'falso', clave: 'PanelAdmin2026' } }, 'Sin código válido');
+  await expect(400, 'POST', '/api/admin/acceso/clave', crear('PanelAdmin2026', 'beto@unicesar.edu.co'), 'Código de otro correo');
+  await expect(400, 'POST', '/api/admin/acceso/clave', crear('corta1'), 'Contraseña corta');
+  await expect(400, 'POST', '/api/admin/acceso/clave', crear('soloLetrasLargas'), 'Sin números');
+  await expect(400, 'POST', '/api/admin/acceso/clave', crear('CuentaAdmin2026'), 'Igual a la de la cuenta');
+  const creada = await expect(200, 'POST', '/api/admin/acceso/clave', crear('PanelAdmin2026'), 'Crea la contraseña de admin');
+  await expect(200, 'GET', '/api/admin/dashboard', { as: ADMIN, elev: creada.token }, 'Crearla da acceso al panel');
+  await expect(401, 'GET', '/api/admin/dashboard', { as: creada.token }, 'El token de admin no sirve como sesión');
+  await expect(403, 'GET', '/api/admin/dashboard', { as: ADMIN, elev: ADMIN }, 'La sesión no sirve como token de admin');
+  await expect(400, 'POST', '/api/auth/reset-password-verificado',
+    { body: { correo: CORREO_ADMIN, verificacion_token: otp(CORREO_ADMIN), nueva_password: 'PanelAdmin2026' } }, 'La cuenta no puede usar la de admin');
+  ok((await expect(200, 'GET', '/api/admin/acceso/estado', { as: ADMIN }, 'Estado tras crearla')).configurada, 'Configurada');
+
+  for (let i = 1; i < 5; i++) {
+    const r = await expect(400, 'POST', '/api/admin/acceso/verificar', { as: ADMIN, body: { clave: `Mala${i}23456` } }, `Fallo ${i}`);
+    ok(r.intentos_restantes === 5 - i, 'Cuenta los intentos');
+  }
+  ok((await expect(429, 'POST', '/api/admin/acceso/verificar', { as: ADMIN, body: { clave: 'Mala523456' } }, 'Quinto fallo bloquea')).bloqueado_hasta,
+    'Informa hasta cuándo');
+  await expect(429, 'POST', '/api/admin/acceso/verificar', { as: ADMIN, body: { clave: 'PanelAdmin2026' } }, 'Bloqueada aunque acierte');
+  const restablecida = await expect(200, 'POST', '/api/admin/acceso/clave', crear('PanelNueva2027'), 'Restablecer con el código desbloquea');
+  await expect(403, 'GET', '/api/admin/dashboard', { as: ADMIN, elev: creada.token }, 'Cambiarla invalida los accesos anteriores');
+  await expect(200, 'GET', '/api/admin/dashboard', { as: ADMIN, elev: restablecida.token }, 'Acceso con la nueva');
+  await expect(400, 'POST', '/api/admin/acceso/verificar', { as: ADMIN, body: { clave: 'PanelAdmin2026' } }, 'La anterior ya no sirve');
+  ADMIN_ELEV = (await expect(200, 'POST', '/api/admin/acceso/verificar', { as: ADMIN, body: { clave: 'PanelNueva2027' } }, 'Entra con la nueva')).token;
+  const auditoria = await expect(200, 'GET', '/api/admin/auditoria', { as: ADMIN }, 'Auditoría');
+  ok(['acceso_panel', 'acceso_bloqueado', 'clave_admin_creada', 'clave_admin_restablecida']
+    .every((a) => JSON.stringify(auditoria).includes(a)), 'Accesos registrados en la auditoría');
 
   // ═══ Moderación ═══
   await expect(403, 'PATCH', `/api/admin/servicios/${S}/aprobar`, { as: BETO }, 'Usuario no aprueba');

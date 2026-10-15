@@ -1,7 +1,10 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Mail;
 using System.Security.Claims;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 
 namespace UniserviceAPI.Services;
@@ -20,6 +23,32 @@ public static class InstitutionalAccess
             address.Address != normalized || address.Host != "unicesar.edu.co" ||
             !System.Text.RegularExpressions.Regex.IsMatch(normalized, "^[a-z0-9][a-z0-9._+-]*@unicesar[.]edu[.]co$")) return null;
         return normalized;
+    }
+
+    // Devuelve el correo que acredita el JWT efímero de verify-code, o null si no es válido o venció.
+    public static string? VerifiedEmail(string? token, string codeKey)
+    {
+        try
+        {
+            // MapInboundClaims = false: si no, el claim "email" se renombra a
+            // ClaimTypes.Email y FindFirst("email") devuelve null.
+            var principal = new JwtSecurityTokenHandler { MapInboundClaims = false }.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(codeKey)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+            return principal.FindFirst("purpose")?.Value == "institutional_email_verify"
+                ? principal.FindFirst("email")?.Value
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     public static int? UserId(ClaimsPrincipal user) =>
