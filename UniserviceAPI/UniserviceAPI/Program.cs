@@ -23,6 +23,9 @@ var builder = WebApplication.CreateBuilder(args);
 var envPath = new[] { builder.Environment.ContentRootPath, Path.Combine(builder.Environment.ContentRootPath, "..") }
     .Select(dir => Path.GetFullPath(Path.Combine(dir, ".env")))
     .FirstOrDefault(File.Exists);
+
+    // Agrega esta línea justo aquí para que te diga en la consola si lo encontró o no:
+Console.WriteLine($"[DEBUG] Ruta del .env detectada: {envPath ?? "NO SE ENCONTRÓ EL ARCHIVO"}");
 if (envPath != null)
 {
     foreach (var line in File.ReadAllLines(envPath))
@@ -39,6 +42,12 @@ if (envPath != null)
         }
     }
 }
+
+// === LÍNEAS DE DEPURACIÓN NUEVAS ===
+builder.Configuration.AddEnvironmentVariables();
+Console.WriteLine($"[DEBUG] Brevo ApiKey leída: {(string.IsNullOrEmpty(builder.Configuration["Brevo:ApiKey"]) ? "VACÍA / NULL" : "OK (Configurada)")}");
+Console.WriteLine($"[DEBUG] InstitutionalEmail CodeKey leída: {(string.IsNullOrEmpty(builder.Configuration["InstitutionalEmail:CodeKey"]) ? "VACÍA / NULL" : "OK (Configurada)")}");
+// ===================================
 
 // Incorporar también las variables cargadas desde .env al proveedor de configuración.
 builder.Configuration.AddEnvironmentVariables();
