@@ -28,6 +28,12 @@ obj/
 *.suo
 TestResults/
 
+# ── Flutter / Dart (en cualquier carpeta, no solo UniService_Movil) ──
+**/.dart_tool/
+**/build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
 # ── IDEs / editores ──
 .idea/
 .vscode/
