@@ -18,6 +18,11 @@ import 'screens/profile/profile_screen.dart';
 import 'screens/publicar/publicar_screen.dart';
 import 'screens/service_detail/detail_screen.dart';
 import 'screens/solicitudes/solicitudes_screen.dart';
+import 'screens/admin/admin_actividad_screen.dart';
+import 'screens/admin/admin_categorias_screen.dart';
+import 'screens/admin/admin_reportes_screen.dart';
+import 'screens/admin/admin_servicios_screen.dart';
+import 'screens/admin/admin_usuarios_screen.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
@@ -110,6 +115,16 @@ class UniServiceApp extends StatelessWidget {
               ? const AdminPanelScreen()
               : const AdminAccesoScreen(),
         ),
+        '/admin/usuarios': (_) => _conPanel(() => const AdminUsuariosScreen()),
+        '/admin/servicios': (_) =>
+            _conPanel(() => const AdminServiciosScreen()),
+        '/admin/pendientes': (_) =>
+            _conPanel(() => const AdminServiciosScreen(soloPendientes: true)),
+        '/admin/reportes': (_) => _conPanel(() => const AdminReportesScreen()),
+        '/admin/categorias': (_) =>
+            _conPanel(() => const AdminCategoriasScreen()),
+        '/admin/actividad': (_) =>
+            _conPanel(() => const AdminActividadScreen()),
       },
     );
   }
@@ -118,3 +133,12 @@ class UniServiceApp extends StatelessWidget {
 /// Las pantallas de la cuenta llevan al login si no hay sesión.
 Widget _conSesion(Widget Function() pantalla) =>
     AuthRepository.instance.haySesion ? pantalla() : const LoginScreen();
+
+/// Las pantallas del panel piden además ser admin y tener la contraseña de administrador vigente.
+Widget _conPanel(Widget Function() pantalla) => _conSesion(
+  () => !(AuthRepository.instance.usuario.value?.esAdmin ?? false)
+      ? const HomeScreen()
+      : AdminRepository.instance.dentroDelPanel
+      ? pantalla()
+      : const AdminAccesoScreen(),
+);
