@@ -7,6 +7,7 @@ import '../../data/api_client.dart';
 import '../../data/auth_repository.dart';
 import '../login/auth_widgets.dart';
 import 'admin_widgets.dart';
+import 'admin_drawer.dart';
 
 /// Inicio del panel de administración: resumen de /api/admin/dashboard.
 class AdminPanelScreen extends StatefulWidget {
@@ -63,7 +64,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         backgroundColor: AppColors.bg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        automaticallyImplyLeading: false,
         titleSpacing: 20,
         title: Text('Panel de administración', style: AppText.serif(22)),
         actions: [
@@ -141,6 +141,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           ],
         ),
       ),
+      drawer: const AdminDrawer(actual: 'dashboard'),
     );
   }
 
