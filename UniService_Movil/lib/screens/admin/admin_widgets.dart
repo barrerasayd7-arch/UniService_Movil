@@ -155,3 +155,174 @@ String horaCorta(DateTime t) {
   final l = t.toLocal();
   return '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
 }
+
+/// Confirmación de una acción del panel. true = confirmó.
+Future<bool> confirmarAdmin(
+  BuildContext context, {
+  required String titulo,
+  required String mensaje,
+  String confirmar = 'Confirmar',
+  bool peligro = false,
+}) async {
+  final r = await showDialog<bool>(
+    context: context,
+    barrierColor: const Color(0xB3000000),
+    builder: (ctx) => AlertDialog(
+      backgroundColor: AppColors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: AppColors.a(AppColors.admin, 0.35)),
+      ),
+      title: Text(titulo, style: AppText.serif(23, height: 1.15)),
+      content: Text(
+        mensaje,
+        style: AppText.poppins(14.5, color: AppColors.texto2, height: 1.5),
+      ),
+      actions: [
+        AuthTextButton(
+          label: 'Cancelar',
+          color: AppColors.texto2,
+          onTap: () => Navigator.of(ctx).pop(false),
+        ),
+        AuthTextButton(
+          label: confirmar,
+          color: peligro ? AppColors.errorTexto : AppColors.admin,
+          onTap: () => Navigator.of(ctx).pop(true),
+        ),
+      ],
+    ),
+  );
+  return r == true;
+}
+
+/// Pide un texto (motivo de rechazo, notas). null = canceló; '' = lo dejó vacío.
+Future<String?> pedirMotivo(
+  BuildContext context, {
+  required String titulo,
+  required String mensaje,
+  String hint = '',
+  String confirmar = 'Confirmar',
+  String? inicial,
+}) {
+  return showDialog<String>(
+    context: context,
+    barrierColor: const Color(0xB3000000),
+    builder: (_) => _DialogoMotivo(
+      titulo: titulo,
+      mensaje: mensaje,
+      hint: hint,
+      confirmar: confirmar,
+      inicial: inicial,
+    ),
+  );
+}
+
+class _DialogoMotivo extends StatefulWidget {
+  final String titulo, mensaje, hint, confirmar;
+  final String? inicial;
+  const _DialogoMotivo({
+    required this.titulo,
+    required this.mensaje,
+    required this.hint,
+    required this.confirmar,
+    this.inicial,
+  });
+
+  @override
+  State<_DialogoMotivo> createState() => _DialogoMotivoState();
+}
+
+class _DialogoMotivoState extends State<_DialogoMotivo> {
+  late final _c = TextEditingController(text: widget.inicial);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    OutlineInputBorder borde(Color c, [double w = 1.2]) => OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: c, width: w),
+    );
+    return AlertDialog(
+      backgroundColor: AppColors.card,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: BorderSide(color: AppColors.a(AppColors.admin, 0.35)),
+      ),
+      title: Text(widget.titulo, style: AppText.serif(23, height: 1.15)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.mensaje,
+              style: AppText.poppins(
+                14.5,
+                color: AppColors.texto2,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _c,
+              minLines: 3,
+              maxLines: 5,
+              maxLength: 500,
+              cursorColor: AppColors.admin,
+              style: AppText.poppins(14.5, height: 1.5),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: AppColors.bg2,
+                hintText: widget.hint,
+                hintStyle: AppText.poppins(14.5, color: AppColors.placeholder),
+                counterStyle: AppText.poppins(11.5, color: AppColors.texto3),
+                enabledBorder: borde(AppColors.bordeCampo),
+                focusedBorder: borde(AppColors.admin, 1.6),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        AuthTextButton(
+          label: 'Cancelar',
+          color: AppColors.texto2,
+          onTap: () => Navigator.of(context).pop(),
+        ),
+        AuthTextButton(
+          label: widget.confirmar,
+          color: AppColors.admin,
+          onTap: () => Navigator.of(context).pop(_c.text.trim()),
+        ),
+      ],
+    );
+  }
+}
+
+/// Etiqueta de estado (Pendiente, Resuelto, Activo…) con el color que se le pase.
+class PildoraEstado extends StatelessWidget {
+  final String texto;
+  final Color color;
+  const PildoraEstado({super.key, required this.texto, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.a(color, 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.a(color, 0.35)),
+      ),
+      child: Text(
+        texto,
+        style: AppText.poppins(12, weight: FontWeight.w600, color: color),
+      ),
+    );
+  }
+}
