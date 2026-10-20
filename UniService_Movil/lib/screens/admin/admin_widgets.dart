@@ -27,6 +27,7 @@ class _AvisoAdmin extends StatelessWidget {
           color: Colors.transparent,
           child: Semantics(
             scopesRoute: true,
+            explicitChildNodes: true,
             namesRoute: true,
             label: 'Vas a entrar como administrador',
             child: Container(
