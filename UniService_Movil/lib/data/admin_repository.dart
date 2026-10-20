@@ -1,5 +1,6 @@
 import 'api_client.dart';
 import 'auth_repository.dart';
+import '../models/admin_models.dart';
 
 typedef EstadoAccesoAdmin = ({
   String correo,
@@ -59,6 +60,94 @@ class AdminRepository {
 
   Future<Map<String, dynamic>> dashboard() async =>
       await _api.get('/api/admin/dashboard') as Map<String, dynamic>;
+
+  static String _query(Map<String, String?> p) => Uri(
+    queryParameters: {
+      for (final e in p.entries)
+        if (e.value != null && e.value!.isNotEmpty) e.key: e.value!,
+    },
+  ).query;
+
+  // ── Usuarios ──
+  /// [estado]: 'activos' | 'suspendidos' | null (todos).
+  Future<PaginaAdmin<AdminUsuario>> usuarios({
+    String? busqueda,
+    String? estado,
+    int page = 1,
+  }) async {
+    final q = _query({
+      'busqueda': busqueda?.trim(),
+      'estado': estado,
+      'page': '$page',
+      'pageSize': '20',
+    });
+    final data =
+        await _api.get('/api/admin/usuarios?$q') as Map<String, dynamic>;
+    return PaginaAdmin.fromJson(data, AdminUsuario.fromJson);
+  }
+
+  Future<void> suspenderUsuario(int id, String motivo) =>
+      _api.patch('/api/admin/usuarios/$id/suspender', {'motivo': motivo});
+
+  Future<void> reactivarUsuario(int id) =>
+      _api.patch('/api/admin/usuarios/$id/reactivar');
+
+  // ── Servicios ──
+  /// [estado]: pendiente | aprobado | pausado | rechazado | null (todos).
+  Future<PaginaAdmin<AdminServicio>> servicios({
+    String? estado,
+    String? busqueda,
+    int page = 1,
+  }) async {
+    final q = _query({
+      'estado': estado,
+      'busqueda': busqueda?.trim(),
+      'page': '$page',
+      'pageSize': '20',
+    });
+    final data =
+        await _api.get('/api/admin/servicios?$q') as Map<String, dynamic>;
+    return PaginaAdmin.fromJson(data, AdminServicio.fromJson);
+  }
+
+  Future<void> aprobarServicio(int id) =>
+      _api.patch('/api/admin/servicios/$id/aprobar');
+
+  /// Retira un servicio ya publicado o pausado (motivo obligatorio).
+  Future<void> ocultarServicio(int id, String motivo) =>
+      _api.patch('/api/admin/servicios/$id/ocultar', {'motivo': motivo});
+
+  /// Rechaza un servicio pendiente (el motivo es opcional).
+  Future<void> rechazarServicio(int id, String? razon) =>
+      _api.post('/api/admin/servicios/$id/rechazar', {'razon': razon});
+
+  // ── Reportes ──
+  Future<PaginaAdmin<AdminReporte>> reportes({
+    String? estado,
+    int page = 1,
+  }) async {
+    final q = _query({'estado': estado, 'page': '$page', 'pageSize': '20'});
+    final data =
+        await _api.get('/api/admin/reportes?$q') as Map<String, dynamic>;
+    return PaginaAdmin.fromJson(data, AdminReporte.fromJson);
+  }
+
+  Future<void> actualizarReporte(int id, String estado, String? notas) =>
+      _api.patch('/api/admin/reportes/$id', {
+        'estado': estado,
+        'resolucion_notas': (notas == null || notas.isEmpty) ? null : notas,
+      });
+
+  // ── Bitácora ──
+  Future<PaginaAdmin<AdminAuditoria>> auditoria({
+    String? entidad,
+    int page = 1,
+  }) async {
+    final q = _query({'entidad': entidad, 'page': '$page', 'pageSize': '30'});
+    final data =
+        await _api.get('/api/admin/auditoria?$q') as Map<String, dynamic>;
+    return PaginaAdmin.fromJson(data, AdminAuditoria.fromJson);
+  }
 
   void salir() {
     _api.adminToken = null;
