@@ -1,3 +1,8 @@
+// Archivo: profile_widgets.dart
+// Responsabilidad: piezas visuales reutilizables del perfil (animación de entrada,
+//   estadísticas, celdas de información, menús y botones de acción).
+// Se usa desde: profile_screen.dart y profile_modals.dart.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -28,6 +33,7 @@ class FadeInUp extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // .stat-item
 // ─────────────────────────────────────────────────────────────
+/// Tarjeta de estadística; con [onTap] actúa como enlace (seguidores/siguiendo).
 class StatItem extends StatelessWidget {
   final String value;
   final String label;
@@ -75,6 +81,7 @@ class StatItem extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // .info-item
 // ─────────────────────────────────────────────────────────────
+/// Celda etiqueta/valor usada en la cuadrícula de información del perfil.
 class InfoItem extends StatelessWidget {
   final String label;
   final String value;
@@ -114,6 +121,7 @@ class InfoItem extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // .menu-item (con icono, título, descripción y flecha)
 // ─────────────────────────────────────────────────────────────
+/// Fila de menú con icono, título, descripción opcional y flecha o [trailing].
 class MenuItem extends StatelessWidget {
   final IconData icono;
   final Color? colorIcono;
@@ -241,6 +249,7 @@ class MenuItem extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // .menu-section + .section-title
 // ─────────────────────────────────────────────────────────────
+/// Bloque con título, icono y contenido para agrupar información del perfil.
 class MenuSection extends StatelessWidget {
   final IconData icono;
   final String titulo;
@@ -313,6 +322,7 @@ class MenuSection extends StatelessWidget {
   }
 }
 
+/// Resplandor radial decorativo de las esquinas de [MenuSection].
 class _Mancha extends StatelessWidget {
   final double size;
   final Color color;
@@ -338,8 +348,10 @@ class _Mancha extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // .btn-action (Editar, Compartir, Seguir, Chatear)
 // ─────────────────────────────────────────────────────────────
+/// Variantes visuales de [BtnAction].
 enum EstiloAccion { solido, outline, oscuro, sutil }
 
+/// Botón compacto de acciones del perfil (editar, seguir, compartir, chatear).
 class BtnAction extends StatelessWidget {
   final String label;
   final IconData icono;
@@ -358,6 +370,7 @@ class BtnAction extends StatelessWidget {
     return HoverBuilder(
       builder: (context, hover) {
         final h = hover && onTap != null;
+        // Paleta por estilo; el hover sólo se aplica si el botón está activo.
         Color bg, fg, borde;
         switch (estilo) {
           case EstiloAccion.solido:

@@ -1,3 +1,8 @@
+// Archivo: profile_modals.dart
+// Responsabilidad: modales del perfil (editar datos, avatar, seguridad, listas
+//   y reportes) y las piezas compartidas por ellos.
+// Se usa desde: profile_screen.dart.
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -15,6 +20,9 @@ import '../../widgets/avatar_respaldo.dart';
 // ═════════════════════════════════════════════════════════════
 // Base: overlay oscuro con blur + caja .image-menu
 // ═════════════════════════════════════════════════════════════
+/// Envoltorio común de los modales: overlay oscuro, caja con cabecera,
+/// animación de entrada y cierre por toque fuera. [builder] recibe el
+/// contexto del diálogo para poder cerrarlo.
 Future<T?> mostrarImageMenu<T>(
   BuildContext context, {
   required String titulo,
@@ -350,6 +358,8 @@ Widget fotoPerfil(String? url, {double? size}) {
 // ═════════════════════════════════════════════════════════════
 // Editar perfil (PUT /api/perfil/me, un campo cada vez)
 // ═════════════════════════════════════════════════════════════
+/// Editor campo a campo: cada opción abre [_pedirValor] y sólo llama a la API
+/// si el valor cambió. [onActualizado] refresca el perfil en pantalla.
 Future<void> mostrarEditarPerfil(
   BuildContext context,
   Usuario u, {
@@ -453,6 +463,8 @@ Future<void> mostrarEditarPerfil(
 // ═════════════════════════════════════════════════════════════
 // Cambiar avatar (POST/DELETE /api/perfil/me/avatar)
 // ═════════════════════════════════════════════════════════════
+/// Galería o cámara con compresión local; valida el tamaño y delega la subida
+/// al repositorio. [onCambio] recibe la URL nueva o null al quitar la foto.
 Future<void> mostrarCambiarAvatar(
   BuildContext context, {
   required bool tieneAvatar,
@@ -540,6 +552,8 @@ Future<void> mostrarCambiarAvatar(
 // ═════════════════════════════════════════════════════════════
 // Seguridad (cambiar contraseña)
 // ═════════════════════════════════════════════════════════════
+/// Seguridad de la cuenta: cambiar contraseña o consultar el correo
+/// institucional (no editable desde la app).
 Future<void> mostrarSeguridad(BuildContext context) {
   return mostrarImageMenu<void>(
     context,
@@ -549,6 +563,7 @@ Future<void> mostrarSeguridad(BuildContext context) {
   );
 }
 
+/// Alterna entre el menú de seguridad y el formulario de cambio de contraseña.
 class _SeguridadContenido extends StatefulWidget {
   const _SeguridadContenido();
 
@@ -582,6 +597,7 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
   }
 
   Future<void> _guardarPassword() async {
+    // Evita un segundo envío mientras la petición anterior sigue en curso.
     if (_guardando) return;
     if (_actual.text.isEmpty || _nueva.text.isEmpty || _confirmar.text.isEmpty) {
       mostrarNotificacion(context, 'Completa todos los campos');
@@ -688,6 +704,8 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
 // ═════════════════════════════════════════════════════════════
 // Lista de seguidores / siguiendo
 // ═════════════════════════════════════════════════════════════
+/// Modal genérico para seguidores o siguiendo: cubre carga, error, lista
+/// vacía y abre el perfil de la persona tocada.
 Future<void> mostrarListaPersonas(
   BuildContext context, {
   required String titulo,
@@ -752,6 +770,7 @@ Future<void> mostrarListaPersonas(
 // ═════════════════════════════════════════════════════════════
 // Reportar (POST /api/reportes): a un usuario o un problema general
 // ═════════════════════════════════════════════════════════════
+// Códigos que espera la API, con su etiqueta visible en los chips.
 const Map<String, String> _motivosUsuario = {
   'usuario_acoso': 'Acoso',
   'usuario_fraude': 'Fraude o estafa',
@@ -767,6 +786,8 @@ const Map<String, String> _motivosGenerales = {
   'otro': 'Otro',
 };
 
+/// Reporte general o contra un usuario según [idUsuario]; la API valida el
+/// resto, aquí sólo se comprueban longitudes mínimas.
 Future<void> mostrarReportar(
   BuildContext context, {
   int? idUsuario,
@@ -780,6 +801,7 @@ Future<void> mostrarReportar(
   );
 }
 
+/// Formulario de reporte: motivo, título y descripción.
 class _ReporteContenido extends StatefulWidget {
   final int? idUsuario;
   const _ReporteContenido({this.idUsuario});

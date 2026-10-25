@@ -1,3 +1,7 @@
+// Archivo: register_form.dart
+// Responsabilidad: pestaña de creación de cuenta en dos pasos (verificar correo y capturar datos).
+// Se usa desde: login_screen.dart (_Formulario).
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -10,6 +14,7 @@ import 'modal_codigo.dart';
 /// Pestaña "Crear cuenta", en dos pasos:
 /// 1. Correo institucional → código de 6 dígitos.
 /// 2. Datos personales y contraseña → POST /api/auth/register.
+/// [onIrALogin] permite volver al login (con el correo si la cuenta ya existía).
 class RegisterForm extends StatefulWidget {
   /// Lleva a "Iniciar sesión" (con el correo, si ya tenía cuenta).
   final void Function([String? correo]) onIrALogin;
@@ -20,6 +25,8 @@ class RegisterForm extends StatefulWidget {
 }
 
 class _RegisterFormState extends State<RegisterForm> {
+  // --- Estado y controladores ---
+
   final _correo = TextEditingController();
   final _nombre = TextEditingController();
   final _apellido = TextEditingController();
@@ -56,6 +63,7 @@ class _RegisterFormState extends State<RegisterForm> {
     _aviso = null;
   });
 
+  // Verifica el correo; si la cuenta ya existe, salta al login con ese correo.
   Future<void> _enviarCodigo() async {
     final correo = normalizarCorreo(_correo.text);
     if (!regexCorreoInstitucional.hasMatch(correo)) {
@@ -97,6 +105,7 @@ class _RegisterFormState extends State<RegisterForm> {
     _aviso = null;
   });
 
+  // Valida todos los campos, exige términos y registra con el token de verificación.
   Future<void> _crearCuenta() async {
     if (_cargando) return;
     setState(() {
@@ -159,6 +168,7 @@ class _RegisterFormState extends State<RegisterForm> {
     );
   }
 
+  // Paso 1: pedir el correo institucional y su código.
   List<Widget> _pasoCorreo() => [
     AuthField(
       label: 'Correo institucional',
@@ -188,6 +198,7 @@ class _RegisterFormState extends State<RegisterForm> {
     const SizedBox(height: 8),
   ];
 
+  // Paso 2: datos personales y contraseña, con el correo ya verificado.
   List<Widget> _pasoDatos() => [
     // Correo ya verificado, con opción de cambiarlo.
     Container(

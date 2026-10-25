@@ -1,15 +1,22 @@
+// Archivo: footer_invitado.dart
+// Responsabilidad: pie del inicio público; los enlaces de cuenta redirigen
+//   al login porque el invitado no tiene sesión.
+// Se usa desde: home_guest_screen.dart, anclado como "soporte".
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 
-/// `footer#soporte` (PiePaginaInvitado.jsx).
+/// `footer#soporte` (PiePaginaInvitado.jsx). [onAncla] navega dentro del
+/// inicio y [onLogin] cubre cualquier enlace que requiera cuenta.
 class FooterInvitado extends StatelessWidget {
   final ValueChanged<String> onAncla;
   final VoidCallback onLogin;
   const FooterInvitado({super.key, required this.onAncla, required this.onLogin});
 
+  // Enlace de texto con hover; mismo tratamiento que en el footer autenticado.
   Widget _link(String texto, VoidCallback onTap) {
     return HoverBuilder(
       builder: (context, hover) => GestureDetector(
@@ -28,6 +35,7 @@ class FooterInvitado extends StatelessWidget {
     );
   }
 
+  // Columna del pie: título y enlaces apilados.
   Widget _columna(String titulo, List<Widget> links) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -49,6 +57,7 @@ class FooterInvitado extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.of(context).size.width;
+    // Por debajo de 768px las columnas se reparten en dos filas.
     final apilado = ancho < 768;
 
     final marca = Column(
@@ -90,6 +99,7 @@ class FooterInvitado extends StatelessWidget {
       _link('Buscar servicios', () => onAncla('buscar')),
       _link('Publicar servicio', onLogin),
     ]);
+    // Los enlaces de cuenta delegan en onLogin: no hay sesión que mostrar.
     final cuenta = _columna('Mi cuenta', [
       _link('Mis servicios', onLogin),
       _link('Solicitudes', onLogin),
@@ -99,6 +109,7 @@ class FooterInvitado extends StatelessWidget {
       for (final c in ['Tutorías', 'Ensayos', 'Programación', 'Diseño', 'Arriendo'])
         _link(c, () => onAncla('buscar')),
     ]);
+    // Soporte y legales todavía no tienen vista: los enlaces quedan inertes.
     final soporte = _columna('Soporte', [
       _link('Centro de ayuda', () {}),
       _link('Términos de uso', () {}), 

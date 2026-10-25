@@ -1,3 +1,8 @@
+// Archivo: profile_screen.dart
+// Responsabilidad: perfil propio y público con carga desde la API, seguimiento,
+//   estadísticas, navegación y acciones de edición o reporte.
+// Se usa desde: main.dart para '/perfil' y '/perfil-externo'.
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -36,6 +41,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _menuAbierto = false;
   bool _guardandoSeguir = false;
 
+  // _perfil null dispara la carga o el reintento; _error guarda el mensaje del fallo.
   Usuario? _perfil;
   String? _error;
 
@@ -43,12 +49,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   bool get _externo => widget.externo;
   Usuario get _usuario => _perfil!;
+
+  // Nombre de la sesión actual para el navbar, aunque se vea otro perfil.
   String get _nombreSesion =>
       (AuthRepository.instance.usuario.value?.nombre ?? '').split(' ').first;
 
   @override
   void initState() {
     super.initState();
+    // Carga inicial y, sólo en el perfil propio, el conteo de servicios.
     _cargar();
     if (!_externo) _contarServicios();
   }
@@ -78,6 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _alternarSeguir() async {
+    // Bloquea el botón mientras el servidor confirma y luego actualiza contadores.
     if (_guardandoSeguir) return;
     final seguir = !_usuario.loSigo;
     setState(() => _guardandoSeguir = true);
@@ -101,6 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ── Navegación ──
+  // Vuelve al home conservando el enlace como argumento para saltar a su ancla.
   void _irA(String enlace) {
     setState(() => _menuAbierto = false);
     if (enlace == 'inicio') {
@@ -176,6 +187,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final ancho = MediaQuery.of(context).size.width;
+    // En pantallas medianas se usa el mismo menú desplegable que en el home.
     final movil = ancho <= 1100;
 
     return Scaffold(
@@ -183,6 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // SafeArea: la barra superior no queda bajo la hora/batería del celular.
       body: SafeArea(
         bottom: false,
+        // Stack: fondo animado, contenido, menú móvil y botón de reporte.
         child: Stack(
           children: [
             const Positioned.fill(
@@ -232,6 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Spinner mientras no hay perfil; si falló, mensaje con reintento.
   Widget _estadoCarga() {
     if (_error == null) {
       return const Center(child: CircularProgressIndicator(color: AppColors.teal));
@@ -261,6 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // Distribuye tarjeta y panel: lado a lado en pantallas anchas, apilados si no.
   Widget _contenido(double ancho) {
     final pad = ancho <= 480
         ? const EdgeInsets.fromLTRB(8, 10, 8, 0)
@@ -330,12 +345,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 // ═════════════════════════════════════════════════════════════
 // Botón flotante rojo "Reportar problema" (.btn-reportar-flotante)
 // ═════════════════════════════════════════════════════════════
+/// Botón flotante que abre el reporte de un problema general.
 class _BotonReportar extends StatelessWidget {
   final VoidCallback onTap;
   const _BotonReportar({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    // Tamaño, margen e icono crecen con el ancho de la pantalla.
     final w = MediaQuery.of(context).size.width;
     final size = w <= 480
         ? 42.0
@@ -412,6 +429,8 @@ class _BotonReportar extends StatelessWidget {
 // ═════════════════════════════════════════════════════════════
 // Tarjeta izquierda (.profile-card)
 // ═════════════════════════════════════════════════════════════
+/// Tarjeta izquierda del perfil: avatar, identidad, estadísticas y acciones
+/// (editar/compartir en el propio, seguir/chatear/compartir en el ajeno).
 class _TarjetaPerfil extends StatelessWidget {
   final Usuario usuario;
   final bool externo;
@@ -456,6 +475,7 @@ class _TarjetaPerfil extends StatelessWidget {
         ? const EdgeInsets.fromLTRB(26, 38, 26, 34)
         : const EdgeInsets.fromLTRB(30, 60, 30, 50);
 
+    // El cursor no cambia fuera de los botones; la tarjeta sólo se eleva.
     return HoverBuilder(
       cursor: SystemMouseCursors.basic,
       builder: (context, hover) => AnimatedContainer(
@@ -591,6 +611,7 @@ class _TarjetaPerfil extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 25),
+                  // Las acciones dependen de si el perfil es propio o ajeno.
                   Row(
                     children: externo
                         ? [
@@ -653,6 +674,7 @@ class _TarjetaPerfil extends StatelessWidget {
 }
 
 // ── Avatar con anillo dorado/teal giratorio ──
+/// Avatar con anillo giratorio; el tap sólo se habilita en el perfil propio.
 class _Avatar extends StatefulWidget {
   final double size;
   final String? url;
@@ -694,7 +716,7 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Anillo animado (inset -4)
+              // El anillo gira de forma continua con un SweepGradient.
               Positioned(
                 left: -4,
                 top: -4,
@@ -759,6 +781,8 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
 // ═════════════════════════════════════════════════════════════
 // Panel derecho (.right-panel)
 // ═════════════════════════════════════════════════════════════
+/// Panel derecho: información de la cuenta y acceso a servicios, seguridad
+/// o reporte según el tipo de perfil.
 class _PanelDerecho extends StatelessWidget {
   final Usuario usuario;
   final bool externo;
@@ -843,6 +867,7 @@ class _PanelDerecho extends StatelessWidget {
             titulo: 'Información',
             child: LayoutBuilder(
               builder: (context, box) {
+                // En paneles estrechos la cuadrícula pasa a una sola columna.
                 final dosColumnas = box.maxWidth >= 420;
                 if (!dosColumnas) {
                   return Column(

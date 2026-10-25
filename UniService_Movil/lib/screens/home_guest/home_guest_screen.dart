@@ -1,3 +1,8 @@
+// Archivo: home_guest_screen.dart
+// Responsabilidad: inicio público con hero, explorador y pie; el detalle se ve
+//   sin sesión, pero el contacto exige iniciar sesión.
+// Se usa desde: main.dart como ruta '/home-guest'.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -19,6 +24,8 @@ class HomeGuestScreen extends StatefulWidget {
 
 class _HomeGuestScreenState extends State<HomeGuestScreen> {
   final _scroll = ScrollController();
+
+  // Anclas del scroll: hero, explorador y pie.
   final _keys = {
     'inicio': GlobalKey(),
     'buscar': GlobalKey(),
@@ -51,6 +58,7 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // En tablet y móvil el navbar usa el menú desplegable.
     final movil = MediaQuery.of(context).size.width <= Breakpoints.tablet;
 
     return Scaffold(
@@ -70,6 +78,7 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                   onAncla: _irA,
                   onLogin: _login,
                 ),
+                // El explorador se recarga al tirar hacia abajo, igual que en el home propio.
                 Expanded(
                   child: RefreshIndicator(
                     color: AppColors.teal,

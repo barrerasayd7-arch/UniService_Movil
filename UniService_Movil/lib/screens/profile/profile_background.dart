@@ -1,3 +1,8 @@
+// Archivo: profile_background.dart
+// Responsabilidad: fondo animado del perfil (resplandores, formas, anillos,
+//   partículas y líneas) dibujado con CustomPainter.
+// Se usa desde: profile_screen.dart, envuelto en AnimacionAmbiental.
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -16,6 +21,7 @@ class ProfileBackground extends StatefulWidget {
 
 class _ProfileBackgroundState extends State<ProfileBackground>
     with SingleTickerProviderStateMixin {
+  // Un único controlador alimenta al painter; 3600 s es el ciclo completo.
   static const int _ciclo = 3600;
   late final AnimationController _c;
 
@@ -39,6 +45,7 @@ class _ProfileBackgroundState extends State<ProfileBackground>
         fit: StackFit.expand,
         children: [
           const ColoredBox(color: AppColors.bg),
+          // La foto es opcional: si falta el asset, el fondo cae al color sólido.
           Opacity(
             opacity: 0.15,
             child: Image.asset(
@@ -47,6 +54,7 @@ class _ProfileBackgroundState extends State<ProfileBackground>
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
           ),
+          // RepaintBoundary aísla el repintado continuo del resto del perfil.
           RepaintBoundary(
             child: AnimatedBuilder(
               animation: _c,
@@ -61,6 +69,8 @@ class _ProfileBackgroundState extends State<ProfileBackground>
   }
 }
 
+/// Resplandor radial que deriva y escala con el tiempo; [pct] interpreta
+/// las coordenadas como porcentaje en vez de píxeles.
 class _Glow {
   final double size, dur, delay;
   final double? top, bottom, left, right; // px o % (ver pct)
@@ -70,6 +80,7 @@ class _Glow {
       {this.top, this.bottom, this.left, this.right, this.pct = false});
 }
 
+/// Dibuja todas las capas decorativas en función del tiempo [t] (segundos).
 class _BgPainter extends CustomPainter {
   final double t;
   _BgPainter(this.t);
@@ -86,6 +97,7 @@ class _BgPainter extends CustomPainter {
     _Glow(500, _azul2.withAlpha(18), 38, -15, top: -5, right: 30, pct: true),
   ];
 
+  // Semilla fija: las partículas conservan su posición entre repintados.
   static final List<List<double>> _dots = () {
     final r = math.Random(17);
     return List.generate(
@@ -94,6 +106,7 @@ class _BgPainter extends CustomPainter {
     );
   }();
 
+  // Interpola una lista de valores con p (0..1) y suavizado entre tramos.
   double _kf(List<double> v, double p) {
     final n = v.length - 1;
     final pos = p.clamp(0.0, 1.0).toDouble() * n;
@@ -230,6 +243,7 @@ class _BgPainter extends CustomPainter {
     }
   }
 
+  // Sólo hace falta repintar cuando avanza el tiempo de animación.
   @override
   bool shouldRepaint(covariant _BgPainter old) => old.t != t;
 }

@@ -1,3 +1,7 @@
+// Archivo: recuperar_password.dart
+// Responsabilidad: hoja inferior de dos pasos para restablecer la contraseña con código de correo.
+// Se usa desde: login_form.dart ("¿Olvidaste tu contraseña?").
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -9,6 +13,7 @@ import 'modal_codigo.dart';
 
 /// Hoja inferior para restablecer la contraseña con el código del correo institucional.
 /// Paso 1: correo → código de 6 dígitos. Paso 2: contraseña nueva → entra a la app.
+/// [correoInicial] se precarga si el login ya tenía un correo válido.
 Future<void> mostrarRecuperarPassword(
   BuildContext context, {
   String correoInicial = '',
@@ -35,6 +40,8 @@ class _RecuperarPassword extends StatefulWidget {
 }
 
 class _RecuperarPasswordState extends State<_RecuperarPassword> {
+  // --- Estado de los dos pasos ---
+
   late final _correo = TextEditingController(text: widget.correoInicial);
   final _nueva = TextEditingController();
   String?
@@ -50,6 +57,7 @@ class _RecuperarPasswordState extends State<_RecuperarPassword> {
     super.dispose();
   }
 
+  // Envía el código y, si la cuenta existe, guarda el token para el paso 2.
   Future<void> _enviarCodigo() async {
     final correo = normalizarCorreo(_correo.text);
     if (!regexCorreoInstitucional.hasMatch(correo)) {
@@ -88,6 +96,7 @@ class _RecuperarPasswordState extends State<_RecuperarPassword> {
     }
   }
 
+  // Guarda la contraseña nueva con el token de verificación y entra a la app.
   Future<void> _guardar() async {
     if (_nueva.text.length < 8) {
       setState(() => _errorCampo = 'Usa al menos 8 caracteres');

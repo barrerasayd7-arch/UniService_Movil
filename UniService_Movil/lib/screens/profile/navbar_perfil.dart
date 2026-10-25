@@ -1,3 +1,8 @@
+// Archivo: navbar_perfil.dart
+// Responsabilidad: barra del perfil con sus enlaces, botones de cuenta,
+//   menú móvil y cierre de sesión.
+// Se usa desde: profile_screen.dart.
+
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -30,6 +35,7 @@ class NavbarPerfil extends StatelessWidget {
     required this.onCerrarSesion,
   });
 
+  // Tuplas (texto, ancla) compartidas por la barra y el menú móvil.
   static const enlaces = [
     ('Inicio', 'inicio'),
     ('Publicar servicio', 'publicar'),
@@ -91,6 +97,7 @@ class NavbarPerfil extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // En móvil el icono alterna entre menú y cerrar.
                     if (movil)
                       GestureDetector(
                         onTap: onToggleMenu,
@@ -147,7 +154,8 @@ class NavbarPerfil extends StatelessWidget {
   }
 }
 
-/// Menú desplegable para pantallas pequeñas.
+/// Menú desplegable para pantallas pequeñas; reutiliza [NavbarPerfil.enlaces]
+/// y [NavBoton] en modo bloque.
 class MenuMovilPerfil extends StatelessWidget {
   final String nombreUsuario;
   final ValueChanged<String> onEnlace;

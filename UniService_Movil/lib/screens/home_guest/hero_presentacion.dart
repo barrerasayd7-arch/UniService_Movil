@@ -1,3 +1,8 @@
+// Archivo: hero_presentacion.dart
+// Responsabilidad: portada del invitado con fondo animado, titular y botones
+//   para explorar o publicar (este último exige iniciar sesión).
+// Se usa desde: home_guest_screen.dart como sección "inicio".
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -21,6 +26,7 @@ class HeroPresentacion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // En móvil el hero es más bajo y el titular se reduce.
     final size = MediaQuery.of(context).size;
     final movil = size.width <= Breakpoints.mobile;
     final h1 = movil ? 32.0 : 57.6;
@@ -30,6 +36,7 @@ class HeroPresentacion extends StatelessWidget {
       child: Stack(
         children: [
           const Positioned.fill(child: ColoredBox(color: AppColors.bg)),
+          // Capas decorativas: tesseract 4D e iconos flotantes.
           const Positioned.fill(
             child: AnimacionAmbiental(child: TesseractBackground()),
           ),
@@ -64,6 +71,7 @@ class HeroPresentacion extends StatelessWidget {
             ),
             child: Align(
               alignment: movil ? Alignment.topLeft : Alignment.centerLeft,
+              // En escritorio se sube el bloque para centrarlo ópticamente.
               child: Transform.translate(
                 offset: Offset(0, movil ? 0 : -size.height * 0.088),
                 child: Column(
@@ -74,6 +82,7 @@ class HeroPresentacion extends StatelessWidget {
                       const SectionLabel(text: 'Plataforma Universitaria'),
                       const SizedBox(height: 10),
                     ],
+                    // Deja ver el fondo animado antes de entrar en el titular.
                     if (movil) const SizedBox(height: 264),
                     Text.rich(
                       TextSpan(
@@ -119,6 +128,7 @@ class HeroPresentacion extends StatelessWidget {
                       const SizedBox(height: 36),
                     ] else
                       const SizedBox(height: 10),
+                    // En móvil los CTAs se apilan y no llevan descripción.
                     if (movil)
                       SizedBox(
                         width: size.width * 0.7,
