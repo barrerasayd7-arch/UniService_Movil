@@ -1,8 +1,13 @@
+// Archivo: star_rating.dart
+// Responsabilidad: mostrar 5 estrellas con relleno proporcional a un promedio de 0 a 5.
+// Se usa desde: tarjetas y perfiles que muestran calificaciones.
+
 import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
 
 /// Equivalente a Components/StarRating.jsx: 5 estrellas con relleno parcial.
+/// [rating] se recorta al rango válido; [size] y [gap] ajustan el tamaño de cada estrella.
 class StarRating extends StatelessWidget {
   final double rating;
   final double size;
@@ -39,6 +44,7 @@ class StarRating extends StatelessWidget {
   }
 }
 
+// Dibuja una estrella gris y encima la porción rellena según [fill].
 class _StarPainter extends CustomPainter {
   final double fill;
   final Color color;

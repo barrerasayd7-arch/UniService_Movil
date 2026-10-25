@@ -1,8 +1,11 @@
+// Archivo: google_g_logo.dart
+// Responsabilidad: dibujar el logo "G" con arcos de colores para el botón de Google.
+// Se usa desde: pantallas de login/registro con acceso por Google.
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Logo "G" de Google (aproximado con arcos de 4 colores).
+/// Logo "G" de Google vectorial: cuatro arcos + barra azul, sin asset ni fuente.
 class GoogleGLogo extends StatelessWidget {
   final double size;
   const GoogleGLogo({super.key, this.size = 18});
@@ -24,6 +27,7 @@ class _GPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
+    // Trazo = 20 % del ancho; el radio se ajusta para que el aro no se salga.
     final stroke = size.width * 0.2;
     final r = size.width / 2 - stroke / 2;
     final rect = Rect.fromCircle(center: c, radius: r);
@@ -34,6 +38,8 @@ class _GPainter extends CustomPainter {
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.butt;
 
+    // Ángulos elegidos a ojo para imitar el logo: rojo arriba-izq., azul der.,
+    // verde abajo, amarillo abajo-izq. Los huecos dejan respirar la "G".
     canvas.drawArc(rect, _rad(-140), _rad(90), false, p(_rojo));
     canvas.drawArc(rect, _rad(-45), _rad(80), false, p(_azul));
     canvas.drawArc(rect, _rad(35), _rad(90), false, p(_verde));
@@ -49,6 +55,7 @@ class _GPainter extends CustomPainter {
     );
   }
 
+  // Dibujo constante: nunca hace falta repintar (el tamaño se resuelve al maquetar).
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

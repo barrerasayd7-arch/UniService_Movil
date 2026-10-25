@@ -1,3 +1,7 @@
+// Archivo: cosmos_background.dart
+// Responsabilidad: fondo animado (anillos 3D, núcleo, puntos y estrellas) portado de
+//   StyleLogin.css y dibujado con CustomPainter.
+// Se usa desde: pantalla de login, envuelto en AnimacionAmbiental.
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -16,6 +20,7 @@ class CosmosBackground extends StatefulWidget {
 
 class _CosmosBackgroundState extends State<CosmosBackground>
     with SingleTickerProviderStateMixin {
+  // Bucle de 1 h: al ser múltiplo de casi todos los `dur`, no se notan saltos.
   static const int _ciclo = 3600;
   late final AnimationController _c;
 
@@ -101,14 +106,15 @@ class _CosmosBackgroundState extends State<CosmosBackground>
   }
 }
 
+/// Anillo cuadrado en 3D: un cuadrado recto y otro girado 45° para simular un marco.
 class _Ring {
   final double size;
   final Color borde;
   final double grosor;
   final Color bordeDiagonal;
   final double rx, ry, rz; // grados totales por ciclo
-  final double dur;
-  final bool reversa;
+  final double dur; // segundos que tarda en repetir el giro
+  final bool reversa; // invierte el sentido de rotación
   const _Ring(
     this.size,
     this.borde,
@@ -211,6 +217,7 @@ class _CosmosPainter extends CustomPainter {
     ),
   ];
 
+  // Semillas fijas: el cielo se ve idéntico en cada arranque y entre dispositivos.
   static final List<List<double>> _estrellas = () {
     final r = math.Random(9);
     return List.generate(
@@ -238,6 +245,8 @@ class _CosmosPainter extends CustomPainter {
     );
   }();
 
+  // Proyección en perspectiva: cuanto más cerca (z alto), mayor escala.
+  // El clamp evita dividir por cero si z llega al plano de la cámara.
   Offset _proyectar(double x, double y, double z, Offset c) {
     const persp = 1200.0;
     final f = persp / (persp - z).clamp(80.0, 100000.0);
@@ -269,6 +278,7 @@ class _CosmosPainter extends CustomPainter {
       final rz = ring.rz * prog * math.pi / 180;
       final h = ring.size / 2;
 
+      // Rota un cuadrado 2D en su plano (giro) y luego lo pasa por la rotación 3D del anillo.
       void cuadrado(double lado, double giro, Paint paint) {
         final hh = lado / 2;
         final base = [
@@ -339,6 +349,7 @@ class _CosmosPainter extends CustomPainter {
     );
 
     // ── Puntos orbitando (salen del centro hacia su destino) ──
+    // Cada punto espera `delay`, viaja en `dur` y se desvanece al llegar (sin(π·prog)).
     for (final p in _puntos) {
       final local = t - p[3];
       if (local < 0) continue;
@@ -368,6 +379,7 @@ class _CosmosPainter extends CustomPainter {
     }
   }
 
+  // `t` es lo único que cambia: repintar sólo cuando avanza el reloj.
   @override
   bool shouldRepaint(covariant _CosmosPainter old) => old.t != t;
 }
