@@ -1,9 +1,14 @@
+// Archivo: solicitud_config.dart
+// Responsabilidad: campos del formulario de solicitud que cambian según la categoría del servicio.
+// Se usa desde: la pantalla de detalle/solicitud para construir el formulario dinámico.
+
 import 'categorias.dart' show normalizar;
 
 /// Port de CONFIGURACION_FORMULARIOS_SOLICITUD (shared/constantes.js):
 /// los campos del formulario de solicitud cambian según la categoría.
 enum TipoCampo { textarea, date, time, number, select, file }
 
+/// Campo del formulario: clave que viaja a la API, tipo de control y si es obligatorio.
 class CampoSolicitud {
   final String nombre;
   final TipoCampo tipo;
@@ -21,6 +26,7 @@ class CampoSolicitud {
   });
 }
 
+/// Título y lista de campos que forman el formulario de una categoría.
 class ConfigSolicitud {
   final String titulo;
   final List<CampoSolicitud> campos;
@@ -29,6 +35,7 @@ class ConfigSolicitud {
 
 const _archivo = TipoCampo.file;
 
+// Claves normalizadas (sin tildes ni sufijos) que coinciden con los chips del home.
 const Map<String, ConfigSolicitud> _config = {
   'tutorias': ConfigSolicitud('Solicitar Tutoría', [
     CampoSolicitud('descripcion', TipoCampo.textarea, '¿Qué tema necesitas?',
@@ -98,7 +105,7 @@ const Map<String, ConfigSolicitud> _config = {
   ]),
 };
 
-/// getConfiguracionSolicitud(categoria)
+/// Devuelve la configuración de la categoría; normaliza el nombre y cae en 'otros'.
 ConfigSolicitud configSolicitud(String? categoria) {
   final key = normalizar(categoria)
       .replaceAll(' de habitaciones', '')

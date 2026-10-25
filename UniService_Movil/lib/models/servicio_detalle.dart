@@ -1,3 +1,7 @@
+// Archivo: servicio_detalle.dart
+// Responsabilidad: detalle completo de un servicio (proveedor, reseñas, galería, contacto) y utilidades de presentación.
+// Se usa desde: DetailScreen y el repositorio de detalle.
+
 import 'servicio.dart';
 
 /// Reseña de un cliente.
@@ -110,6 +114,8 @@ class ServicioDetalle {
   }) : numResenas = numResenas ?? resenas.length,
        promedio = promedio ?? 0;
 
+  /// Anida el servicio con los datos del proveedor y la galería; sin sesión,
+  /// contacto, dirección y coordenadas llegan null.
   factory ServicioDetalle.fromJson(Map<String, dynamic> j) {
     final s = j['servicio'] as Map<String, dynamic>;
     final p = ProveedorResumen.fromJson(s['proveedor'] as Map<String, dynamic>);
@@ -158,8 +164,10 @@ class ServicioDetalle {
     );
   }
 
+  /// Los arriendos cambian la UI (precio mensual y ubicación) frente al resto.
   bool get esArriendo => servicio.categoria.toLowerCase().contains('arriendo');
 
+  /// Universidad ya normalizada para mostrar en la ficha.
   String get universidadTexto => textoUniversidad(servicio.universidad);
 }
 

@@ -1,13 +1,20 @@
+// Archivo: categorias.dart
+// Responsabilidad: catálogo de categorías (iconos, colores, chips), etiquetas de estado y formato de datos.
+// Se usa desde: tarjetas, filtros, formularios y pantallas de detalle.
+
 import 'package:flutter/material.dart';
 
-/// Equivalente a shared/constantes.js (iconos, colores y chips de categoría).
-/// Los iconos de Bootstrap Icons se reemplazan por Material Icons.
+// Equivalente a shared/constantes.js (iconos, colores y chips de categoría).
+// Los iconos de Bootstrap Icons se reemplazan por Material Icons.
+
+/// Par de colores de una categoría: fondo translúcido y color de texto/icono.
 class CategoriaColor {
   final Color bg;
   final Color color;
   const CategoriaColor(this.bg, this.color);
 }
 
+/// Chip de filtro del home: texto visible, valor de la API e icono; `idCategoria` null = todas.
 class ChipCategoria {
   final String label;
   final String valor;
@@ -29,6 +36,7 @@ const List<(int, String)> categoriasServicio = [
 
 const int idCategoriaArriendo = 6;
 
+/// Icono Material asociado al nombre de categoría (si no hay coincidencia, [iconoPorDefecto]).
 const Map<String, IconData> iconosPorCategoria = {
   'Programación': Icons.code,
   'Diseño': Icons.palette_outlined,
@@ -41,6 +49,7 @@ const Map<String, IconData> iconosPorCategoria = {
 
 const IconData iconoPorDefecto = Icons.push_pin_outlined;
 
+/// Colores por categoría, usados en chips y marcadores de imagen.
 const Map<String, CategoriaColor> coloresCategoria = {
   'Programación': CategoriaColor(Color(0x1A60A5FA), Color(0xFF60A5FA)),
   'Diseño': CategoriaColor(Color(0x1AF472B6), Color(0xFFF472B6)),
@@ -54,6 +63,7 @@ const Map<String, CategoriaColor> coloresCategoria = {
   'Otros servicios': CategoriaColor(Color(0x1A94A3B8), Color(0xFF94A3B8)),
 };
 
+/// Filtros del home en el orden en que se muestran.
 const List<ChipCategoria> chipsCategoria = [
   ChipCategoria('Todos', 'todos', Icons.grid_view_rounded),
   ChipCategoria('Tutorías', 'tutorias', Icons.menu_book_outlined, 1),
@@ -72,12 +82,14 @@ const Map<String, String> modalidades = {
   'mixta': 'Mixta',
 };
 
+/// Igual que [modalidades]: valor guardado en la BD -> etiqueta visible.
 const Map<String, String> disponibilidades = {
   'entre_semana': 'Entre semana',
   'fines_de_semana': 'Fines de semana',
   'siempre': 'Siempre disponible',
 };
 
+/// Sufijo de precio que se concatena en [textoPrecio].
 const Map<String, String> unidadesPrecio = {
   'hora': 'por hora',
   'mes': 'por mes',
