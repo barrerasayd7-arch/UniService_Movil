@@ -1,3 +1,7 @@
+// Archivo: solicitudes_repository.dart
+// Responsabilidad: ciclo de vida de solicitudes cliente↔proveedor (crear, listar y
+//   cambiar estado) y reseñas del servicio.
+// Se usa desde: pantallas de solicitudes, detalle de servicio y perfil.
 import 'package:flutter/foundation.dart';
 
 import '../models/solicitud.dart';
@@ -36,7 +40,10 @@ class SolicitudesRepository {
     cambios.value++;
   }
 
+  /// Solicitudes que hice como cliente.
   Future<List<Solicitud>> enviadas() => _listar('enviadas');
+
+  /// Solicitudes que recibí como proveedor.
   Future<List<Solicitud>> recibidas() => _listar('recibidas');
 
   Future<List<Solicitud>> _listar(String tipo) async {
@@ -52,6 +59,7 @@ class SolicitudesRepository {
     return null;
   }
 
+  // Transiciones de estado: el backend valida quién puede ejecutar cada una.
   Future<void> aceptar(int id, {int? contraoferta}) =>
       _transicion(id, 'aceptar', {'contraoferta': contraoferta});
   Future<void> rechazar(int id, String motivo) =>
@@ -66,6 +74,7 @@ class SolicitudesRepository {
 
   // ── Reseñas ──
 
+  /// Indica si el usuario ya puede calificar [idServicio] (tras completar la solicitud).
   Future<EstadoCalificacion> estadoCalificacion(int idServicio) async {
     final data = await _api.get(
       '/api/calificaciones/estado?id_servicio=$idServicio',
@@ -73,6 +82,7 @@ class SolicitudesRepository {
     return EstadoCalificacion.fromJson(data as Map<String, dynamic>);
   }
 
+  /// Crea la reseña; el servidor recalcula el promedio del servicio.
   Future<void> calificar(int idServicio, int puntuacion, String comentario) =>
       _api.post('/api/calificaciones', {
         'id_servicio': idServicio,
@@ -80,6 +90,7 @@ class SolicitudesRepository {
         'comentario': comentario.trim(),
       });
 
+  /// Edita una reseña propia ya publicada.
   Future<void> editarCalificacion(int id, int puntuacion, String comentario) =>
       _api.put('/api/calificaciones/$id', {
         'puntuacion': puntuacion,

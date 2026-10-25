@@ -1,3 +1,7 @@
+// Archivo: session_store.dart
+// Responsabilidad: persistir y recuperar JWT + AuthUser en el almacenamiento cifrado,
+//   descartando sesiones vencidas o corruptas.
+// Se usa desde: AuthRepository (restaurar, guardar tras login y borrar al salir).
 import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -16,6 +20,7 @@ class SessionStore {
   static const _kToken = 'sesion_token';
   static const _kUsuario = 'sesion_usuario';
 
+  /// Sobrescribe la sesión guardada (token + usuario serializado).
   Future<void> guardar(String token, AuthUser usuario) async {
     await _storage.write(key: _kToken, value: token);
     await _storage.write(key: _kUsuario, value: jsonEncode(usuario.toJson()));
@@ -37,6 +42,7 @@ class SessionStore {
     }
   }
 
+  /// Elimina ambos registros; se llama al cerrar sesión o si el servidor la rechaza.
   Future<void> borrar() async {
     await _storage.delete(key: _kToken);
     await _storage.delete(key: _kUsuario);
@@ -55,6 +61,7 @@ class SessionStore {
       exp.toInt() * 1000,
       isUtc: true,
     );
+    // Margen de un minuto para no arrancar con un token a punto de expirar.
     return DateTime.now().toUtc().isAfter(
       vence.subtract(const Duration(minutes: 1)),
     );

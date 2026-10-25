@@ -1,3 +1,7 @@
+// Archivo: servicios_repository.dart
+// Responsabilidad: catálogo público (listar/detalle) y CRUD del servicio propio
+//   (datos, pausa y fotos); avisa con un ValueNotifier cuando algo cambia.
+// Se usa desde: bolsa de servicios, detalle y "mis servicios".
 import 'package:flutter/foundation.dart';
 
 import '../models/mi_servicio.dart';
@@ -58,6 +62,8 @@ class ServiciosRepository {
 
   void _avisarCambio() => cambios.value++;
 
+  /// Página del catálogo. [orden] suele ser 'recientes'; [categoria] y [busqueda]
+  /// se omiten de la query si vienen nulos o vacíos.
   Future<PaginaServicios> listar({
     int pagina = 1,
     int porPagina = 12,
@@ -79,11 +85,13 @@ class ServiciosRepository {
     return PaginaServicios.fromJson(data as Map<String, dynamic>);
   }
 
+  /// Detalle con imágenes, reseñas y datos del proveedor.
   Future<ServicioDetalle> detalle(int id) async {
     final data = await _api.get('/api/servicios/$id');
     return ServicioDetalle.fromJson(data as Map<String, dynamic>);
   }
 
+  /// Servicios del usuario autenticado en cualquier estado (pendiente, aprobado…).
   Future<List<MiServicio>> mios() async {
     final data = await _api.get('/api/servicios/mios') as List;
     return [for (final s in data) MiServicio.fromJson(s as Map<String, dynamic>)];
@@ -112,6 +120,7 @@ class ServiciosRepository {
         (pausado ? 'pausado' : 'aprobado');
   }
 
+  /// Elimina el servicio y sus imágenes; el servidor comprueba la propiedad.
   Future<void> eliminar(int id) async {
     await _api.delete('/api/servicios/$id');
     _avisarCambio();

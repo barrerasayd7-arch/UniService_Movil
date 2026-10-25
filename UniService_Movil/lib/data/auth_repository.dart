@@ -1,3 +1,7 @@
+// Archivo: auth_repository.dart
+// Responsabilidad: registro, login y logout contra /api/auth; mantiene la sesión
+//   (token en ApiClient, usuario en ValueNotifier y copia cifrada en SessionStore).
+// Se usa desde: pantallas de login/registro y la raíz de la app al restaurar sesión.
 import 'package:flutter/foundation.dart';
 
 import '../models/auth_user.dart';
@@ -47,6 +51,8 @@ class AuthRepository {
     return (data is Map ? data['resend_after'] as num? : null)?.toInt() ?? 60;
   }
 
+  /// Valida el código del correo institucional. [cuentaExistente] indica que el
+  /// usuario ya tiene cuenta (el flujo de registro debe saltarse los datos personales).
   Future<VerificacionCorreo> verificarCodigo(
     String correo,
     String codigo,
@@ -63,6 +69,7 @@ class AuthRepository {
     );
   }
 
+  /// Crea la cuenta con el token de 15 min de [verificarCodigo] y deja la sesión abierta.
   Future<AuthUser> registrar({
     required String correo,
     required String password,
@@ -82,6 +89,7 @@ class AuthRepository {
     return _abrirSesion(data as Map<String, dynamic>);
   }
 
+  /// Login normal; propaga los errores de la API (cuenta suspendida, clave incorrecta…).
   Future<AuthUser> iniciarSesion(String correo, String password) async {
     final data = await api.post('/api/auth/login', {
       'correo': correo,
@@ -119,6 +127,7 @@ class AuthRepository {
     api.token = token;
   }
 
+  /// Cierra la sesión local siempre, aunque el logout remoto falle.
   Future<void> cerrarSesion() async {
     if (usuario.value != null) {
       // El servidor invalida el token (y los de otros dispositivos); si falla, se sale igual.
@@ -131,6 +140,7 @@ class AuthRepository {
     await _limpiar();
   }
 
+  // Persiste y publica la sesión en el orden token → disco → notifier.
   Future<AuthUser> _abrirSesion(Map<String, dynamic> data) async {
     final token = data['token'] as String;
     final user = AuthUser.fromJson(data['user'] as Map<String, dynamic>);
@@ -147,6 +157,7 @@ class AuthRepository {
     await _store.borrar();
   }
 
+  // Callback de ApiClient: limpia la sesión y avisa al dueño de la app.
   void _sesionRechazada(ApiException error) {
     if (!haySesion) return;
     _limpiar();
