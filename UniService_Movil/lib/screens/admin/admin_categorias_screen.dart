@@ -1,3 +1,7 @@
+// Archivo: admin_categorias_screen.dart
+// Responsabilidad: mostrar cuántos servicios publicados hay en cada categoría del catálogo.
+// Se usa desde: la sección "Categorías" del panel (ruta '/admin/categorias').
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -17,7 +21,7 @@ class AdminCategoriasScreen extends StatefulWidget {
 }
 
 class _AdminCategoriasScreenState extends State<AdminCategoriasScreen> {
-  Map<int, int>? _conteos;
+  Map<int, int>? _conteos; // id de categoría -> total; null mientras carga
   String? _error;
 
   @override
@@ -26,6 +30,7 @@ class _AdminCategoriasScreenState extends State<AdminCategoriasScreen> {
     _cargar();
   }
 
+  // Pide una página por categoría solo para leer el total; el listado no se muestra.
   Future<void> _cargar() async {
     setState(() => _error = null);
     try {
@@ -106,6 +111,7 @@ class _AdminCategoriasScreenState extends State<AdminCategoriasScreen> {
     }
     return LayoutBuilder(
       builder: (context, c) {
+        // Tres columnas si hay ancho de sobra; si no, dos.
         final columnas = c.maxWidth >= 560 ? 3 : 2;
         const espacio = 12.0;
         final ancho = (c.maxWidth - espacio * (columnas - 1)) / columnas;
@@ -125,6 +131,7 @@ class _AdminCategoriasScreenState extends State<AdminCategoriasScreen> {
   }
 }
 
+/// Tarjeta de una categoría: ícono, total de publicados y esqueleto mientras carga.
 class _TarjetaCategoria extends StatelessWidget {
   final String nombre;
   final int? valor; // null = cargando

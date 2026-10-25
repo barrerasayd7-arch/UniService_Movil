@@ -1,3 +1,8 @@
+// Archivo: admin_usuarios_screen.dart
+// Responsabilidad: listar y moderar cuentas: buscar, filtrar por estado, suspender con motivo
+//   y reactivar. Las cuentas admin no se pueden suspender desde aquí.
+// Se usa desde: la sección "Usuarios" del panel (ruta '/admin/usuarios').
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -27,7 +32,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
   Timer? _debounce;
   String _busqueda = '';
   String _estado = '';
-  int? _accionando;
+  int? _accionando; // id del usuario cuya acción está en curso
 
   @override
   void dispose() {
@@ -39,6 +44,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
   Future<PaginaAdmin<AdminUsuario>> _cargar(int page) =>
       _repo.usuarios(busqueda: _busqueda, estado: _estado, page: page);
 
+  // Espera 400 ms tras escribir para no consultar en cada tecla.
   void _buscar(String t) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
@@ -53,6 +59,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
     _lista.currentState?.recargar();
   }
 
+  // Comparte el estado "ocupado" y refresca en silencio para no parpadear la lista.
   Future<void> _ejecutar(
     int id,
     Future<void> Function() accion,
@@ -65,6 +72,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
     if (ok) _lista.currentState?.recargar(silencioso: true);
   }
 
+  // La suspensión queda registrada a nombre del admin: exige motivo de 5+ caracteres.
   Future<void> _suspender(AdminUsuario u) async {
     final motivo = await pedirMotivo(
       context,
@@ -89,6 +97,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
     );
   }
 
+  // Reactivar solo requiere confirmación y devuelve el acceso de inmediato.
   Future<void> _reactivar(AdminUsuario u) async {
     final ok = await confirmarAdmin(
       context,
@@ -147,6 +156,7 @@ class _AdminUsuariosScreenState extends State<AdminUsuariosScreen> {
   }
 }
 
+/// Fila de usuario con iniciales, estado, actividad y el botón que corresponda.
 class _TarjetaUsuario extends StatelessWidget {
   final AdminUsuario u;
   final bool ocupado;

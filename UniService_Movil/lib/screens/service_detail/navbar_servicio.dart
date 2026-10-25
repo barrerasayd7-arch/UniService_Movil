@@ -1,3 +1,7 @@
+// Archivo: navbar_servicio.dart
+// Responsabilidad: navbar del detalle (escritorio y menú móvil desplegable).
+// Se usa desde: detail_screen, que le pasa sesión, enlaces y cierre de sesión.
+
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -27,6 +31,7 @@ class NavbarServicio extends StatelessWidget {
     this.invitado = false,
   });
 
+  // Enlaces de escritorio; el invitado sólo recibe los dos primeros.
   static const enlaces = [
     ('Inicio', 'inicio'),
     ('Servicios', 'buscar'),
@@ -141,7 +146,8 @@ class NavbarServicio extends StatelessWidget {
   }
 }
 
-/// Menú desplegable para pantallas pequeñas.
+/// Menú desplegable para pantallas pequeñas; comparte los enlaces de
+/// [NavbarServicio] y se posiciona bajo el ícono de hamburguesa.
 class MenuMovilServicio extends StatelessWidget {
   final ValueChanged<String> onEnlace;
   final VoidCallback onCerrarSesion;

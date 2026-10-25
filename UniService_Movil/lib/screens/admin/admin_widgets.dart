@@ -1,8 +1,15 @@
+// Archivo: admin_widgets.dart
+// Responsabilidad: controles propios del modo admin (aviso de privilegios, insignia, hora
+//   corta, confirmaciones, motivo y píldoras de estado) reutilizados por el panel.
+// Se usa desde: pantallas admin, drawer y admin_comun.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
 import '../login/auth_widgets.dart';
+
+// --- Entrada y avisos del modo admin ---
 
 /// Avisa que la cuenta entra con privilegios de administrador.
 /// Devuelve true si elige ir al panel; false si sigue usando la app como usuario.
@@ -15,6 +22,7 @@ Future<bool> mostrarAvisoAdmin(BuildContext context) async {
   return irAlPanel ?? false;
 }
 
+/// Diálogo de bienvenida con las dos salidas: panel o seguir como usuario.
 class _AvisoAdmin extends StatelessWidget {
   const _AvisoAdmin();
 
@@ -151,11 +159,15 @@ class InsigniaAdmin extends StatelessWidget {
   }
 }
 
+// --- Utilidades ---
+
 /// Hora local "14:05" para avisos de bloqueo y vencimiento.
 String horaCorta(DateTime t) {
   final l = t.toLocal();
   return '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
 }
+
+// --- Confirmaciones y motivo ---
 
 /// Confirmación de una acción del panel. true = confirmó.
 Future<bool> confirmarAdmin(
@@ -218,6 +230,7 @@ Future<String?> pedirMotivo(
   );
 }
 
+/// Formulario del motivo con contador (máx. 500) y confirmación por texto.
 class _DialogoMotivo extends StatefulWidget {
   final String titulo, mensaje, hint, confirmar;
   final String? inicial;
@@ -304,6 +317,8 @@ class _DialogoMotivoState extends State<_DialogoMotivo> {
     );
   }
 }
+
+// --- Píldoras de estado ---
 
 /// Etiqueta de estado (Pendiente, Resuelto, Activo…) con el color que se le pase.
 class PildoraEstado extends StatelessWidget {

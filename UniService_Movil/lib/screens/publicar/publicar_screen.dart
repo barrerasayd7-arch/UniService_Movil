@@ -1,3 +1,7 @@
+// Archivo: publicar_screen.dart
+// Responsabilidad: formulario de alta y edición de un servicio (datos, fotos y contacto).
+// Se usa desde: ruta '/publicar' (Mis servicios y el detalle de un servicio propio).
+
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +19,7 @@ const _maxFotos = 5;
 const _maxBytesFoto = 5 * 1024 * 1024;
 
 /// Foto del formulario: ya subida ([id] y [url]) o recién elegida ([bytes]).
+/// Las nuevas se suben al guardar; las subidas se comparan con `_idsOriginales`.
 class _Foto {
   final int? id;
   final String? url;
@@ -37,9 +42,13 @@ class PublicarScreen extends StatefulWidget {
   State<PublicarScreen> createState() => _PublicarScreenState();
 }
 
+/// Estado del formulario: controla los campos, la galería local y el guardado
+/// en dos fases (datos del servicio y luego sus imágenes).
 class _PublicarScreenState extends State<PublicarScreen> {
   late final ServiciosRepository _repo =
       widget.repositorio ?? ServiciosRepository.instance;
+
+  // --- Campos y estado del formulario ---
   final _form = GlobalKey<FormState>();
   final _titulo = TextEditingController();
   final _descripcion = TextEditingController();
@@ -47,7 +56,7 @@ class _PublicarScreenState extends State<PublicarScreen> {
   final _contacto = TextEditingController();
   final _direccion = TextEditingController();
 
-  late int? _id = widget.idServicio;
+  late int? _id = widget.idServicio; // null = alta; con id = edición
   int? _categoria;
   String _unidad = 'hora';
   bool _unidadElegida = false; // si el usuario la tocó, no se cambia sola
@@ -59,9 +68,9 @@ class _PublicarScreenState extends State<PublicarScreen> {
   bool _cargando = false;
   String? _errorCarga;
   bool _guardando = false;
-  String _paso = '';
-  bool _cambios = false;
-  bool _intentoEnviar = false;
+  String _paso = ''; // texto de progreso mostrado en la barra inferior
+  bool _cambios = false; // activa el aviso al intentar salir
+  bool _intentoEnviar = false; // desde el primer envío se valida al escribir
 
   bool get _editando => _id != null;
   bool get _esArriendo => _categoria == idCategoriaArriendo;
@@ -85,6 +94,7 @@ class _PublicarScreenState extends State<PublicarScreen> {
 
   void _marcarCambio() => _cambios = true;
 
+  /// Trae el servicio a editar (`GET /api/servicios/{id}`) y rellena el formulario.
   Future<void> _cargar() async {
     setState(() {
       _cargando = true;
@@ -101,6 +111,8 @@ class _PublicarScreenState extends State<PublicarScreen> {
     }
   }
 
+  /// Copia los datos remotos al estado local; la galería parte de las imágenes
+  /// ya subidas y se recuerda su orden para detectar cambios.
   void _rellenar(ServicioDetalle d) {
     final s = d.servicio;
     _titulo.text = s.titulo;
@@ -123,6 +135,8 @@ class _PublicarScreenState extends State<PublicarScreen> {
     });
   }
 
+  /// El arriendo sugiere precio por mes; el resto, por hora, salvo que el
+  /// usuario ya haya elegido la unidad manualmente.
   void _elegirCategoria(int id) {
     setState(() {
       _categoria = id;
@@ -131,8 +145,10 @@ class _PublicarScreenState extends State<PublicarScreen> {
     });
   }
 
-  // ── Fotos ──
+  // --- Fotos ---
 
+  /// Abre galería o cámara, descarta lo que pase de 5 MB y respeta el máximo
+  /// de fotos. Las imágenes se comprimen en el dispositivo antes de subirlas.
   Future<void> _agregarFotos() async {
     final origen = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -220,6 +236,7 @@ class _PublicarScreenState extends State<PublicarScreen> {
     }
   }
 
+  /// Acciones de una foto: moverla a portada (posición 0) o quitarla de la lista.
   Future<void> _opcionesFoto(int i) async {
     final accion = await showModalBottomSheet<String>(
       context: context,
@@ -259,13 +276,16 @@ class _PublicarScreenState extends State<PublicarScreen> {
     });
   }
 
-  // ── Guardar ──
+  // --- Guardar ---
 
+  /// Validación fuera del `Form`: la categoría no es un `TextFormField`.
   String? _validarFormulario() {
     if (_categoria == null) return 'Elige una categoría';
     return null;
   }
 
+  /// Crea o edita el servicio y luego sincroniza sus fotos. Si la creación tuvo
+  /// éxito pero fallaron las imágenes, se queda en edición para reintentar.
   Future<void> _guardar() async {
     FocusScope.of(context).unfocus();
     setState(() => _intentoEnviar = true);
@@ -378,6 +398,8 @@ class _PublicarScreenState extends State<PublicarScreen> {
     }
   }
 
+  /// Atrás/cerrar pide confirmación sólo si hay cambios sin guardar; durante
+  /// el guardado bloquea la salida.
   Future<bool> _confirmarSalida() async {
     if (!_cambios || _guardando) return !_guardando;
     final salir = await showDialog<bool>(
@@ -405,7 +427,7 @@ class _PublicarScreenState extends State<PublicarScreen> {
     return salir == true;
   }
 
-  // ── Interfaz ──
+  // --- Interfaz ---
 
   @override
   Widget build(BuildContext context) {
@@ -662,6 +684,7 @@ class _PublicarScreenState extends State<PublicarScreen> {
   );
 }
 
+/// Recordatorio de que todo servicio pasa por revisión antes de publicarse.
 class _AvisoRevision extends StatelessWidget {
   final bool editando;
   const _AvisoRevision({required this.editando});
@@ -695,6 +718,7 @@ class _AvisoRevision extends StatelessWidget {
   }
 }
 
+/// Etiqueta de un campo con una ayuda opcional debajo.
 class _Etiqueta extends StatelessWidget {
   final String texto;
   final String? ayuda;
@@ -772,6 +796,7 @@ class _Opciones<T> extends StatelessWidget {
   }
 }
 
+/// Tira horizontal de fotos con la portada marcada y el botón para agregar.
 class _GaleriaFotos extends StatelessWidget {
   final List<_Foto> fotos;
   final VoidCallback? onAgregar;
@@ -908,6 +933,7 @@ class _GaleriaFotos extends StatelessWidget {
   }
 }
 
+/// Barra inferior fija que guarda y muestra el paso actual del proceso.
 class _BarraGuardar extends StatelessWidget {
   final String texto;
   final bool guardando;
@@ -986,6 +1012,7 @@ class _BarraGuardar extends StatelessWidget {
   }
 }
 
+/// Error al cargar el servicio a editar, con opción de reintentar.
 class _ErrorCarga extends StatelessWidget {
   final String mensaje;
   final VoidCallback onReintentar;

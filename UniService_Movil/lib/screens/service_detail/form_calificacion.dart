@@ -1,3 +1,7 @@
+// Archivo: form_calificacion.dart
+// Responsabilidad: reseña del servicio (estrellas y comentario), con alta y edición.
+// Se usa desde: detail_screen, debajo de la lista de reseñas.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -41,7 +45,7 @@ class _FormCalificacionState extends State<FormCalificacion> {
   int _estrellas = 0;
   final _comentario = TextEditingController();
   bool _enviando = false;
-  bool _editando = false;
+  bool _editando = false; // cambia la vista entre "ver" y "editar" la reseña
 
   @override
   void initState() {
@@ -55,6 +59,7 @@ class _FormCalificacionState extends State<FormCalificacion> {
     super.dispose();
   }
 
+  /// Pregunta a la API si puede calificar, ya calificó o no aplica.
   Future<void> _consultar() async {
     try {
       final e = await _repo.estadoCalificacion(widget.idServicio);
@@ -64,6 +69,8 @@ class _FormCalificacionState extends State<FormCalificacion> {
     }
   }
 
+  /// Crea o actualiza la reseña según haya `idCalificacion`; al terminar
+  /// refresca el estado y avisa al detalle para recargar promedio y lista.
   Future<void> _enviar() async {
     if (_estrellas == 0) {
       mostrarNotificacion(context, 'Selecciona una puntuación');
@@ -93,6 +100,7 @@ class _FormCalificacionState extends State<FormCalificacion> {
     }
   }
 
+  /// Precarga la reseña existente en los controles de edición.
   void _empezarEdicion() => setState(() {
     _editando = true;
     _estrellas = _estado.puntuacion;
@@ -166,7 +174,7 @@ class _FormCalificacionState extends State<FormCalificacion> {
     final e = _estado;
     if (!e.puedeCalificar && !e.yaCalifico) return const SizedBox.shrink();
 
-    // ── 2. Ya calificó ──
+    // --- Caso 2: ya calificó y no está editando ---
     if (e.yaCalifico && !_editando) {
       return SeccionInfo(
         child: Row(
@@ -240,7 +248,7 @@ class _FormCalificacionState extends State<FormCalificacion> {
       );
     }
 
-    // ── 1. Puede calificar  /  3. Editando ──
+    // --- Casos 1 y 3: puede calificar o está editando ---
     return SeccionInfo(
       icono: _editando ? Icons.edit_note : Icons.star_rounded,
       titulo: _editando ? 'Editar reseña' : 'Dejar una reseña',

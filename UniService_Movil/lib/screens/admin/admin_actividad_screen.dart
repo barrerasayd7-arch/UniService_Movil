@@ -1,3 +1,8 @@
+// Archivo: admin_actividad_screen.dart
+// Responsabilidad: bitácora de las acciones de administración, filtrable por entidad,
+//   con la fecha y el admin que la ejecutó.
+// Se usa desde: la sección "Actividad" del panel (ruta '/admin/actividad').
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -8,6 +13,7 @@ import '../../models/admin_models.dart';
 import 'admin_comun.dart';
 import 'admin_widgets.dart' show horaCorta;
 
+// Texto e ícono por cada acción registrada; si llega una desconocida se muestra cruda.
 const _acciones = <String, (String, IconData)>{
   'login': ('Inició sesión', Icons.login_rounded),
   'suspender': ('Suspendió un usuario', Icons.block_rounded),
@@ -28,11 +34,12 @@ class AdminActividadScreen extends StatefulWidget {
 
 class _AdminActividadScreenState extends State<AdminActividadScreen> {
   final _lista = GlobalKey<ListaAdminState<AdminAuditoria>>();
-  String _entidad = '';
+  String _entidad = ''; // '' = sin filtro
 
   Future<PaginaAdmin<AdminAuditoria>> _cargar(int page) =>
       AdminRepository.instance.auditoria(entidad: _entidad, page: page);
 
+  // Cambiar el chip cambia el filtro y reinicia la paginación desde la página 1.
   void _filtrar(String v) {
     setState(() => _entidad = v);
     _lista.currentState?.recargar();
@@ -74,6 +81,7 @@ class _AdminActividadScreenState extends State<AdminActividadScreen> {
   }
 }
 
+/// Fila de la bitácora: acción, detalle opcional, admin responsable y momento.
 class _ItemActividad extends StatelessWidget {
   final AdminAuditoria a;
   const _ItemActividad({required this.a});
@@ -83,6 +91,7 @@ class _ItemActividad extends StatelessWidget {
     final (texto, icono) =
         _acciones[a.accion] ??
         (a.accion.replaceAll('_', ' '), Icons.history_rounded);
+    // La API puede no traer fecha en registros antiguos.
     final cuando = a.fecha == null
         ? '—'
         : '${formatearFecha(a.fecha)} · ${horaCorta(a.fecha!)}';

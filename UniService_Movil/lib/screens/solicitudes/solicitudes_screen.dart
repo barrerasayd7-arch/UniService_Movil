@@ -1,3 +1,7 @@
+// Archivo: solicitudes_screen.dart
+// Responsabilidad: bandeja de solicitudes recibidas y enviadas, con sus acciones.
+// Se usa desde: ruta '/solicitudes' (navbar, Mis servicios y detalle).
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -31,7 +35,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
   List<Solicitud>? _enviadas;
   String? _errorRecibidas;
   String? _errorEnviadas;
-  final Set<int> _ocupadas = {};
+  final Set<int> _ocupadas = {}; // ids con una acción en curso (spinner por tarjeta)
 
   @override
   void initState() {
@@ -46,6 +50,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
     super.dispose();
   }
 
+  /// Recarga ambas bandejas en paralelo; también se dispara al cambiar el repo.
   Future<void> _cargar() => Future.wait([_cargarRecibidas(), _cargarEnviadas()]);
 
   Future<void> _cargarRecibidas() async {
@@ -76,6 +81,8 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
     }
   }
 
+  /// Ejecuta una acción de la tarjeta, la marca como ocupada y, si falla,
+  /// recarga porque el estado pudo cambiar desde otro dispositivo.
   Future<void> _hacer(
     Solicitud s,
     Future<void> Function() accion,
@@ -93,6 +100,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
     }
   }
 
+  /// Pide una contraoferta opcional y acepta la solicitud con ella.
   Future<void> _aceptar(Solicitud s) async {
     final r = await showDialog<({int? contraoferta})>(
       context: context,
@@ -106,6 +114,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
     );
   }
 
+  /// Rechaza la solicitud con un motivo obligatorio (mínimo 5 caracteres).
   Future<void> _rechazar(Solicitud s) async {
     final motivo = await showDialog<String>(
       context: context,
@@ -115,6 +124,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
     _hacer(s, () => _repo.rechazar(s.id, motivo), 'Solicitud rechazada');
   }
 
+  /// Diálogo de confirmación reutilizable para completar o cancelar.
   Future<void> _confirmar(
     Solicitud s, {
     required String titulo,
@@ -220,6 +230,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
     );
   }
 
+  /// Acciones visibles según los permisos que calcula cada [Solicitud].
   Widget _tarjeta(Solicitud s) {
     final acciones = <Widget>[
       if (s.puedeRechazar)
@@ -295,6 +306,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
   );
 }
 
+/// Lista de una bandeja con sus estados de carga, error y vacío.
 class _Lista extends StatelessWidget {
   final List<Solicitud>? solicitudes;
   final String? error;
@@ -363,6 +375,7 @@ class _Lista extends StatelessWidget {
   }
 }
 
+/// Mensaje centrado para listas vacías o errores de carga.
 class _Aviso extends StatelessWidget {
   final IconData icono;
   final String titulo;
@@ -387,7 +400,7 @@ class _Aviso extends StatelessWidget {
   }
 }
 
-/// Estado de una solicitud -> color.
+/// Estado de una solicitud -> color; los estados desconocidos usan gris.
 Color colorEstadoSolicitud(String estado) => switch (estado) {
   'Pendiente' => AppColors.amarillo,
   'Aceptada' => AppColors.teal2,
@@ -396,6 +409,7 @@ Color colorEstadoSolicitud(String estado) => switch (estado) {
   _ => const Color(0xFF94A3B8), // Cancelada
 };
 
+// Nombres legibles de los campos extra que devuelve la API.
 const _nombresCampos = {
   'cantidad_paginas': 'Páginas',
   'lenguaje': 'Lenguaje',
@@ -403,6 +417,7 @@ const _nombresCampos = {
   'fecha_inicio': 'Inicio',
 };
 
+/// Tarjeta de una solicitud: servicio, contraparte, estado, datos y acciones.
 class _TarjetaSolicitud extends StatelessWidget {
   final Solicitud solicitud;
   final bool ocupada;
@@ -598,6 +613,7 @@ class _TarjetaSolicitud extends StatelessWidget {
   }
 }
 
+/// Foto del servicio o, si no hay, el icono y color de su categoría.
 class _Miniatura extends StatelessWidget {
   final String? url;
   final String categoria;
@@ -634,6 +650,7 @@ class _Miniatura extends StatelessWidget {
   }
 }
 
+/// Diálogo para aceptar; devuelve `(contraoferta: n)` o null si se cancela.
 class _DialogoAceptar extends StatefulWidget {
   final Solicitud solicitud;
   const _DialogoAceptar({required this.solicitud});
@@ -701,6 +718,7 @@ class _DialogoAceptarState extends State<_DialogoAceptar> {
   }
 }
 
+/// Diálogo para rechazar; valida el motivo y lo devuelve como String.
 class _DialogoRechazar extends StatefulWidget {
   const _DialogoRechazar();
 

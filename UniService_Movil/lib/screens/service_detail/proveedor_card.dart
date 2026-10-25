@@ -1,3 +1,7 @@
+// Archivo: proveedor_card.dart
+// Responsabilidad: tarjeta del proveedor y botones de contacto del detalle.
+// Se usa desde: detail_screen (columna derecha).
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -16,12 +20,14 @@ const _coloresAvatar = [
   [Color(0xFFF97316), Color(0xFFFB923C)], // ag-naranja
 ];
 
+/// Elige un degradado estable a partir del código de la primera letra del nombre.
 List<Color> colorAvatar(String? nombre) {
   if (nombre == null || nombre.isEmpty) return _coloresAvatar[0];
   return _coloresAvatar[nombre.codeUnitAt(0) % _coloresAvatar.length];
 }
 
 /// `.card-proveedor`: avatar, nombre, universidad y calificación.
+/// Es tocable para abrir el perfil del proveedor (o pedir sesión si es invitado).
 class ProveedorCard extends StatelessWidget {
   final ServicioDetalle detalle;
   final VoidCallback onTap;
@@ -263,6 +269,7 @@ class ProveedorCard extends StatelessWidget {
 
 /// `.contacto-botones`: Gmail (si el contacto es un correo) o WhatsApp
 /// (si es un teléfono) + "Enviar mensaje".
+/// El botón de mensaje aún no abre el chat real; lo maneja el detalle.
 class ContactoBotones extends StatelessWidget {
   final String contacto;
   final VoidCallback onContactar;

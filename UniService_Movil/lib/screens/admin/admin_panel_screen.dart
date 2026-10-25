@@ -1,3 +1,8 @@
+// Archivo: admin_panel_screen.dart
+// Responsabilidad: pantalla de inicio del panel con el resumen de usuarios y servicios
+//   que devuelve /api/admin/dashboard, más el aviso de vencimiento del acceso.
+// Se usa desde: la ruta '/admin' tras validar la contraseña de administrador.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -19,7 +24,7 @@ class AdminPanelScreen extends StatefulWidget {
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final _repo = AdminRepository.instance;
-  Map<String, dynamic>? _resumen;
+  Map<String, dynamic>? _resumen; // null mientras carga
   String? _error;
 
   @override
@@ -27,6 +32,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     super.initState();
     _cargar();
   }
+
+  // --- Datos ---
 
   Future<void> _cargar() async {
     setState(() => _error = null);
@@ -45,6 +52,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
       setState(() => _error = e.mensaje);
     }
   }
+
+  // --- Sesión y vista ---
 
   void _salir() {
     _repo.salir();
@@ -162,6 +171,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     }
     final r = _resumen;
     int n(String k) => (r?[k] as num?)?.toInt() ?? 0;
+    // Clave del resumen, etiqueta visible e ícono de cada tarjeta.
     final datos = [
       ('Usuarios activos', 'usuarios_activos', Icons.people_outline_rounded),
       ('Cuentas suspendidas', 'usuarios_suspendidos', Icons.block_rounded),
@@ -207,6 +217,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   }
 }
 
+/// Tarjeta con una cifra del resumen y su etiqueta.
 class _Dato extends StatelessWidget {
   final String label;
   final int? valor; // null = cargando

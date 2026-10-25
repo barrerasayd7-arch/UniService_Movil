@@ -1,3 +1,7 @@
+// Archivo: skeleton_servicio.dart
+// Responsabilidad: esqueleto animado mientras se carga el detalle del servicio.
+// Se usa desde: detail_screen, en el primer estado de carga.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -27,6 +31,7 @@ class _SkeletonServicioState extends State<SkeletonServicio>
     super.dispose();
   }
 
+  /// Barra con degradado en movimiento; [fraccion] simula el ancho del texto.
   Widget _barra(double alto, double fraccion) {
     return AnimatedBuilder(
       animation: _c,

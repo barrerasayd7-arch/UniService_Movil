@@ -1,3 +1,8 @@
+// Archivo: detail_screen.dart
+// Responsabilidad: pantalla de detalle de un servicio (galería, info, proveedor,
+// reseñas, solicitud y contacto) según sesión y propiedad del servicio.
+// Se usa desde: ruta '/servicio' (tarjetas de inicio, mis servicios, solicitudes).
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -49,8 +54,8 @@ class _DetailScreenState extends State<DetailScreen> {
   late final int? _id = widget.idServicio ?? widget.servicio?.id;
 
   bool _cargando = true;
-  bool _menuAbierto = false;
-  bool _noEncontrado = false;
+  bool _menuAbierto = false; // menú desplegable del navbar en móvil
+  bool _noEncontrado = false; // 404: se muestra estado vacío, no error
   String? _error;
   ServicioDetalle? _detalle;
 
@@ -62,6 +67,7 @@ class _DetailScreenState extends State<DetailScreen> {
     _cargar();
   }
 
+  /// Carga el detalle; diferencia un 404 (no encontrado) de un fallo de red.
   Future<void> _cargar() async {
     final id = _id;
     if (id == null) {
@@ -96,7 +102,9 @@ class _DetailScreenState extends State<DetailScreen> {
     }
   }
 
-  // ── Navegación ──
+  // --- Navegación ---
+
+  /// Enlaces del navbar; sin sesión, los enlaces privados mandan al login.
   void _irA(String enlace) {
     setState(() => _menuAbierto = false);
     final nav = Navigator.of(context);
@@ -137,8 +145,9 @@ class _DetailScreenState extends State<DetailScreen> {
       );
   }
 
-  // ── Contacto y mapa ──
+  // --- Contacto y mapa ---
 
+  /// Abre una app externa; si no hay ninguna disponible avisa con [siFalla].
   Future<void> _abrir(Uri uri, String siFalla) async {
     var abierto = false;
     try {
@@ -147,6 +156,8 @@ class _DetailScreenState extends State<DetailScreen> {
     if (!abierto && mounted) _aviso(siFalla);
   }
 
+  /// Abre correo si el contacto tiene '@'; si no, intenta WhatsApp y, si el
+  /// número no es válido, copia el contacto al portapapeles.
   Future<void> _contactar(ServicioDetalle d) async {
     final contacto = d.contacto!.trim();
     final titulo = d.servicio.titulo;
@@ -175,6 +186,7 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+  /// Prefiere coordenadas exactas y usa la dirección como respaldo.
   void _abrirMapa(ServicioDetalle d) {
     final consulta = d.lat != null && d.lng != null
         ? '${d.lat},${d.lng}'
@@ -242,6 +254,8 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+  /// Decide entre esqueleto, estados vacíos o el contenido; en pantallas anchas
+  /// usa dos columnas y en móvil apila la información.
   Widget _cuerpo(double ancho) {
     final d = _detalle;
     if (_cargando && d == null) {
@@ -290,7 +304,7 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  // ═════════════ COLUMNA IZQUIERDA ═════════════
+  // === Columna izquierda: galería, datos, reseñas y formulario de reseña ===
   Widget _columnaIzquierda(ServicioDetalle d, double ancho) {
     final s = d.servicio;
     final movil = ancho <= 768;
@@ -328,7 +342,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
         const SizedBox(height: 16),
 
-        // ── Info principal ──
+        // --- Info principal ---
         Padding(
           padding: const EdgeInsets.only(bottom: 24),
           child: Column(
@@ -388,7 +402,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
         ),
 
-        // ── Detalles del servicio ──
+        // --- Detalles del servicio ---
         SeccionInfo(
           icono: Icons.checklist,
           titulo: 'Detalles del servicio',
@@ -430,7 +444,7 @@ class _DetailScreenState extends State<DetailScreen> {
           ),
         ),
 
-        // ── Reseñas ──
+        // --- Reseñas ---
         SeccionInfo(
           icono: Icons.star_rounded,
           titulo: 'Reseñas de clientes',
@@ -458,13 +472,14 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
         ),
 
-        // ── Dejar reseña (sólo quien tuvo una solicitud completada) ──
+        // --- Dejar reseña (sólo quien tuvo una solicitud completada) ---
         if (_haySesion && !d.esPropio)
           FormCalificacion(idServicio: s.id, onGuardada: _cargar),
       ],
     );
   }
 
+  /// Título con el botón de reportar; invitados y dueños no lo ven.
   Widget _tituloYReportar(ServicioDetalle d, bool movil) {
     final s = d.servicio;
     final titulo = Text(
@@ -492,7 +507,7 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  // ═════════════ COLUMNA DERECHA ═════════════
+  // === Columna derecha: proveedor, acciones y formulario de solicitud ===
   Widget _columnaDerecha(ServicioDetalle d) {
     final s = d.servicio;
     final p = d.proveedor;
@@ -553,7 +568,7 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  // ═════════════ Estados sin datos ═════════════
+  // === Estados sin datos: no encontrado y error de red ===
   Widget _estadoVacio() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
@@ -725,6 +740,7 @@ class _BannerEstado extends StatelessWidget {
   }
 }
 
+/// Accesos rápidos del dueño: editar el servicio o volver a su lista.
 class _AccionesDueno extends StatelessWidget {
   final VoidCallback onEditar;
   final VoidCallback onMisServicios;
@@ -798,7 +814,7 @@ class _InvitaSesion extends StatelessWidget {
 }
 
 
-// ── Tarjeta de reseña (.resena) ──
+/// Tarjeta de una reseña con avatar de iniciales, fecha y estrellas.
 class _ResenaCard extends StatelessWidget {
   final Resena resena;
   const _ResenaCard({required this.resena});
@@ -882,7 +898,7 @@ class _ResenaCard extends StatelessWidget {
   }
 }
 
-// ── Botón "Reportar" junto al título ──
+/// Botón "Reportar" junto al título; por ahora sólo muestra un aviso.
 class _BtnReportar extends StatelessWidget {
   final VoidCallback onTap;
   const _BtnReportar({required this.onTap});
