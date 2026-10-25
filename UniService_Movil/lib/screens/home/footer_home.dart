@@ -1,3 +1,8 @@
+// Archivo: footer_home.dart
+// Responsabilidad: pie del home autenticado con marca, enlaces agrupados por
+//   columna y aviso de copyright.
+// Se usa desde: home_screen.dart, anclado como sección "soporte".
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -18,6 +23,7 @@ class FooterHome extends StatelessWidget {
     required this.onProximamente,
   });
 
+  // Enlace de texto con hover; el color cambia a teal sin subrayado.
   Widget _link(String texto, VoidCallback onTap) {
     return HoverBuilder(
       builder: (context, hover) => GestureDetector(
@@ -36,6 +42,7 @@ class FooterHome extends StatelessWidget {
     );
   }
 
+  // Columna del pie: título y enlaces apilados.
   Widget _columna(String titulo, List<Widget> links) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,6 +63,7 @@ class FooterHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Por debajo de 768px las columnas se reparten en dos filas.
     final apilado = MediaQuery.of(context).size.width < 768;
 
     final marca = Column(
@@ -92,11 +100,13 @@ class FooterHome extends StatelessWidget {
       ],
     );
 
+    // Bloques reutilizados tanto en la versión apilada como en la ancha.
     final plataforma = _columna('Plataforma', [
       _link('Inicio', () => onAncla('inicio')),
       _link('Buscar servicios', () => onAncla('buscar')),
       _link('Publicar servicio', () => onAncla('publicar')),
     ]);
+    // "Mis servicios" y los enlaces legales aún no tienen vista propia.
     final cuenta = _columna('Mi cuenta', [
       _link('Mis servicios', onProximamente),
       _link('Solicitudes', onSolicitudes),

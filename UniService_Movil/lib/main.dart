@@ -1,3 +1,7 @@
+// Archivo: main.dart
+// Responsabilidad: arranque de la app (sesión, fuentes locales) y mapa central de rutas nombradas.
+// Se usa desde: el runtime de Flutter como punto de entrada; las pantallas navegan por estos nombres.
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,8 +28,12 @@ import 'screens/admin/admin_reportes_screen.dart';
 import 'screens/admin/admin_servicios_screen.dart';
 import 'screens/admin/admin_usuarios_screen.dart';
 
+/// Acceso global al Navigator: permite volver al login desde repositorios,
+/// fuera del árbol de widgets (por ejemplo, cuando la API invalida la sesión).
 final navigatorKey = GlobalKey<NavigatorState>();
 
+/// Prepara licencias/fuentes, restaura la sesión guardada y elige la ruta inicial
+/// (`/home` con sesión, `/home-guest` sin ella).
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -58,7 +66,9 @@ Future<void> main() async {
   runApp(UniServiceApp(rutaInicial: auth.haySesion ? '/home' : '/home-guest'));
 }
 
+/// Raíz de MaterialApp: tema oscuro, navegador global y tabla de rutas de toda la app.
 class UniServiceApp extends StatelessWidget {
+  /// Ruta con la que arranca la app; la calcula [main] según haya sesión o no.
   final String rutaInicial;
   const UniServiceApp({super.key, required this.rutaInicial});
 
@@ -79,6 +89,7 @@ class UniServiceApp extends StatelessWidget {
         ),
       ),
       initialRoute: rutaInicial,
+      // Rutas nombradas; los guards de sesión/admin se aplican en la fábrica de cada pantalla.
       routes: {
         '/login': (_) => const LoginScreen(),
         '/home-guest': (_) => const HomeGuestScreen(),

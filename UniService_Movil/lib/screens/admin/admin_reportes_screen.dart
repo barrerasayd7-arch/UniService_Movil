@@ -1,3 +1,8 @@
+// Archivo: admin_reportes_screen.dart
+// Responsabilidad: bandeja de reportes de usuarios con filtro por estado y una hoja para
+//   cambiar el estado, dejar notas y revisar evidencias.
+// Se usa desde: la sección "Reportes" del panel (ruta '/admin/reportes').
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,6 +16,7 @@ import '../login/auth_widgets.dart';
 import 'admin_comun.dart';
 import 'admin_widgets.dart';
 
+// Estados posibles y su color; los valores deben coincidir con los de la API.
 const _estados = [
   'Pendiente',
   'En_revision',
@@ -19,6 +25,7 @@ const _estados = [
   'Cerrado',
 ];
 
+// Nombres legibles de los tipos de reporte; un tipo nuevo se muestra tal cual.
 const _tipos = {
   'servicio_fraude': 'Fraude en servicio',
   'servicio_inapropiado': 'Servicio inapropiado',
@@ -47,6 +54,7 @@ Color _colorEstado(String e) => switch (e) {
   _ => const Color(0xFF9CA3AF),
 };
 
+// Las evidencias pueden ser imágenes o enlaces; solo las imágenes se abren con zoom.
 final _esImagen = RegExp(r'\.(jpg|jpeg|png|webp)(\?|$)', caseSensitive: false);
 
 /// Reportes de usuarios: filtro por estado y gestión (estado + notas) en una hoja.
@@ -70,6 +78,7 @@ class _AdminReportesScreenState extends State<AdminReportesScreen> {
     _lista.currentState?.recargar();
   }
 
+  // Abre el detalle y traduce su resultado: elevar de nuevo o refrescar la lista.
   Future<void> _abrir(AdminReporte r) async {
     final res = await showModalBottomSheet<String>(
       context: context,
@@ -123,6 +132,7 @@ class _AdminReportesScreenState extends State<AdminReportesScreen> {
   }
 }
 
+/// Resumen de un reporte en la lista; el acento de la tarjeta sigue al estado.
 class _TarjetaReporte extends StatelessWidget {
   final AdminReporte r;
   final VoidCallback onTap;
@@ -198,6 +208,7 @@ class _DetalleReporte extends StatefulWidget {
 }
 
 class _DetalleReporteState extends State<_DetalleReporte> {
+  // Estado y notas se editan en local hasta pulsar "Guardar cambios".
   late String _estado = widget.reporte.estado;
   late final _notas = TextEditingController(text: widget.reporte.notas ?? '');
   bool _guardando = false;
@@ -209,12 +220,14 @@ class _DetalleReporteState extends State<_DetalleReporte> {
     super.dispose();
   }
 
+  // Un enlace roto o sin app compatible no debe romper la hoja.
   Future<void> _abrirEnlace(String url) async {
     try {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } catch (_) {}
   }
 
+  // Guarda estado y notas; si la elevación venció, cierra la hoja para volver a la puerta.
   Future<void> _guardar() async {
     FocusScope.of(context).unfocus();
     setState(() {
@@ -296,6 +309,7 @@ class _DetalleReporteState extends State<_DetalleReporte> {
                   style: AppText.poppins(14, height: 1.55),
                 ),
               ),
+              // Evidencias: imágenes ampliables con zoom o enlaces externos.
               if (r.evidencias.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 Text(
@@ -376,6 +390,7 @@ class _DetalleReporteState extends State<_DetalleReporte> {
               const SizedBox(height: 12),
               const Divider(height: 1, color: AppColors.borde),
               const SizedBox(height: 16),
+              // --- Gestión: estado y notas ---
               Semantics(
                 header: true,
                 child: Text(

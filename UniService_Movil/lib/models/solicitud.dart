@@ -1,3 +1,7 @@
+// Archivo: solicitud.dart
+// Responsabilidad: solicitud entre cliente y proveedor, sus estados y el estado de calificación.
+// Se usa desde: pantallas de solicitudes y el repositorio de solicitudes.
+
 import 'servicio.dart';
 
 /// Persona en una solicitud (cliente o proveedor).
@@ -95,11 +99,13 @@ class Solicitud {
   }
 
   bool get soyCliente => rol == 'cliente';
+  /// Sigue en curso: ni terminada, ni rechazada, ni cancelada.
   bool get activa => estado == 'Pendiente' || estado == 'Aceptada';
 
   /// La otra persona de la solicitud.
   ParteSolicitud get contraparte => soyCliente ? proveedor : cliente;
 
+  // Permisos derivados del rol y del estado; la UI muestra los botones según estos.
   bool get puedeAceptar => !soyCliente && estado == 'Pendiente';
   bool get puedeRechazar => !soyCliente && estado == 'Pendiente';
   bool get puedeCompletar => !soyCliente && estado == 'Aceptada';
@@ -122,8 +128,10 @@ class EstadoCalificacion {
     this.fecha,
   });
 
+  /// Estado sin calificación ni permiso, para inicializar la UI.
   static const ninguno = EstadoCalificacion(puedeCalificar: false);
 
+  /// true si el usuario ya dejó una reseña para este servicio.
   bool get yaCalifico => idCalificacion != null;
 
   factory EstadoCalificacion.fromJson(Map<String, dynamic> j) {

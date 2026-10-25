@@ -1,9 +1,15 @@
+// Archivo: botones_flotantes.dart
+// Responsabilidad: botones flotantes de chat y notificaciones del home autenticado,
+//   con un panel desplegable de avisos todavía simulados.
+// Se usa desde: home_screen.dart, dentro de su Stack.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 
+// Aviso local del panel: su estado de lectura se guarda sólo en memoria.
 class _Notif {
   final String texto;
   bool leida;
@@ -22,6 +28,7 @@ class BotonesFlotantes extends StatefulWidget {
 }
 
 class _BotonesFlotantesState extends State<BotonesFlotantes> {
+  // Estado local del panel y contador de chat de ejemplo.
   bool _abierto = false;
   final int _mensajesNoLeidos = 2;
 
@@ -36,6 +43,7 @@ class _BotonesFlotantesState extends State<BotonesFlotantes> {
 
   @override
   Widget build(BuildContext context) {
+    // La campana se encoge en pantallas pequeñas para no tapar contenido.
     final ancho = MediaQuery.of(context).size.width;
     final bell = ancho <= 480
         ? 42.0
@@ -91,6 +99,8 @@ class _BotonesFlotantesState extends State<BotonesFlotantes> {
   }
 }
 
+/// Burbuja circular reutilizable: crece al hover y muestra una insignia
+/// cuando [badge] es mayor que cero.
 class _CircleButton extends StatelessWidget {
   final double size;
   final IconData icono;
@@ -170,6 +180,8 @@ class _CircleButton extends StatelessWidget {
   }
 }
 
+/// Listado desplegable de notificaciones; avisa al padre cuándo vaciar
+/// la lista o marcar una entrada como leída.
 class _Panel extends StatelessWidget {
   final List<_Notif> notifs;
   final int noLeidas;
@@ -244,6 +256,7 @@ class _Panel extends StatelessWidget {
                       padding: const EdgeInsets.all(10),
                       children: [
                         for (final n in notifs)
+                          // Una notificación leída queda atenuada y ya no responde al toque.
                           GestureDetector(
                             onTap: n.leida ? null : () => onLeer(n),
                             child: Opacity(

@@ -1,3 +1,7 @@
+// Archivo: admin_repository.dart
+// Responsabilidad: hablar con /api/admin/* (acceso, dashboard, usuarios, servicios,
+//   reportes y bitácora) y custodiar en memoria el token de elevación del administrador.
+// Se usa desde: pantallas de administración vía AdminRepository.instance.
 import 'api_client.dart';
 import 'auth_repository.dart';
 import '../models/admin_models.dart';
@@ -23,6 +27,7 @@ class AdminRepository {
 
   ApiClient get _api => _auth.api;
 
+  /// Hay token de administrador y aún no vence (se comprueba en cada llamada).
   bool get dentroDelPanel =>
       _api.adminToken != null &&
       _vence != null &&
@@ -31,6 +36,8 @@ class AdminRepository {
   /// Hasta cuándo dura el acceso actual (null = fuera del panel).
   DateTime? get vence => dentroDelPanel ? _vence : null;
 
+  /// Estado de la contraseña de administrador: si ya está configurada y hasta
+  /// cuándo sigue bloqueada por intentos fallidos. No requiere elevación.
   Future<EstadoAccesoAdmin> estado() async {
     final data = await _api.get('/api/admin/acceso/estado') as Map;
     return (
@@ -58,9 +65,11 @@ class AdminRepository {
     );
   }
 
+  /// Totales y métricas de la portada del panel.
   Future<Map<String, dynamic>> dashboard() async =>
       await _api.get('/api/admin/dashboard') as Map<String, dynamic>;
 
+  // Descarta parámetros nulos o vacíos y codifica la query string.
   static String _query(Map<String, String?> p) => Uri(
     queryParameters: {
       for (final e in p.entries)
@@ -69,6 +78,7 @@ class AdminRepository {
   ).query;
 
   // ── Usuarios ──
+  /// Página de usuarios, filtrable por texto y estado.
   /// [estado]: 'activos' | 'suspendidos' | null (todos).
   Future<PaginaAdmin<AdminUsuario>> usuarios({
     String? busqueda,
@@ -86,6 +96,7 @@ class AdminRepository {
     return PaginaAdmin.fromJson(data, AdminUsuario.fromJson);
   }
 
+  /// Suspende la cuenta; el motivo queda en la bitácora y se le muestra al usuario.
   Future<void> suspenderUsuario(int id, String motivo) =>
       _api.patch('/api/admin/usuarios/$id/suspender', {'motivo': motivo});
 
@@ -122,6 +133,7 @@ class AdminRepository {
       _api.post('/api/admin/servicios/$id/rechazar', {'razon': razon});
 
   // ── Reportes ──
+  /// Bandeja de reportes enviados por los usuarios, filtrable por estado.
   Future<PaginaAdmin<AdminReporte>> reportes({
     String? estado,
     int page = 1,
@@ -132,6 +144,7 @@ class AdminRepository {
     return PaginaAdmin.fromJson(data, AdminReporte.fromJson);
   }
 
+  /// Cambia el estado del reporte; una nota vacía se envía como null.
   Future<void> actualizarReporte(int id, String estado, String? notas) =>
       _api.patch('/api/admin/reportes/$id', {
         'estado': estado,
@@ -139,6 +152,7 @@ class AdminRepository {
       });
 
   // ── Bitácora ──
+  /// Registro de acciones administrativas, filtrable por entidad afectada.
   Future<PaginaAdmin<AdminAuditoria>> auditoria({
     String? entidad,
     int page = 1,
@@ -149,11 +163,13 @@ class AdminRepository {
     return PaginaAdmin.fromJson(data, AdminAuditoria.fromJson);
   }
 
+  /// Cierra sólo el panel; la sesión del usuario sigue abierta.
   void salir() {
     _api.adminToken = null;
     _vence = null;
   }
 
+  // Respuesta de /acceso/verificar o /acceso/clave: guarda token y vencimiento.
   void _abrir(dynamic data) {
     final map = data as Map;
     _api.adminToken = map['token'] as String;

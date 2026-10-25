@@ -1,3 +1,7 @@
+// Archivo: explorador_servicios.dart
+// Responsabilidad: buscador, filtros por categoría, destacados y resultados paginados de servicios.
+// Se usa desde: inicio con sesión y inicio de invitado.
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -51,6 +55,8 @@ const _etiquetaOrden = {
 const _porPagina = 12;
 
 class ExploradorServiciosState extends State<ExploradorServicios> {
+  // --- Estado de búsqueda, filtros y paginación ---
+
   late final ServiciosRepository _repo =
       widget.repositorio ?? ServiciosRepository.instance;
   final _busqueda = TextEditingController();
@@ -90,6 +96,8 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
     _busqueda.dispose();
     super.dispose();
   }
+
+  // --- Carga de datos ---
 
   /// Vuelve a pedir resultados y destacados (deslizar hacia abajo, o tras un cambio).
   Future<void> recargar() => Future.wait([_cargar(), _cargarDestacados()]);
@@ -145,6 +153,8 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
       // La fila es opcional: si falla, simplemente no se muestra.
     }
   }
+
+  // --- Acciones de búsqueda y filtros ---
 
   void _alEscribir(String _) {
     setState(() {}); // muestra u oculta los destacados
@@ -208,6 +218,8 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
       _cargar();
     }
   }
+
+  // --- Construcción de la vista ---
 
   @override
   Widget build(BuildContext context) {
@@ -334,6 +346,7 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
   }
 }
 
+// Campo de búsqueda con botón para borrar; avisa cada cambio al explorador.
 class _Buscador extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
@@ -463,6 +476,7 @@ class _FiltroCategorias extends StatelessWidget {
   }
 }
 
+// Título de bloque con una acción opcional a la derecha (por ejemplo, ordenar).
 class _TituloSeccion extends StatelessWidget {
   final String texto;
   final double margen;
@@ -538,6 +552,7 @@ class _FilaDestacados extends StatelessWidget {
   }
 }
 
+// Botón de paginación; también muestra el error de la página siguiente.
 class _BotonVerMas extends StatelessWidget {
   final bool cargando;
   final String? error;
@@ -692,6 +707,7 @@ class _RejillaEsqueleto extends StatelessWidget {
   }
 }
 
+// Placeholder de una tarjeta mientras se cargan los datos reales.
 class _TarjetaEsqueleto extends StatelessWidget {
   const _TarjetaEsqueleto();
 

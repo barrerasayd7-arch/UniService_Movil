@@ -1,3 +1,7 @@
+// Archivo: login_form.dart
+// Responsabilidad: pestaña de inicio de sesión; valida correo/contraseña y entra a la app o al panel admin.
+// Se usa desde: login_screen.dart (_Formulario).
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -8,6 +12,7 @@ import 'auth_widgets.dart';
 import 'recuperar_password.dart';
 
 /// Pestaña "Iniciar sesión": POST /api/auth/login.
+/// [correoInicial] llega desde el registro cuando la cuenta ya existía.
 class LoginForm extends StatefulWidget {
   /// Correo que llega desde el registro cuando la cuenta ya existía.
   final String correoInicial;
@@ -18,6 +23,8 @@ class LoginForm extends StatefulWidget {
 }
 
 class _LoginFormState extends State<LoginForm> {
+  // --- Estado del formulario ---
+
   late final _correo = TextEditingController(text: widget.correoInicial);
   final _pass = TextEditingController();
   String? _errorCorreo;
@@ -41,6 +48,7 @@ class _LoginFormState extends State<LoginForm> {
     super.dispose();
   }
 
+  // Valida en el cliente, autentica y decide si ofrecer el panel de administrador.
   Future<void> _entrar() async {
     if (_cargando) return;
     final correo = normalizarCorreo(_correo.text);
@@ -82,6 +90,7 @@ class _LoginFormState extends State<LoginForm> {
     }
   }
 
+  // Abre la hoja de recuperación; reutiliza el correo si ya es institucional.
   Future<void> _olvide() async {
     final correo = normalizarCorreo(_correo.text);
     await mostrarRecuperarPassword(

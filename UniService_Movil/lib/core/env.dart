@@ -1,3 +1,7 @@
+// Archivo: env.dart
+// Responsabilidad: resolver la URL base de la API según `--dart-define` y la plataforma.
+// Se usa desde: ApiClient y los repositorios, que nunca deben hardcodear el host.
+
 import 'package:flutter/foundation.dart';
 
 /// URL del backend.
@@ -12,6 +16,7 @@ class Env {
 
   static const _apiUrl = String.fromEnvironment('API_URL');
 
+  /// URL base de la API; prioriza `--dart-define` y si no, resuelve según la plataforma.
   static String get apiUrl {
     if (_apiUrl.isNotEmpty) return _apiUrl;
     // El emulador de Android ve el PC anfitrión como 10.0.2.2, no como localhost.

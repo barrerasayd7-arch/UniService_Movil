@@ -1,3 +1,7 @@
+// Archivo: mi_servicio.dart
+// Responsabilidad: servicio propio con su estado de moderación y métricas para "Mis servicios".
+// Se usa desde: MisServiciosScreen y el repositorio de servicios del usuario.
+
 import 'servicio.dart';
 
 /// Servicio propio, en cualquier estado (`GET /api/servicios/mios`).
@@ -32,6 +36,7 @@ class MiServicio {
     this.solicitudesPendientes = 0,
   });
 
+  /// Mapea la fila de `GET /api/servicios/mios`; los contadores vienen ya agregados.
   factory MiServicio.fromJson(Map<String, dynamic> j) => MiServicio(
     id: leerInt(j['id_servicio']),
     titulo: (j['titulo'] as String?) ?? '',
@@ -48,6 +53,8 @@ class MiServicio {
     solicitudesPendientes: leerInt(j['solicitudes_pendientes']),
   );
 
+  /// Solo se puede pausar lo que está publicado.
   bool get puedePausar => estado == 'aprobado';
+  /// Solo se puede reanudar lo que está pausado.
   bool get puedeReanudar => estado == 'pausado';
 }

@@ -1,3 +1,7 @@
+// Archivo: app_buttons.dart
+// Responsabilidad: botones reutilizables con hover de la web (.btn-verde/.btn-borde)
+//   y el helper HoverBuilder para detectar el mouse.
+// Se usa desde: pantallas y widgets que necesitan un CTA o un botón secundario.
 import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
@@ -18,6 +22,7 @@ class HoverBuilder extends StatefulWidget {
 }
 
 class _HoverBuilderState extends State<HoverBuilder> {
+  // Sólo se usa para reconstruir; en táctil los callbacks nunca se disparan.
   bool _hover = false;
 
   @override
@@ -31,7 +36,7 @@ class _HoverBuilderState extends State<HoverBuilder> {
   }
 }
 
-/// `.btn.btn-verde`
+/// `.btn.btn-verde`: relleno teal, se eleva 2 px y gana sombra al hover.
 class BtnVerde extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
@@ -77,7 +82,7 @@ class BtnVerde extends StatelessWidget {
   }
 }
 
-/// `.btn.btn-borde`
+/// `.btn.btn-borde`: contorno claro; al hover se rellena de teal y el texto pasa a oscuro.
 class BtnBorde extends StatelessWidget {
   final String label;
   final VoidCallback onTap;

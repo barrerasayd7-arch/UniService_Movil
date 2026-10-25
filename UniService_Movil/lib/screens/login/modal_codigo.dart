@@ -1,3 +1,7 @@
+// Archivo: modal_codigo.dart
+// Responsabilidad: diálogo para ingresar el código de 6 dígitos, reenviarlo y validarlo contra la API.
+// Se usa desde: register_form.dart y recuperar_password.dart.
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,6 +14,8 @@ import '../../data/auth_repository.dart';
 import 'auth_widgets.dart';
 
 /// Pide el código de 6 dígitos enviado a [correo] y lo valida con la API.
+/// [reenviarEn] son los segundos iniciales de espera y [textoSalir] la etiqueta
+/// del botón para cerrar y cambiar de correo.
 /// Devuelve la verificación o null si el usuario cierra la ventana.
 Future<VerificacionCorreo?> mostrarModalCodigo(
   BuildContext context, {
@@ -44,6 +50,8 @@ class _ModalCodigo extends StatefulWidget {
 }
 
 class _ModalCodigoState extends State<_ModalCodigo> {
+  // --- Estado del código y del reenvío ---
+
   static const _largo = 6;
   final _codigo = TextEditingController();
   final _focus = FocusNode();
@@ -67,6 +75,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
     super.dispose();
   }
 
+  // Cuenta atrás del botón "Reenviar"; se detiene al llegar a cero.
   void _iniciarEspera() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
@@ -75,6 +84,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
     });
   }
 
+  // Valida el código; si falla, lo limpia y devuelve el foco al campo oculto.
   Future<void> _verificar() async {
     if (_verificando || _codigo.text.length != _largo) return;
     setState(() {
@@ -98,6 +108,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
     }
   }
 
+  // Pide un código nuevo y reinicia la espera con el valor que devuelve la API.
   Future<void> _reenviar() async {
     if (_espera > 0 || _reenviando) return;
     setState(() {

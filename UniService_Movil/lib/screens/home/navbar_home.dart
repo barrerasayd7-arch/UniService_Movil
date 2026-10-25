@@ -1,3 +1,8 @@
+// Archivo: navbar_home.dart
+// Responsabilidad: barra superior autenticada (enlaces, panel admin, perfil y sesión),
+//   más la hamburguesa y el desplegable móvil.
+// Se usa desde: home_screen.dart.
+
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -6,12 +11,14 @@ import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 
+/// Entrada del navbar autenticado: texto visible y ancla de sección.
 class EnlaceNavHome {
   final String label;
   final String ancla;
   const EnlaceNavHome(this.label, this.ancla);
 }
 
+// Orden compartido por la barra de escritorio y el menú móvil.
 const enlacesNavHome = [
   EnlaceNavHome('Inicio', 'inicio'),
   EnlaceNavHome('Buscar servicios', 'buscar'),
@@ -20,6 +27,7 @@ const enlacesNavHome = [
   EnlaceNavHome('Soporte', 'soporte'),
 ];
 
+/// Variante visual de [NavBoton]; cada una define colores normal y hover.
 enum EstiloNav { normal, solicitudes, perfil, cerrar }
 
 /// Botón de la barra: cambia de colores según su estilo (.nav-link-custom,
@@ -43,6 +51,7 @@ class NavBoton extends StatelessWidget {
   static const _rojo = Color(0xFFEF4444);
   static const _rojoClaro = Color(0xFFF87171);
 
+  // Fondo, texto y borde de cada estilo según el estado del cursor.
   ({Color fg, Color bg, Color borde}) _colores(bool hover) {
     switch (estilo) {
       case EstiloNav.normal:
@@ -213,6 +222,7 @@ class NavbarHome extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Hamburguesa en móvil; fila completa de botones en escritorio.
                     if (movil)
                       _Hamburguesa(activo: menuAbierto, onTap: onToggleMenu)
                     else
@@ -276,6 +286,7 @@ class NavbarHome extends StatelessWidget {
   }
 }
 
+/// Tres barras que se convierten en aspa cuando [activo] es true.
 class _Hamburguesa extends StatelessWidget {
   final bool activo;
   final VoidCallback onTap;
@@ -313,7 +324,8 @@ class _Hamburguesa extends StatelessWidget {
   }
 }
 
-/// Menú desplegable en pantallas pequeñas.
+/// Menú desplegable en pantallas pequeñas; replica los enlaces del navbar
+/// con [NavBoton] en modo bloque.
 class MenuMovilHome extends StatelessWidget {
   final String nombreUsuario;
   final ValueChanged<String> onAncla;
@@ -336,6 +348,7 @@ class MenuMovilHome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Separación vertical uniforme entre las filas del menú.
     Widget fila(Widget w) =>
         Padding(padding: const EdgeInsets.symmetric(vertical: 2.5), child: w);
 

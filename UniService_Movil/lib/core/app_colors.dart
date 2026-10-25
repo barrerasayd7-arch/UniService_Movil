@@ -1,3 +1,7 @@
+// Archivo: app_colors.dart
+// Responsabilidad: paleta del tema oscuro (equivalente a las variables CSS de la web) y breakpoints.
+// Se usa desde: pantallas y widgets para mantener colores y cortes responsive consistentes.
+
 import 'package:flutter/material.dart';
 
 /// Equivalente a las variables `:root` de styleHome.css / StyleLogin.css
@@ -43,6 +47,7 @@ class AppColors {
   static Color a(Color c, double opacity) =>
       c.withAlpha((opacity.clamp(0.0, 1.0) * 255).round());
 
+  /// Fondo translúcido del teal (12 %) para chips y estados seleccionados.
   static Color get tealDim => a(teal, 0.12);
 }
 

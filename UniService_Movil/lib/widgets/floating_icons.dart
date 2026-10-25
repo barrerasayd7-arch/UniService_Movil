@@ -1,3 +1,7 @@
+// Archivo: floating_icons.dart
+// Responsabilidad: adorno animado de iconos que caen girando y halos que pulsan,
+//   dibujado sobre el login.
+// Se usa desde: pantalla de login, dentro de AnimacionAmbiental.
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -13,11 +17,13 @@ class FloatingIcons extends StatefulWidget {
   State<FloatingIcons> createState() => _FloatingIconsState();
 }
 
+/// Halo circular estático: posición en % del contenedor y duración del pulso.
 class _GlowData {
   final double left, top, size, dur;
   const _GlowData(this.left, this.top, this.size, this.dur);
 }
 
+/// Icono que cae: posición en %, duración, retraso y tamaño en px.
 class _IconData {
   final IconData icon;
   final double left, dur, delay, size;
@@ -26,6 +32,7 @@ class _IconData {
 
 class _FloatingIconsState extends State<FloatingIcons>
     with SingleTickerProviderStateMixin {
+  // Mismo bucle de 1 h que CosmosBackground para que ambos adornos encajen.
   static const int _ciclo = 3600;
   late final AnimationController _c;
 
@@ -52,6 +59,7 @@ class _FloatingIconsState extends State<FloatingIcons>
   @override
   void initState() {
     super.initState();
+    // Semilla fija: la lluvia de iconos es la misma en cada arranque.
     final r = math.Random(21);
     _items = List.generate(6, (i) {
       return _IconData(
@@ -78,6 +86,7 @@ class _FloatingIconsState extends State<FloatingIcons>
 
   /// glowPulse: alternate infinite ease-in-out
   Widget _glow(_GlowData g, double w, double h, double seg) {
+    // Onda triangular 0→1→0: ida con una curva, vuelta con otra (alternate).
     var u = (seg / g.dur) % 2;
     if (u > 1) u = 2 - u;
     double opacity, ty, scale;
@@ -120,6 +129,7 @@ class _FloatingIconsState extends State<FloatingIcons>
     final local = seg - it.delay;
     if (local < 0) return const SizedBox.shrink();
     final p = (local % it.dur) / it.dur;
+    // Funde en el 8 % inicial y final del recorrido; en medio queda a 0.4.
     double opacity;
     if (p < 0.08) {
       opacity = 0.4 * (p / 0.08);
@@ -143,6 +153,7 @@ class _FloatingIconsState extends State<FloatingIcons>
 
   @override
   Widget build(BuildContext context) {
+    // IgnorePointer evita robar toques; ClipRect recorta lo que cae fuera de pantalla.
     return IgnorePointer(
       child: ClipRect(
         child: LayoutBuilder(

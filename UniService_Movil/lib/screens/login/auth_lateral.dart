@@ -1,3 +1,7 @@
+// Archivo: auth_lateral.dart
+// Responsabilidad: panel de marca del acceso con logo, descripción, chips e iconos/orbes animados.
+// Se usa desde: login_screen.dart (mitad izquierda o franja superior de la tarjeta).
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -8,6 +12,7 @@ import '../../widgets/app_buttons.dart' show HoverBuilder;
 
 /// `.auth-lateral`: panel azul con logo, descripción, chips de categorías,
 /// iconos flotantes, orbes de luz y destellos.
+/// [compacto] reduce el contenido a una franja horizontal en móvil.
 class AuthLateral extends StatefulWidget {
   /// En móvil (< 680px) la web oculta los chips y reduce el padding.
   final bool compacto;
@@ -17,6 +22,7 @@ class AuthLateral extends StatefulWidget {
   State<AuthLateral> createState() => _AuthLateralState();
 }
 
+// Icono flotante: posición en % del panel, tiempos en segundos y tamaño.
 class _FI {
   final IconData icono;
   final double? top, bottom, left, right; // en %
@@ -35,6 +41,7 @@ class _FI {
   });
 }
 
+// Orbe de luz difusa; acepta posición absoluta en px o relativa en %.
 class _Orbe {
   final double size, dur, delay;
   final double? top, bottom, left, right; // px
@@ -54,6 +61,7 @@ class _Orbe {
   });
 }
 
+// Punto que aparece, crece y se desvanece cíclicamente.
 class _Destello {
   final double? top, bottom, left, right; // %
   final Color color;
@@ -75,6 +83,8 @@ class _AuthLateralState extends State<AuthLateral>
 
   static const _teal = AppColors.teal;
   static const _oro = AppColors.amarillo;
+
+  // --- Datos de la animación ---
 
   static final List<_FI> _iconos = [
     _FI(Icons.menu_book_outlined, 14, 0, _teal, top: 5, left: 8),
@@ -135,6 +145,8 @@ class _AuthLateralState extends State<AuthLateral>
     _c.dispose();
     super.dispose();
   }
+
+  // --- Capas animadas ---
 
   // Interpolación por tramos con ease-in-out (equivale a keyframes CSS).
   double _kf(List<double> v, double p) {
@@ -405,6 +417,7 @@ class _Marca extends StatelessWidget {
   }
 }
 
+// Logo circular con borde y halo teal.
 class _LogoCircular extends StatelessWidget {
   final double size;
   const _LogoCircular({required this.size});
@@ -432,6 +445,7 @@ class _LogoCircular extends StatelessWidget {
   }
 }
 
+// Chips decorativos de categorías; se elevan al pasar el cursor.
 class _ChipsCategorias extends StatelessWidget {
   const _ChipsCategorias();
 

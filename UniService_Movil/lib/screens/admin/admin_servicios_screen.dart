@@ -1,3 +1,8 @@
+// Archivo: admin_servicios_screen.dart
+// Responsabilidad: moderar servicios (aprobar, rechazar u ocultar) con búsqueda, filtro por
+//   estado y detalle con imágenes; en modo pendientes alimenta la cola de revisión.
+// Se usa desde: las secciones "Servicios" y "Pendientes" del panel.
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -29,8 +34,9 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
   final _lista = GlobalKey<ListaAdminState<AdminServicio>>();
   Timer? _debounce;
   String _busqueda = '';
+  // La cola de pendientes nace filtrada; la vista general empieza sin filtro.
   late String _estado = widget.soloPendientes ? 'pendiente' : '';
-  int? _accionando;
+  int? _accionando; // id del servicio con una acción en curso (deshabilita las demás)
 
   @override
   void dispose() {
@@ -42,6 +48,7 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
   Future<PaginaAdmin<AdminServicio>> _cargar(int page) =>
       _repo.servicios(estado: _estado, busqueda: _busqueda, page: page);
 
+  // Espera 400 ms tras escribir para no lanzar una petición por tecla.
   void _buscar(String t) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), () {
@@ -56,6 +63,7 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
     _lista.currentState?.recargar();
   }
 
+  // Marca la tarjeta ocupada, ejecuta la acción y recarga sin vaciar la lista si sale bien.
   Future<void> _ejecutar(
     int id,
     Future<void> Function() accion,
@@ -83,6 +91,7 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
     );
   }
 
+  // Rechazar cancela la publicación; el motivo es opcional y se envía al proveedor.
   Future<void> _rechazar(AdminServicio s) async {
     final razon = await pedirMotivo(
       context,
@@ -100,6 +109,7 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
     );
   }
 
+  // Ocultar no borra: el proveedor puede corregir y reenviar. Exige un motivo útil (5+).
   Future<void> _ocultar(AdminServicio s) async {
     final motivo = await pedirMotivo(
       context,
@@ -124,6 +134,7 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
     );
   }
 
+  // La hoja de detalle devuelve la acción elegida y aquí se confirma antes de ejecutarla.
   Future<void> _ver(AdminServicio s) async {
     final accion = await showModalBottomSheet<String>(
       context: context,
@@ -197,6 +208,7 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
   }
 }
 
+/// Tarjeta de un servicio con sus datos y las acciones válidas para su estado.
 class _TarjetaServicio extends StatelessWidget {
   final AdminServicio s;
   final bool ocupado;

@@ -1,3 +1,8 @@
+// Archivo: admin_acceso_screen.dart
+// Responsabilidad: puerta del panel: entrar con la contraseña de administrador, crearla
+//   o restablecerla tras confirmar el correo; controla intentos fallidos y su bloqueo.
+// Se usa desde: la ruta '/admin' (main.dart) al pedir privilegios y al vencer el acceso.
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -26,6 +31,8 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
   final _nueva = TextEditingController();
   final _confirmar = TextEditingController();
 
+  // --- Estado de la pantalla ---
+
   EstadoAccesoAdmin? _estado;
   String? _errorCarga;
   bool _restablecer = false; // "¿La olvidaste?" lleva al flujo de creación
@@ -36,9 +43,11 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
   DateTime? _bloqueadoHasta;
   Timer? _desbloqueo;
 
+  // Crear y restablecer comparten formulario: basta con que no haya clave configurada.
   bool get _modoCrear => !_estado!.configurada || _restablecer;
   bool get _bloqueado => _bloqueadoHasta != null;
 
+  // Validación local de la contraseña nueva; el servidor vuelve a comprobarla al guardar.
   bool get _largoOk => _nueva.text.length >= 10;
   bool get _mezclaOk =>
       RegExp(r'\p{L}', unicode: true).hasMatch(_nueva.text) &&
@@ -63,6 +72,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
     super.dispose();
   }
 
+  // Consulta si ya hay clave de admin y si la cuenta está bloqueada.
   Future<void> _cargar() async {
     setState(() {
       _estado = null;
@@ -97,6 +107,8 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
     });
   }
 
+  // --- Acciones del flujo ---
+
   void _abrirPanel() => Navigator.of(context).pushReplacementNamed('/admin');
 
   void _volver() {
@@ -108,6 +120,8 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
     }
   }
 
+  // Valida la clave contra el servidor; un 429 programa el desbloqueo y un 409
+  // significa que la clave desapareció, así que se recarga el estado.
   Future<void> _entrar() async {
     if (_enviando || _bloqueado || _clave.text.isEmpty) return;
     FocusScope.of(context).unfocus();
@@ -132,6 +146,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
     }
   }
 
+  // Pide el código al correo de la cuenta y guarda el token que devuelve el modal.
   Future<void> _enviarCodigo() async {
     if (_enviando) return;
     final correo = _estado!.correo;
@@ -159,6 +174,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
     }
   }
 
+  // Crea (o reemplaza) la clave de admin con el token ya verificado.
   Future<void> _guardar() async {
     if (_enviando || !_nuevaLista) return;
     FocusScope.of(context).unfocus();
@@ -183,6 +199,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
     }
   }
 
+  // Alterna entre entrar y restablecer; limpia todo lo escrito al cambiar de modo.
   void _irARestablecer(bool activo) {
     setState(() {
       _restablecer = activo;
@@ -193,6 +210,8 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
       _confirmar.clear();
     });
   }
+
+  // --- Armado de la vista ---
 
   @override
   Widget build(BuildContext context) {
@@ -249,6 +268,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
       );
     }
 
+    // Tres vistas: entrar, pedir el código o elegir la contraseña nueva.
     final (titulo, descripcion, formulario) = !_modoCrear
         ? (
             'Confirma que eres tú',
@@ -479,6 +499,7 @@ class _Requisito extends StatelessWidget {
   }
 }
 
+/// Error de carga a pantalla completa con una acción para reintentar.
 class _Estado extends StatelessWidget {
   final IconData icono;
   final String mensaje;

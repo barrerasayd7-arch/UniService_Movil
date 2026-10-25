@@ -1,3 +1,6 @@
+// Archivo: perfil_repository.dart
+// Responsabilidad: perfil propio y público, avatar, seguidores, inicio de chat y reportes.
+// Se usa desde: pantallas de perfil, detalle de servicio y chat.
 import '../models/usuario.dart';
 import 'api_client.dart';
 import 'auth_repository.dart';
@@ -29,6 +32,7 @@ class PerfilRepository {
     return (data as Map)['avatar'] as String;
   }
 
+  /// Borra la foto; el perfil vuelve al avatar por defecto.
   Future<void> quitarAvatar() => _api.delete('/api/perfil/me/avatar');
 
   /// Devuelve el nuevo total de seguidores de [id].
@@ -37,6 +41,7 @@ class PerfilRepository {
     return ((data as Map)['total_seguidores'] as num).toInt();
   }
 
+  // Listas sociales limitadas a 50 para no paginar en la primera versión.
   Future<List<PersonaResumen>> seguidores(int id) => _lista('/api/perfil/$id/seguidores?tamano=50');
   Future<List<PersonaResumen>> siguiendo(int id) => _lista('/api/perfil/$id/siguiendo?tamano=50');
 
@@ -51,6 +56,7 @@ class PerfilRepository {
     return ((data as Map)['id_chat'] as num).toInt();
   }
 
+  /// Reporta a un usuario o servicio. [tipo] es el motivo (p. ej. 'usuario'/'servicio').
   Future<void> reportar({
     required String tipo,
     required String titulo,

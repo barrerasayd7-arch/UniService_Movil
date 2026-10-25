@@ -1,3 +1,7 @@
+// Archivo: usuario.dart
+// Responsabilidad: perfil propio/público, resumen de personas en seguidores y formateo de cifras.
+// Se usa desde: ProfileScreen, repositorio de perfil y listas de seguidores.
+
 /// Perfil de un usuario tal como lo devuelve la API:
 ///  - GET /api/perfil/me  → el propio, con [correo] y [telefono].
 ///  - GET /api/perfil/{id} → el público de otra persona: sin correo ni teléfono
@@ -56,6 +60,7 @@ class Usuario {
     this.esMio = false,
   });
 
+  /// Aplana los objetos `perfil_academico` y `estadisticas`; tolera campos faltantes.
   factory Usuario.fromJson(Map<String, dynamic> j) {
     final academico = (j['perfil_academico'] as Map?)?.cast<String, dynamic>() ?? const {};
     final stats = (j['estadisticas'] as Map?)?.cast<String, dynamic>() ?? const {};
@@ -85,6 +90,7 @@ class Usuario {
     );
   }
 
+  /// Copia el perfil cambiando solo lo indicado; [quitarAvatar] borra la foto explícitamente.
   Usuario copyWith({String? avatarUrl, bool quitarAvatar = false, bool? loSigo, int? totalSeguidores}) => Usuario(
     id: id, nombre: nombre, descripcion: descripcion,
     avatarUrl: quitarAvatar ? null : (avatarUrl ?? this.avatarUrl),
@@ -102,6 +108,7 @@ class Usuario {
     return '@${u.isEmpty ? 'usuario' : u}';
   }
 
+  /// "4.5/5.0 (12)" o "Sin calificaciones" para mostrar bajo el nombre.
   String get reputacionTexto => reputacion != null
       ? '${reputacion!.toStringAsFixed(1)}/5.0 ($totalCalificaciones)'
       : 'Sin calificaciones';

@@ -1,9 +1,14 @@
+// Archivo: section_label.dart
+// Responsabilidad: chip de etiqueta de sección y palabra acentuada con cursiva y subrayado degradado.
+// Se usa desde: encabezados de secciones del inicio y pantallas de presentación.
+
 import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
 import '../core/app_text.dart';
 
 /// `.label-seccion`: chip pequeño en mayúsculas sobre los títulos.
+/// [icon] es opcional y se coloca antes del texto.
 class SectionLabel extends StatelessWidget {
   final String text;
   final IconData? icon;
@@ -49,6 +54,7 @@ class SectionLabel extends StatelessWidget {
 
 /// `.acento`: palabra en cursiva teal con subrayado degradado.
 /// Se usa dentro de un Text.rich mediante WidgetSpan.
+/// [fontSize] debe coincidir con el texto que la rodea para no romper la línea.
 class AcentoText extends StatelessWidget {
   final String text;
   final double fontSize;

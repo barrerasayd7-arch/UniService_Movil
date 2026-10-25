@@ -1,3 +1,7 @@
+// Archivo: tesseract_background.dart
+// Responsabilidad: animación de fondo con hipercubo 4D, cubo interior, símbolo infinito y partículas.
+// Se usa desde: pantallas de bienvenida o hero que replican HeroTesseract.jsx.
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +10,7 @@ import '../core/app_colors.dart';
 
 /// Port de Components/HeroTesseract.jsx (three.js) a CustomPainter:
 /// hipercubo 4D rotando + cubo interior + símbolo infinito + partículas.
+/// No recibe parámetros: la escala y la posición se calculan según el ancho.
 class TesseractBackground extends StatefulWidget {
   const TesseractBackground({super.key});
 
@@ -76,6 +81,7 @@ class _TesseractBackgroundState extends State<TesseractBackground>
   }
 }
 
+// Dibuja la escena completa; [t] es el tiempo en segundos del ciclo de animación.
 class _TesseractPainter extends CustomPainter {
   final double t;
   final double escala;
@@ -213,6 +219,7 @@ class _TesseractPainter extends CustomPainter {
     _dibujarInfinito(canvas, size, pxPorUnidad, color);
   }
 
+  // Rotación en el orden Z → Y → X, usada por el cubo y el infinito.
   List<double> _rotar(
     double x,
     double y,
@@ -232,6 +239,7 @@ class _TesseractPainter extends CustomPainter {
     return [x2, y3, z3];
   }
 
+  // Cubo tenue inscrito en el tesseract; gira más despacio para dar profundidad.
   void _dibujarCuboInterior(
     Canvas canvas,
     Size size,
@@ -294,6 +302,7 @@ class _TesseractPainter extends CustomPainter {
     }
   }
 
+  // Curva paramétrica del infinito con dos destellos que la recorren.
   void _dibujarInfinito(
     Canvas canvas,
     Size size,

@@ -1,3 +1,7 @@
+// Archivo: detail_widgets.dart
+// Responsabilidad: piezas visuales compartidas por el detalle (tarjetas, filas y botones).
+// Se usa desde: detail_screen, form_solicitud, form_calificacion y proveedor_card.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -5,6 +9,7 @@ import '../../core/app_text.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 
 /// `.seccion-info`: tarjeta con título (borde inferior teal) y contenido.
+/// El padding se reduce en móvil; el margen inferior es configurable.
 class SeccionInfo extends StatelessWidget {
   final IconData? icono;
   final String? titulo;
@@ -65,6 +70,7 @@ class SeccionInfo extends StatelessWidget {
 }
 
 /// `.info-row`: etiqueta a la izquierda y valor teal a la derecha.
+/// [ultima] quita el separador inferior de la última fila de una sección.
 class InfoRow extends StatelessWidget {
   final String label;
   final String value;
@@ -118,10 +124,13 @@ class InfoRow extends StatelessWidget {
   }
 }
 
+/// Variantes visuales de [BtnDetalle]; cada una define color, sombra y padding.
 enum EstiloBtn { principal, whatsapp, gmail, secundario, mapa }
 
 /// Botones del detalle: `.btn-primary`, `.btn-secondary`, `.btn-whatsapp`,
 /// `.btn-gmail` y `.btn-ver-mapa`.
+/// Admite estado de carga (spinner en lugar del icono) y se deshabilita si
+/// [onTap] es null. En web/desktop eleva el botón al pasar el cursor.
 class BtnDetalle extends StatelessWidget {
   final String label;
   final IconData? icono;
@@ -160,6 +169,7 @@ class BtnDetalle extends StatelessWidget {
         FontWeight peso = FontWeight.w700;
         double radio = 12;
 
+        // Cada estilo resuelve sus colores y sombra; `h` indica hover activo.
         switch (estilo) {
           case EstiloBtn.principal:
             bg = h ? AppColors.teal2 : AppColors.teal;

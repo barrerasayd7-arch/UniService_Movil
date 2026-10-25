@@ -1,3 +1,7 @@
+// Archivo: auth_widgets.dart
+// Responsabilidad: piezas compartidas de los formularios de acceso (campo, pestañas, botones, avisos y validaciones).
+// Se usa desde: login_form, register_form, recuperar_password y modal_codigo.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -7,6 +11,8 @@ import '../../widgets/app_buttons.dart' show HoverBuilder;
 // ─────────────────────────────────────────────────────────────
 // Campo de texto: etiqueta, campo con ícono y error debajo.
 // ─────────────────────────────────────────────────────────────
+/// Campo reutilizable de los formularios de acceso: etiqueta, borde según foco
+/// o error, y botón de mostrar/ocultar cuando [obscure] está activo.
 class AuthField extends StatefulWidget {
   final String label;
   final String hint;
@@ -178,6 +184,8 @@ class _AuthFieldState extends State<AuthField> {
 // ─────────────────────────────────────────────────────────────
 // Selector "Iniciar sesión" / "Crear cuenta" (control segmentado)
 // ─────────────────────────────────────────────────────────────
+/// Selector segmentado entre "Iniciar sesión" (0) y "Crear cuenta" (1).
+/// [onChanged] recibe el índice de la pestaña tocada.
 class AuthTabs extends StatelessWidget {
   final int index;
   final ValueChanged<int> onChanged;
@@ -241,6 +249,8 @@ class AuthTabs extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // Botón principal (acción del formulario)
 // ─────────────────────────────────────────────────────────────
+/// Botón principal del formulario; muestra un indicador mientras [cargando].
+/// [color] y [colorHover] permiten variantes como el acceso de administrador.
 class AuthPrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
@@ -317,6 +327,7 @@ class AuthPrimaryButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // Acción secundaria de bajo énfasis (texto en teal)
 // ─────────────────────────────────────────────────────────────
+/// Acción secundaria de bajo énfasis (texto en teal) con área táctil mínima de 44 px.
 class AuthTextButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
@@ -349,6 +360,8 @@ class AuthTextButton extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // Aviso dentro del formulario (errores de la API, junto a la acción)
 // ─────────────────────────────────────────────────────────────
+/// Aviso dentro del formulario para errores de la API o confirmaciones.
+/// Con [exito] cambia a verde; con [mensaje] nulo no ocupa espacio.
 class AuthAviso extends StatelessWidget {
   final String? mensaje;
   final bool exito;
@@ -406,6 +419,8 @@ class AuthAviso extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────
 // Ventana de aviso (para confirmaciones fuera de un formulario)
 // ─────────────────────────────────────────────────────────────
+/// Muestra una ventana modal con un mensaje y el botón "Entendido".
+/// Se usa para confirmaciones que no viven dentro de un formulario.
 Future<void> mostrarNotificacion(
   BuildContext context,
   String mensaje, {

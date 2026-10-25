@@ -1,3 +1,7 @@
+// Archivo: servicio.dart
+// Responsabilidad: modelo de tarjeta de servicio, página paginada y lectores tolerantes de JSON.
+// Se usa desde: repositorios y pantallas de listado/detalle; otros modelos reutilizan sus lectores.
+
 /// Servicio tal como lo muestran las tarjetas (fila de `GET /api/servicios`).
 class Servicio {
   final int id;
@@ -38,6 +42,7 @@ class Servicio {
     this.avatarProveedor,
   });
 
+  /// La API entrega `promedio` e `imagen`; aquí se exponen como [estrellas] e [imagenUrl].
   factory Servicio.fromJson(Map<String, dynamic> j) => Servicio(
     id: leerInt(j['id_servicio']),
     idProveedor: leerInt(j['id_proveedor']),
@@ -72,6 +77,7 @@ class PaginaServicios {
     required this.totalPaginas,
   });
 
+  /// true mientras haya una página siguiente que pedir.
   bool get hayMas => pagina < totalPaginas;
 
   factory PaginaServicios.fromJson(Map<String, dynamic> j) => PaginaServicios(
@@ -87,9 +93,11 @@ class PaginaServicios {
 
 // ── Lectura tolerante del JSON (los decimales de Postgres llegan como 650000.00) ──
 
+/// Convierte num o string numérico a int sin lanzar; usa [porDefecto] si no se puede.
 int leerInt(Object? v, [int porDefecto = 0]) =>
     v is num ? v.round() : int.tryParse('$v') ?? porDefecto;
 
+/// Igual que [leerInt] pero conserva decimales (el precio llega como 650000.00).
 double leerDouble(Object? v) =>
     v is num ? v.toDouble() : double.tryParse('$v') ?? 0;
 

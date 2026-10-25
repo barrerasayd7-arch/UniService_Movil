@@ -1,3 +1,7 @@
+// Archivo: admin_drawer.dart
+// Responsabilidad: menú lateral del panel, con la lista de secciones y la salida del modo admin.
+// Se usa desde: AdminScaffold y el panel de resumen; define también `seccionesAdmin`.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -26,12 +30,14 @@ class AdminDrawer extends StatelessWidget {
   final String actual;
   const AdminDrawer({super.key, required this.actual});
 
+  // Cierra el menú y reemplaza la ruta para no acumular secciones en el historial.
   void _ir(BuildContext context, String ruta, bool esActual) {
     final nav = Navigator.of(context);
     nav.pop(); // cierra el drawer
     if (!esActual) nav.pushReplacementNamed(ruta);
   }
 
+  // La salida descarta toda la pila del panel y devuelve a la app como usuario.
   void _salir(BuildContext context) {
     AdminRepository.instance.salir();
     Navigator.of(context).pushNamedAndRemoveUntil('/home', (_) => false);

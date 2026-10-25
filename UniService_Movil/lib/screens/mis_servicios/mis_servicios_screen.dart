@@ -1,3 +1,7 @@
+// Archivo: mis_servicios_screen.dart
+// Responsabilidad: lista de servicios propios en cualquier estado y sus acciones.
+// Se usa desde: ruta '/mis-servicios' (navbar, detalle y tras publicar).
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -22,7 +26,7 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
       widget.repositorio ?? ServiciosRepository.instance;
   List<MiServicio>? _servicios;
   String? _error;
-  final Set<int> _ocupados = {};
+  final Set<int> _ocupados = {}; // ids con pausa/reanudación/borrado en curso
 
   @override
   void initState() {
@@ -37,6 +41,7 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
     super.dispose();
   }
 
+  /// Trae `GET /api/servicios/mios`; también reacciona a `_repo.cambios`.
   Future<void> _cargar() async {
     try {
       final lista = await _repo.mios();
@@ -51,6 +56,7 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
     }
   }
 
+  /// Ejecuta una acción de la tarjeta y bloquea sus controles mientras dura.
   Future<void> _accion(MiServicio s, Future<void> Function() hacer) async {
     setState(() => _ocupados.add(s.id));
     try {
@@ -62,6 +68,7 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
     }
   }
 
+  /// Hoja de opciones: ver, editar, pausar/reanudar y eliminar según el estado.
   Future<void> _opciones(MiServicio s) async {
     final opcion = await showModalBottomSheet<String>(
       context: context,
@@ -138,6 +145,7 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
     }
   }
 
+  /// El borrado es irreversible: arrastra fotos, solicitudes y reseñas.
   Future<void> _confirmarEliminar(MiServicio s) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -255,6 +263,7 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
   }
 }
 
+/// Tarjeta de un servicio propio: estado, precio, reseñas y avisos pendientes.
 class _TarjetaMiServicio extends StatelessWidget {
   final MiServicio servicio;
   final bool ocupado;
@@ -428,6 +437,7 @@ class _TarjetaMiServicio extends StatelessWidget {
   }
 }
 
+/// Portada del servicio o el icono de su categoría si no tiene fotos.
 class _Miniatura extends StatelessWidget {
   final String? url;
   final String categoria;
@@ -464,6 +474,7 @@ class _Miniatura extends StatelessWidget {
   }
 }
 
+/// Etiqueta compacta del estado del servicio.
 class _Chip extends StatelessWidget {
   final String texto;
   final Color color;
@@ -486,6 +497,7 @@ class _Chip extends StatelessWidget {
   }
 }
 
+/// Estado vacío o de error con un botón de acción (publicar o reintentar).
 class _Vacio extends StatelessWidget {
   final IconData icono;
   final String titulo;

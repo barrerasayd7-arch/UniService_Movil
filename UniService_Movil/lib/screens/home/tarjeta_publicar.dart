@@ -1,3 +1,8 @@
+// Archivo: tarjeta_publicar.dart
+// Responsabilidad: sección que invita a publicar un servicio, con tarjeta
+//   interactiva y lista de ventajas.
+// Se usa desde: home_screen.dart, anclada como "publicar".
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -13,6 +18,7 @@ class TarjetaPublicar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tipografía y espaciado se reducen en móvil para mantener la tarjeta visible.
     final movil = MediaQuery.of(context).size.width <= Breakpoints.mobile;
     final t = movil ? 28.0 : 38.4;
 
@@ -65,6 +71,7 @@ class TarjetaPublicar extends StatelessWidget {
   }
 }
 
+/// Icono con texto de una de las ventajas mostradas bajo la tarjeta.
 class _Feature extends StatelessWidget {
   final IconData icono;
   final String texto;
@@ -83,6 +90,8 @@ class _Feature extends StatelessWidget {
   }
 }
 
+/// Tarjeta principal de la sección: todo el bloque abre el formulario de
+/// publicación y se eleva ligeramente con el cursor.
 class _PublicarCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool compacto;
@@ -240,6 +249,7 @@ class _PublicarCard extends StatelessWidget {
   }
 }
 
+/// Pinta la cuadrícula de puntos que sólo se ve en hover.
 class _PuntosPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

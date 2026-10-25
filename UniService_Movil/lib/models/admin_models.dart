@@ -1,3 +1,7 @@
+// Archivo: admin_models.dart
+// Responsabilidad: modelos de solo lectura del panel admin (usuarios, servicios, reportes, auditoría).
+// Se usa desde: lib/data/admin_repository.dart y las pantallas de administración.
+
 import 'servicio.dart' show leerInt, leerFecha;
 
 /// Página de un listado del panel: `{ items, total, page, pageSize }`.
@@ -13,8 +17,10 @@ class PaginaAdmin<T> {
     required this.pageSize,
   });
 
+  /// true si aún quedan páginas por pedir (`página actual × tamaño < total`).
   bool get hayMas => page * pageSize < total;
 
+  /// Convierte el JSON paginado y delega cada elemento en [convertir].
   factory PaginaAdmin.fromJson(
     Map<String, dynamic> j,
     T Function(Map<String, dynamic>) convertir,
@@ -53,6 +59,7 @@ class AdminUsuario {
     this.reportesRecibidos = 0,
   });
 
+  /// Rol 1 = administrador; el panel solo debe mostrarse a estos usuarios.
   bool get esAdmin => rol == 1;
 
   factory AdminUsuario.fromJson(Map<String, dynamic> j) => AdminUsuario(

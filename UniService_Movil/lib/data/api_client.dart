@@ -1,3 +1,7 @@
+// Archivo: api_client.dart
+// Responsabilidad: único punto de salida HTTP hacia la API (JWT, JSON, multipart,
+//   timeouts y traducción de errores a ApiException con mensajes en español).
+// Se usa desde: todos los *_repository.dart y cualquier pantalla que llame a la API.
 import 'dart:async';
 import 'dart:convert';
 
@@ -22,6 +26,7 @@ class ApiException implements Exception {
     this.datos,
   });
 
+  /// No hubo respuesta: sin red, servidor caído o timeout (no es un error HTTP).
   bool get sinConexion => status == 0;
 
   /// El panel admin pide (otra vez) la contraseña de administrador: la sesión sigue válida.
@@ -77,6 +82,7 @@ class ApiClient {
     return _enviar(request, _timeoutSubida);
   }
 
+  // Serializa el cuerpo como JSON sólo si existe; el resto de métodos va sin body.
   Future<dynamic> _send(String method, String path, [Object? body]) {
     final request = http.Request(method, Uri.parse('$_baseUrl$path'));
     if (body != null) {
@@ -86,9 +92,11 @@ class ApiClient {
     return _enviar(request, _timeout);
   }
 
+  // --- Envío y manejo de errores ---
   Future<dynamic> _enviar(http.BaseRequest request, Duration timeout) async {
     request.headers['Accept'] = 'application/json';
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    // El token de administrador nunca se filtra fuera de /api/admin/*.
     if (adminToken != null && request.url.path.startsWith('/api/admin/')) {
       request.headers['X-Admin-Elevacion'] = adminToken!;
     }
@@ -119,12 +127,14 @@ class ApiClient {
       suspendida: data is Map && data['suspendida'] == true,
       datos: data is Map<String, dynamic> ? data : null,
     );
+    // 401 con sesión activa o cuenta suspendida: la app debe volver al login.
     final sesionRechazada =
         (response.statusCode == 401 && token != null) || error.suspendida;
     if (sesionRechazada) onSesionInvalida?.call(error);
     throw error;
   }
 
+  // Un body vacío o no JSON se trata como null (p. ej. 204 o un proxy caído).
   static dynamic _decode(String body) {
     if (body.isEmpty) return null;
     try {
@@ -134,6 +144,7 @@ class ApiClient {
     }
   }
 
+  // Prioriza el mensaje que manda la API; si no hay, usa un texto por código HTTP.
   static String _mensajeDeError(int status, dynamic data) {
     if (data is Map) {
       // Errores de validación del modelo: { error, detalles: [{ campo, error }] }

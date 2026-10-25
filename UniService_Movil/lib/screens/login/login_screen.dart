@@ -1,3 +1,7 @@
+// Archivo: login_screen.dart
+// Responsabilidad: pantalla de acceso que combina login y registro en una tarjeta adaptable.
+// Se usa desde: ruta inicial de la app cuando no hay sesión.
+
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -21,12 +25,15 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // --- Estado de la tarjeta ---
+
   /// Alto aproximado de la tarjeta con la pestaña de login (marca + formulario).
   static const double _altoLogin = 570;
 
   int _tab = 0; // 0 = iniciar sesión, 1 = crear cuenta
   String _correoLogin = ''; // para pasar el correo del registro al login
 
+  // Cambia a la pestaña de login y, si llega, precarga el correo.
   void _irALogin([String? correo]) => setState(() {
     _tab = 0;
     if (correo != null) _correoLogin = correo;
@@ -94,7 +101,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-/// Tarjeta con la marca y el formulario.
+/// Tarjeta con la marca y el formulario; [apilado] decide entre columna (móvil)
+/// y panel lateral (pantallas anchas).
 class _AuthBox extends StatelessWidget {
   final bool apilado;
   final int tab;
@@ -171,6 +179,7 @@ class _AuthBox extends StatelessWidget {
 }
 
 /// Pestañas y los dos formularios (ambos montados: conservan lo escrito al cambiar).
+/// [onIrALogin] permite saltar del registro al login llevando el correo.
 class _Formulario extends StatelessWidget {
   final int tab;
   final String correoLogin;

@@ -1,3 +1,7 @@
+// Archivo: form_solicitud.dart
+// Responsabilidad: solicitud de un servicio con campos según categoría y estado activo.
+// Se usa desde: detail_screen (columna derecha) y reutiliza CampoCaja en reseñas.
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -43,6 +47,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
   late final List<CampoSolicitud> _campos = _config.campos
       .where((c) => c.tipo != TipoCampo.file)
       .toList();
+  // Un control por campo dinámico, indexado por su nombre en la configuración.
   final Map<String, TextEditingController> _ctrl = {};
   final Map<String, DateTime> _fechas = {};
   final Map<String, TimeOfDay> _horas = {};
@@ -71,6 +76,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
     super.dispose();
   }
 
+  /// Busca una solicitud activa del usuario para este servicio; si existe, el
+  /// formulario se sustituye por su estado y la opción de cancelarla.
   Future<void> _consultarActiva() async {
     setState(() => _consultando = true);
     Solicitud? activa;
@@ -87,7 +94,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
     }
   }
 
-  // ── Helpers ──
+  // --- Helpers de campos dinámicos ---
+
+  /// Indica si un campo tiene valor, para resaltar su etiqueta y borde.
   bool _lleno(CampoSolicitud c) {
     switch (c.tipo) {
       case TipoCampo.textarea:
@@ -150,6 +159,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
     if (t != null) setState(() => _horas[c.nombre] = t);
   }
 
+  /// Valida obligatorios, descripción mínima y rango del presupuesto.
   bool _validar() {
     for (final c in _campos) {
       if (c.obligatorio && !_lleno(c)) {
@@ -176,6 +186,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
     return true;
   }
 
+  /// Envía la solicitud (`POST /api/solicitudes`); un 409 significa que ya
+  /// existía una activa, así que se vuelve a consultar el estado.
   Future<void> _enviar() async {
     if (!_validar()) return;
     setState(() => _enviando = true);
@@ -213,6 +225,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
     }
   }
 
+  /// Cancela la solicitud tras confirmar; limpia el formulario para permitir
+  /// enviar otra.
   Future<void> _cancelar(Solicitud s) async {
     final confirmado = await showDialog<bool>(
       context: context,
@@ -251,6 +265,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
     }
   }
 
+  /// Vacía textos, fechas, horas y selects de todos los campos dinámicos.
   void _limpiar() {
     for (final c in _ctrl.values) {
       c.clear();
@@ -260,7 +275,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
     _selects.clear();
   }
 
-  // ── Construcción ──
+  // --- Construcción ---
   @override
   Widget build(BuildContext context) {
     final movil = MediaQuery.of(context).size.width <= 540;
@@ -334,6 +349,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
     );
   }
 
+  /// Estado de la solicitud ya enviada: aviso, acceso a la lista y cancelación.
   List<Widget> _solicitudActiva(Solicitud s) {
     final aceptada = s.estado == 'Aceptada';
     final color = aceptada ? const Color(0xFF34D399) : AppColors.amarillo;
@@ -455,6 +471,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
     );
   }
 
+  /// Devuelve el control adecuado al tipo de campo; fechas y horas se eligen
+  /// con selectores y los selects con un desplegable.
   Widget _control(CampoSolicitud c, bool lleno) {
     switch (c.tipo) {
       case TipoCampo.textarea:
@@ -578,6 +596,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
 }
 
 /// Caja de un campo (`.form-input-custom`): fondo, borde 2px y foco teal.
+/// Mantiene sus propios estados de hover y foco; con [onTap] se comporta como
+/// un campo de solo lectura que abre un selector.
 class CampoCaja extends StatefulWidget {
   final Widget child;
   final bool lleno;

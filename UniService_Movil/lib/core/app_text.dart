@@ -1,3 +1,7 @@
+// Archivo: app_text.dart
+// Responsabilidad: helpers de tipografía (Poppins para cuerpo, DM Serif Display para títulos).
+// Se usa desde: pantallas y widgets que necesitan estilos de texto del tema.
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -7,6 +11,7 @@ import 'app_colors.dart';
 class AppText {
   AppText._();
 
+  /// Texto de cuerpo con Poppins; centraliza tamaño, peso, color, interlineado y sombras.
   static TextStyle poppins(
     double size, {
     FontWeight weight = FontWeight.w400,
@@ -27,6 +32,7 @@ class AppText {
     );
   }
 
+  /// Título con DM Serif Display; no acepta peso porque la familia solo trae un estilo.
   static TextStyle serif(
     double size, {
     Color color = AppColors.texto,

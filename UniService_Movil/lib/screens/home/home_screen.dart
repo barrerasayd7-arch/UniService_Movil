@@ -1,3 +1,8 @@
+// Archivo: home_screen.dart
+// Responsabilidad: orquesta el home autenticado (navbar, explorador, publicar,
+//   pie y botones flotantes) y resuelve anclas, refresco y argumentos de ruta.
+// Se usa desde: main.dart como ruta '/home'.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -22,6 +27,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _scroll = ScrollController();
+
+  // Claves de sección: permiten desplazarse sin depender de offsets fijos.
   final _keys = {
     'inicio': GlobalKey(),
     'publicar': GlobalKey(),
@@ -31,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _menuAbierto = false;
   bool _scrolled = false;
 
+  // Sólo el primer nombre: se usa en el saludo y en el navbar.
   String get _nombreUsuario {
     final nombre = AuthRepository.instance.usuario.value?.nombre.trim() ?? '';
     return nombre.isEmpty ? 'Usuario' : nombre.split(' ').first;
@@ -55,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _irA(arg);
       }
     });
+    // Activa la sombra del navbar en cuanto el usuario abandona el tope.
     _scroll.addListener(() {
       final s = _scroll.offset > 20;
       if (s != _scrolled) setState(() => _scrolled = s);
@@ -94,6 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
   }
 
+  // Cierra el menú móvil antes de navegar para que no quede superpuesto.
   void _abrir(String ruta) {
     setState(() => _menuAbierto = false);
     Navigator.of(context).pushNamed(ruta);
@@ -114,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).pushNamed('/perfil');
   }
 
+  // Al cerrar sesión se reemplaza toda la pila por el inicio de invitado.
   Future<void> _cerrarSesion() async {
     await AuthRepository.instance.cerrarSesion();
     if (!mounted) return;
@@ -206,6 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
 
+            // El desplegable flota bajo el navbar y se cierra al elegir una opción.
             if (movil && _menuAbierto)
               Positioned(
                 top: 62,
@@ -220,6 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
+            // Chat y notificaciones se superponen al scroll en la esquina inferior.
             BotonesFlotantes(onChat: () => _proximamente('Chat')),
           ],
         ),

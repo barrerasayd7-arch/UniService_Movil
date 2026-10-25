@@ -1,3 +1,8 @@
+// Archivo: navbar_invitado.dart
+// Responsabilidad: barra superior pública con enlaces, botón de login,
+//   hamburguesa y menú móvil.
+// Se usa desde: home_guest_screen.dart.
+
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -6,12 +11,14 @@ import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 
+/// Entrada de navegación pública: texto visible y ancla de sección.
 class EnlaceNav {
   final String label;
   final String ancla; // inicio | buscar | mejor-calificados | soporte
   const EnlaceNav(this.label, this.ancla);
 }
 
+// Enlaces compartidos por la barra de escritorio y el menú móvil.
 const enlacesNav = [
   EnlaceNav('Inicio', 'inicio'),
   EnlaceNav('Buscar servicios', 'buscar'),
@@ -91,6 +98,7 @@ class NavbarInvitado extends StatelessWidget {
                         ),
                       ),
                     ),
+                    // Hamburguesa en móvil; enlaces + login en escritorio.
                     if (movil)
                       _Hamburguesa(activo: menuAbierto, onTap: onToggleMenu)
                     else
@@ -125,6 +133,7 @@ class NavbarInvitado extends StatelessWidget {
   }
 }
 
+/// Enlace de la barra; [destacado] lo pinta como botón de "Iniciar Sesión".
 class _NavLink extends StatelessWidget {
   final String label;
   final bool destacado;
@@ -172,6 +181,7 @@ class _NavLink extends StatelessWidget {
   }
 }
 
+/// Tres barras que se convierten en aspa cuando [activo] es true.
 class _Hamburguesa extends StatelessWidget {
   final bool activo;
   final VoidCallback onTap;
@@ -209,7 +219,8 @@ class _Hamburguesa extends StatelessWidget {
   }
 }
 
-/// Menú desplegable móvil (`.navbar-links.active`).
+/// Menú desplegable móvil (`.navbar-links.active`); replica el estilo de
+/// [_NavLink] a ancho completo.
 class MenuMovilInvitado extends StatelessWidget {
   final ValueChanged<String> onAncla;
   final VoidCallback onLogin;
@@ -221,6 +232,7 @@ class MenuMovilInvitado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Fila del menú: mismo aspecto que _NavLink pero ocupando todo el ancho.
     Widget item(String label, VoidCallback onTap, {bool destacado = false}) {
       return HoverBuilder(
         builder: (context, hover) => GestureDetector(

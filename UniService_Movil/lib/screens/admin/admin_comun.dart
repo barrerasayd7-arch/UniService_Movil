@@ -1,3 +1,8 @@
+// Archivo: admin_comun.dart
+// Responsabilidad: piezas compartidas del panel (scaffold, avisos, filtros, tarjetas y lista
+//   paginada) y el manejo común de errores que exigen volver a pedir la clave de admin.
+// Se usa desde: todas las pantallas de lib/screens/admin/.
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -17,6 +22,9 @@ bool volverAPedirClave(BuildContext context, ApiException e) {
   return true;
 }
 
+// --- Avisos y acciones ---
+
+/// Snack flotante del panel; reemplaza el aviso anterior en vez de encolarlo.
 void avisoAdmin(BuildContext context, String texto) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -86,6 +94,8 @@ void verImagenAdmin(BuildContext context, String url) {
   );
 }
 
+// --- Estructura de pantalla ---
+
 /// Pantalla del panel: barra con título, menú lateral y cuerpo.
 class AdminScaffold extends StatelessWidget {
   final String actual;
@@ -119,6 +129,7 @@ class AdminScaffold extends StatelessWidget {
   }
 }
 
+/// Estado vacío, de error o informativo con una acción opcional.
 class MensajeAdmin extends StatelessWidget {
   final IconData icono;
   final String mensaje;
@@ -166,6 +177,8 @@ class MensajeAdmin extends StatelessWidget {
   }
 }
 
+// --- Controles y tarjetas ---
+
 /// Buscador y/o chips de filtro, fijos sobre la lista.
 class BarraFiltros extends StatelessWidget {
   final TextEditingController? buscador;
@@ -209,6 +222,7 @@ class BarraFiltros extends StatelessWidget {
   }
 }
 
+/// Campo de búsqueda con borde que se resalta al enfocar y botón para limpiar.
 class _Buscador extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -319,6 +333,7 @@ class FiltroChips<T> extends StatelessWidget {
   }
 }
 
+/// Contenedor de una fila del panel; [acento] pinta una franja de color a la izquierda.
 class TarjetaAdmin extends StatelessWidget {
   final Widget child;
   final Color? acento;
@@ -474,6 +489,8 @@ class FilaDatoAdmin extends StatelessWidget {
   }
 }
 
+// --- Lista paginada ---
+
 /// Lista paginada del panel: carga la primera página, "cargar más" al llegar al final,
 /// pull-to-refresh y estados de carga, error y vacío. Para recargar desde fuera usa
 /// una `GlobalKey<ListaAdminState<T>>` y llama a `recargar()`.
@@ -494,6 +511,7 @@ class ListaAdmin<T> extends StatefulWidget {
   State<ListaAdmin<T>> createState() => ListaAdminState<T>();
 }
 
+/// Estado expuesto por [ListaAdmin]; permite recargar desde la pantalla que la contiene.
 class ListaAdminState<T> extends State<ListaAdmin<T>> {
   final _scroll = ScrollController();
   final List<T> _items = [];
@@ -518,6 +536,7 @@ class ListaAdminState<T> extends State<ListaAdmin<T>> {
     super.dispose();
   }
 
+  // Pide la siguiente página cuando faltan menos de 300 px para el final.
   void _alScrollear() {
     if (_scroll.hasClients &&
         _scroll.position.extentAfter < 300 &&
@@ -564,6 +583,7 @@ class ListaAdminState<T> extends State<ListaAdmin<T>> {
     }
   }
 
+  // Añade la página siguiente sin vaciar lo ya visible; un error deja el pie con "Reintentar".
   Future<void> _cargarMas() async {
     if (!_hayMas || _cargandoMas || _cargando) return;
     final t = _ticket;
@@ -633,6 +653,7 @@ class ListaAdminState<T> extends State<ListaAdmin<T>> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
               itemCount: _items.length + (_hayMas ? 1 : 0),
               itemBuilder: (ctx, i) {
+                // El ítem extra al final es el pie: spinner o botón de reintento.
                 if (i >= _items.length) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),

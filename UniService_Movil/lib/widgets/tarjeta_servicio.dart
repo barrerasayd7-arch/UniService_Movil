@@ -1,3 +1,7 @@
+// Archivo: tarjeta_servicio.dart
+// Responsabilidad: tarjeta de servicio (portada, categoría, precio, autor y calificación) y la rejilla adaptable.
+// Se usa desde: explorador de servicios y otras listas o carruseles de servicios.
+
 import 'package:flutter/material.dart';
 
 import '../core/app_colors.dart';
@@ -217,6 +221,7 @@ class _Portada extends StatelessWidget {
   }
 }
 
+/// Fondo de la portada cuando no hay foto: degradado e ícono propios de la categoría.
 class _PortadaCategoria extends StatelessWidget {
   final String categoria;
   const _PortadaCategoria({required this.categoria});
@@ -243,6 +248,7 @@ class _PortadaCategoria extends StatelessWidget {
   }
 }
 
+// Chip sobre la portada con el punto de color y el nombre de la categoría.
 class _EtiquetaCategoria extends StatelessWidget {
   final String categoria;
   const _EtiquetaCategoria({required this.categoria});
@@ -275,6 +281,7 @@ class _EtiquetaCategoria extends StatelessWidget {
   }
 }
 
+// Precio y unidad sobre la esquina inferior de la portada.
 class _Precio extends StatelessWidget {
   final int valor;
   final String unidad;
@@ -306,6 +313,7 @@ class _Precio extends StatelessWidget {
   }
 }
 
+// Avatar del proveedor: foto si existe; si no, iniciales calculadas del nombre.
 class _Avatar extends StatelessWidget {
   final String nombre;
   final String? url;
@@ -354,6 +362,7 @@ class _Avatar extends StatelessWidget {
   }
 }
 
+// Estrella con promedio y número de reseñas; sin reseñas muestra "Nuevo".
 class _Calificacion extends StatelessWidget {
   final double promedio;
   final int resenas;

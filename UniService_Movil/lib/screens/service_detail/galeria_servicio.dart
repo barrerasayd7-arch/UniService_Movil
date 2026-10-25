@@ -1,3 +1,7 @@
+// Archivo: galeria_servicio.dart
+// Responsabilidad: imagen principal, miniaturas y ampliación de las fotos del servicio.
+// Se usa desde: detail_screen (columna izquierda).
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
@@ -19,6 +23,7 @@ class ImagenServicioView extends StatelessWidget {
     this.iconSize = 56,
   });
 
+  // Degradados de los marcadores cuando no hay foto; el modelo trae el índice.
   static const _tonos = [
     [Color(0xFF0EA5A0), Color(0xFF0A3D5C)],
     [Color(0xFF3B82F6), Color(0xFF1E3A8A)],
@@ -56,6 +61,7 @@ class ImagenServicioView extends StatelessWidget {
 }
 
 /// `.galeria-principal`: imagen grande + miniaturas.
+/// Recuerda qué imagen se está mostrando y permite ampliarla a pantalla completa.
 class GaleriaServicio extends StatefulWidget {
   final List<ImagenServicio> imagenes;
   final IconData icono;
@@ -68,6 +74,7 @@ class GaleriaServicio extends StatefulWidget {
 class _GaleriaServicioState extends State<GaleriaServicio> {
   int _actual = 0;
 
+  /// Abre la imagen actual en un diálogo oscuro; se cierra al tocar fuera.
   void _ampliar() {
     final img = widget.imagenes[_actual];
     showDialog<void>(
@@ -112,7 +119,7 @@ class _GaleriaServicioState extends State<GaleriaServicio> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ── Imagen grande ──
+          // --- Imagen grande y marcador sin fotos ---
           Container(
             height: hayImagenes ? altoGrande : 160,
             decoration: const BoxDecoration(
@@ -155,7 +162,7 @@ class _GaleriaServicioState extends State<GaleriaServicio> {
                   ),
           ),
 
-          // ── Miniaturas ──
+          // --- Miniaturas: 3 columnas en móvil y 5 en pantallas amplias ---
           if (hayImagenes)
             Container(
               color: AppColors.bg2,
