@@ -11,6 +11,7 @@ import '../../core/categorias.dart';
 import '../../data/api_client.dart';
 import '../../data/solicitudes_repository.dart';
 import '../../models/solicitud.dart';
+import '../../models/chat.dart';
 import '../login/auth_widgets.dart' show mostrarNotificacion;
 
 /// Solicitudes recibidas (como proveedor) y enviadas (como cliente).
@@ -233,6 +234,14 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
   /// Acciones visibles según los permisos que calcula cada [Solicitud].
   Widget _tarjeta(Solicitud s) {
     final acciones = <Widget>[
+      OutlinedButton.icon(
+        onPressed: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
+          contacto: ContactoChat(id: s.contraparte.id, nombre: s.contraparte.nombre, avatar: s.contraparte.avatar),
+        )),
+        style: _estiloSecundario(),
+        icon: const Icon(Icons.chat_bubble_outline, size: 18),
+        label: const Text('Chatear'),
+      ),
       if (s.puedeRechazar)
         OutlinedButton(
           onPressed: () => _rechazar(s),

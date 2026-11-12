@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
+import '../chat/chat_session.dart';
 
 // Aviso local del panel: su estado de lectura se guarda sólo en memoria.
 class _Notif {
@@ -18,7 +19,7 @@ class _Notif {
 
 /// Botón de chat + campana de notificaciones (Notificaciones.jsx).
 /// Colócalo dentro de un Stack: se ancla abajo a la derecha.
-/// Los datos son de ejemplo; después se conectan a la API.
+/// El contador de chat viene de la API; la campana conserva sus avisos de ejemplo.
 class BotonesFlotantes extends StatefulWidget {
   final VoidCallback onChat;
   const BotonesFlotantes({super.key, required this.onChat});
@@ -28,9 +29,8 @@ class BotonesFlotantes extends StatefulWidget {
 }
 
 class _BotonesFlotantesState extends State<BotonesFlotantes> {
-  // Estado local del panel y contador de chat de ejemplo.
+  // Estado local del panel de notificaciones.
   bool _abierto = false;
-  final int _mensajesNoLeidos = 2;
 
   final List<_Notif> _notifs = [
     _Notif('Tu solicitud de "Tutoría de Cálculo" fue aceptada.'),
@@ -78,12 +78,19 @@ class _BotonesFlotantesState extends State<BotonesFlotantes> {
             ),
             const SizedBox(height: 12),
           ],
-          _CircleButton(
-            size: 66,
-            icono: Icons.chat_bubble,
-            iconSize: 26,
-            badge: _mensajesNoLeidos,
-            onTap: widget.onChat,
+          ValueListenableBuilder<int>(
+            valueListenable: mensajesNoLeidos,
+            builder: (_, total, _) => Semantics(
+              button: true,
+              label: 'Mis chats, $total mensajes sin leer',
+              child: _CircleButton(
+                size: 66,
+                icono: Icons.chat_bubble,
+                iconSize: 26,
+                badge: total,
+                onTap: widget.onChat,
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           _CircleButton(

@@ -25,6 +25,7 @@ class FormSolicitud extends StatefulWidget {
   final String categoria;
   final String proveedorNombre;
   final VoidCallback onVerSolicitudes;
+  final VoidCallback? onChatear;
   final SolicitudesRepository? repositorio;
   const FormSolicitud({
     super.key,
@@ -32,6 +33,7 @@ class FormSolicitud extends StatefulWidget {
     required this.categoria,
     required this.proveedorNombre,
     required this.onVerSolicitudes,
+    this.onChatear,
     this.repositorio,
   });
 
@@ -402,6 +404,12 @@ class _FormSolicitudState extends State<FormSolicitud> {
         icono: Icons.list_alt,
         onTap: widget.onVerSolicitudes,
       ),
+      if (widget.onChatear != null)
+        BtnDetalle(
+          label: 'Chatear con el proveedor',
+          icono: Icons.chat_bubble_outline,
+          onTap: widget.onChatear!,
+        ),
       BtnDetalle(
         label: _enviando ? 'Cancelando...' : 'Cancelar solicitud',
         icono: Icons.close,

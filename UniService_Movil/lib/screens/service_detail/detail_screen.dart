@@ -14,6 +14,7 @@ import '../../data/api_client.dart';
 import '../../data/auth_repository.dart';
 import '../../data/servicios_repository.dart';
 import '../../models/servicio.dart';
+import '../../models/chat.dart';
 import '../../models/servicio_detalle.dart';
 import '../../widgets/app_buttons.dart' show BtnVerde, HoverBuilder;
 import '../../widgets/star_rating.dart';
@@ -533,7 +534,9 @@ class _DetailScreenState extends State<DetailScreen> {
           ContactoBotones(
             contacto: d.contacto!,
             onContactar: () => _contactar(d),
-            onMensaje: () => _aviso('Chat: próxima vista por implementar'),
+            onMensaje: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
+              contacto: ContactoChat(id: p.id, nombre: p.nombre, avatar: p.avatar),
+            )),
           ),
         SeccionInfo(
           icono: Icons.person,
@@ -561,8 +564,11 @@ class _DetailScreenState extends State<DetailScreen> {
             idServicio: s.id,
             categoria: s.categoria,
             proveedorNombre: s.proveedor.isEmpty ? 'el proveedor' : s.proveedor,
+            onChatear: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
+              contacto: ContactoChat(id: p.id, nombre: p.nombre, avatar: p.avatar),
+            )),
             onVerSolicitudes: () =>
-                Navigator.of(context).pushNamed('/solicitudes'),
+                Navigator.of(context).pushNamed('/solicitudes', arguments: 1),
           ),
       ],
     );

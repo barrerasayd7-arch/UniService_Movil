@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
             // Chat y notificaciones se superponen al scroll en la esquina inferior.
-            BotonesFlotantes(onChat: () => _proximamente('Chat')),
+            BotonesFlotantes(onChat: () => _abrir('/chats')),
           ],
         ),
       ),

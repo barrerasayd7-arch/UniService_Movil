@@ -17,6 +17,10 @@ import 'screens/home_guest/home_guest_screen.dart';
 import 'screens/login/auth_widgets.dart';
 import 'screens/login/login_screen.dart';
 import 'models/servicio.dart';
+import 'models/chat.dart';
+import 'screens/chat/chat_screen.dart';
+import 'screens/chat/chats_screen.dart';
+import 'screens/chat/chat_session.dart';
 import 'screens/mis_servicios/mis_servicios_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'screens/publicar/publicar_screen.dart';
@@ -78,6 +82,9 @@ class UniServiceApp extends StatelessWidget {
       title: 'UniService',
       debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
+      navigatorObservers: [chatRouteObserver],
+      builder: (_, child) =>
+          ChatSession(child: child ?? const SizedBox.shrink()),
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -113,6 +120,13 @@ class UniServiceApp extends StatelessWidget {
           return PublicarScreen(idServicio: arg is int ? arg : null);
         }),
         '/mis-servicios': (_) => _conSesion(() => const MisServiciosScreen()),
+        '/chats': (_) => _conSesion(() => const ChatsScreen()),
+        '/chat': (ctx) => _conSesion(() {
+          final destino = ModalRoute.of(ctx)?.settings.arguments;
+          return destino is DestinoChat
+              ? ChatScreen(destino: destino)
+              : const ChatsScreen();
+        }),
         // Argumento opcional: 1 abre la pestaña de enviadas.
         '/solicitudes': (ctx) => _conSesion(() {
           final arg = ModalRoute.of(ctx)?.settings.arguments;

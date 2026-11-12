@@ -16,6 +16,7 @@ import '../../data/api_client.dart';
 import '../../data/perfil_repository.dart';
 import '../../data/servicios_repository.dart';
 import '../../models/usuario.dart';
+import '../../models/chat.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 import '../login/auth_widgets.dart' show mostrarNotificacion;
 import 'navbar_perfil.dart';
@@ -136,18 +137,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await AuthRepository.instance.cerrarSesion();
     if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil('/home-guest', (_) => false);
-  }
-
-  void _proximamente(String que) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$que: próxima vista por implementar'),
-          backgroundColor: AppColors.card,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
   }
 
   Future<void> _compartir() async {
@@ -306,7 +295,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         onCompartir: _compartir,
         onSeguir: _alternarSeguir,
-        onChatear: () => _proximamente('Chat'),
+        onChatear: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
+          contacto: ContactoChat(id: _usuario.id, nombre: _usuario.nombre, avatar: _usuario.avatarUrl),
+        )),
       ),
     );
 
