@@ -98,7 +98,8 @@ public class SolicitudesController(IConfiguration config, EmailService email, IH
         var idChat = Convert.ToInt32(await chat.ExecuteScalarAsync(ct));
         await tx.CommitAsync(ct);
 
-        await chatHub.Clients.Group($"chat_{idChat}").SendAsync("RecibirMensaje", new
+        // También avisa a la bandeja aunque aún nadie haya abierto este chat.
+        await chatHub.Clients.Groups(ChatHub.GrupoUsuario(UserId), ChatHub.GrupoUsuario(idProveedor)).SendAsync("RecibirMensaje", new
         {
             id_chat = idChat, id_remitente = UserId, id_destinatario = idProveedor,
             mensaje, tipo = "sistema", fecha_envio = DateTime.UtcNow.ToString("o")

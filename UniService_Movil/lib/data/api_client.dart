@@ -95,7 +95,10 @@ class ApiClient {
   // --- Envío y manejo de errores ---
   Future<dynamic> _enviar(http.BaseRequest request, Duration timeout) async {
     request.headers['Accept'] = 'application/json';
-    if (token != null) request.headers['Authorization'] = 'Bearer $token';
+    final tokenEnviado = token;
+    if (tokenEnviado != null) {
+      request.headers['Authorization'] = 'Bearer $tokenEnviado';
+    }
     // El token de administrador nunca se filtra fuera de /api/admin/*.
     if (adminToken != null && request.url.path.startsWith('/api/admin/')) {
       request.headers['X-Admin-Elevacion'] = adminToken!;
@@ -127,9 +130,11 @@ class ApiClient {
       suspendida: data is Map && data['suspendida'] == true,
       datos: data is Map<String, dynamic> ? data : null,
     );
-    // 401 con sesión activa o cuenta suspendida: la app debe volver al login.
+    // Una petición de chat puede terminar después de salir y entrar con otra
+    // cuenta. Su 401/403 tardío no debe cerrar la sesión nueva.
+    final mismaSesion = tokenEnviado != null && tokenEnviado == token;
     final sesionRechazada =
-        (response.statusCode == 401 && token != null) || error.suspendida;
+        mismaSesion && (response.statusCode == 401 || error.suspendida);
     if (sesionRechazada) onSesionInvalida?.call(error);
     throw error;
   }
