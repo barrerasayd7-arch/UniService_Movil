@@ -380,7 +380,8 @@ class _FormSolicitudState extends State<FormSolicitud> {
                   Text(
                     aceptada
                         ? '${widget.proveedorNombre} aceptó tu solicitud'
-                        : 'Esperando respuesta de ${widget.proveedorNombre}',
+                        : s.avisoContraoferta ??
+                              'Esperando respuesta de ${widget.proveedorNombre}',
                     style: AppText.poppins(14.5, weight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
@@ -389,7 +390,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
                       if (s.presupuesto != null)
                         'Tu presupuesto: ${formatearPrecio(s.presupuesto!)}',
                       if (s.contraoferta != null)
-                        'Contraoferta: ${formatearPrecio(s.contraoferta!)}',
+                        'Contraoferta (${s.estadoContraoferta ?? 'aceptada'}): ${formatearPrecio(s.contraoferta!)}',
+                      if (aceptada && s.precioAcordado != null)
+                        'Precio acordado: ${formatearPrecio(s.precioAcordado!)}',
                     ].join(' · '),
                     style: AppText.poppins(13, color: AppColors.texto2),
                   ),
@@ -610,7 +613,12 @@ class CampoCaja extends StatefulWidget {
   final Widget child;
   final bool lleno;
   final VoidCallback? onTap;
-  const CampoCaja({super.key, required this.child, required this.lleno, this.onTap});
+  const CampoCaja({
+    super.key,
+    required this.child,
+    required this.lleno,
+    this.onTap,
+  });
 
   @override
   State<CampoCaja> createState() => _CampoCajaState();
@@ -625,11 +633,13 @@ class _CampoCajaState extends State<CampoCaja> {
     final borde = _foco
         ? AppColors.teal
         : widget.lleno
-            ? AppColors.a(AppColors.teal, 0.4)
-            : (_hover ? AppColors.borde2 : AppColors.borde);
+        ? AppColors.a(AppColors.teal, 0.4)
+        : (_hover ? AppColors.borde2 : AppColors.borde);
 
     return MouseRegion(
-      cursor: widget.onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
+      cursor: widget.onTap != null
+          ? SystemMouseCursors.click
+          : MouseCursor.defer,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: Focus(
@@ -661,4 +671,3 @@ class _CampoCajaState extends State<CampoCaja> {
     );
   }
 }
-

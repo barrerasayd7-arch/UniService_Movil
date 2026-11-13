@@ -8,6 +8,7 @@ import 'package:signalr_netcore/http_connection_options.dart';
 import '../core/env.dart';
 import 'auth_repository.dart';
 import 'chat_repository.dart';
+import 'solicitudes_repository.dart';
 
 /// Una conexión por sesión. Los eventos invalidan REST, que también recupera
 /// los mensajes perdidos durante una desconexión. No se registran tokens en logs.
@@ -17,13 +18,16 @@ class ChatRealtime {
     String? baseUrl,
     int? Function()? usuarioActual,
     String? Function()? tokenActual,
+    SolicitudesRepository? solicitudes,
   }) : _repo = repositorio ?? ChatRepository.instance,
+       _solicitudes = solicitudes ?? SolicitudesRepository.instance,
        _baseUrl = baseUrl ?? Env.apiUrl,
        _usuarioActual =
            usuarioActual ?? (() => AuthRepository.instance.usuario.value?.id),
        _tokenActual = tokenActual ?? (() => AuthRepository.instance.api.token);
   static final instance = ChatRealtime();
   final ChatRepository _repo;
+  final SolicitudesRepository _solicitudes;
   final String _baseUrl;
   final int? Function() _usuarioActual;
   final String? Function() _tokenActual;
@@ -52,7 +56,10 @@ class ChatRealtime {
       _estado = hub.stateStream.listen((estado) {
         if (_hub != actual) return;
         conectado.value = estado == HubConnectionState.Connected;
-        if (conectado.value) _repo.avisarCambio();
+        if (conectado.value) {
+          _repo.avisarCambio();
+          _solicitudes.avisarCambio();
+        }
       });
       void cambio(List<Object?>? argumentos) {
         if (_hub != actual || _usuarioActual() != id) return;
@@ -62,6 +69,11 @@ class ChatRealtime {
       }
 
       hub.on('RecibirMensaje', cambio);
+      hub.on('SolicitudActualizada', (_) {
+        if (_hub == actual && _usuarioActual() == id) {
+          _solicitudes.avisarCambio();
+        }
+      });
       hub.on('MensajesLeidos', (argumentos) {
         if (_hub != actual || _usuarioActual() != id) return;
         final data = argumentos?.isNotEmpty == true ? argumentos!.first : null;

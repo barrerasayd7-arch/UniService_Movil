@@ -13,6 +13,7 @@ import '../../data/solicitudes_repository.dart';
 import '../../models/solicitud.dart';
 import '../../models/chat.dart';
 import '../login/auth_widgets.dart' show mostrarNotificacion;
+import '../chat/chat_session.dart';
 
 /// Solicitudes recibidas (como proveedor) y enviadas (como cliente).
 class SolicitudesScreen extends StatefulWidget {
@@ -29,7 +30,8 @@ class SolicitudesScreen extends StatefulWidget {
   State<SolicitudesScreen> createState() => _SolicitudesScreenState();
 }
 
-class _SolicitudesScreenState extends State<SolicitudesScreen> {
+class _SolicitudesScreenState extends State<SolicitudesScreen>
+    with WidgetsBindingObserver, ChatVisible<SolicitudesScreen> {
   late final SolicitudesRepository _repo =
       widget.repositorio ?? SolicitudesRepository.instance;
   List<Solicitud>? _recibidas;
@@ -46,15 +48,26 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
   @override
   void initState() {
     super.initState();
+    iniciarVisibilidad();
     _repo.cambios.addListener(_cargar);
     _cargar();
   }
 
   @override
   void dispose() {
+    terminarVisibilidad();
     _repo.cambios.removeListener(_cargar);
     super.dispose();
   }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    observarRuta();
+  }
+
+  @override
+  void refrescarChat() => _cargar();
 
   /// Recarga ambas bandejas en paralelo; también se dispara al cambiar el repo.
   Future<void> _cargar() =>
@@ -113,19 +126,47 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
     }
   }
 
-  /// Pide una contraoferta opcional y acepta la solicitud con ella.
-  Future<void> _aceptar(Solicitud s) async {
-    final r = await showDialog<({int? contraoferta})>(
+  /// Confirma el importe vigente sin cambiar el presupuesto original.
+  Future<void> _aceptar(Solicitud s) => _confirmar(
+    s,
+    titulo: 'Aceptar solicitud',
+    texto: s.precioAcordado == null
+        ? '¿Confirmas el servicio solicitado por ${s.cliente.nombre}?'
+        : 'Confirmarás el servicio por ${formatearPrecio(s.precioAcordado!)}${s.estadoContraoferta == 'aceptada' ? ', precio que el cliente aceptó' : ', presupuesto del cliente'}.',
+    boton: 'Aceptar',
+    accion: () => _repo.aceptar(s.id, version: s.versionContraoferta),
+    exito: 'Solicitud aceptada. Avisamos al cliente.',
+  );
+
+  Future<void> _contraofertar(Solicitud s) async {
+    final precio = await showDialog<int>(
       context: context,
-      builder: (_) => _DialogoAceptar(solicitud: s),
+      builder: (_) => _DialogoContraoferta(solicitud: s),
     );
-    if (r == null) return;
-    _hacer(
+    if (precio == null || !mounted) return;
+    await _hacer(
       s,
-      () => _repo.aceptar(s.id, contraoferta: r.contraoferta),
-      'Aceptaste la solicitud de ${s.cliente.nombre}. Coordinen los detalles por el chat.',
+      () => _repo.contraofertar(s.id, precio, version: s.versionContraoferta),
+      'Contraoferta enviada. Espera la respuesta del cliente.',
     );
   }
+
+  Future<void> _responderContraoferta(Solicitud s, bool aceptar) => _confirmar(
+    s,
+    titulo: aceptar ? 'Aceptar contraoferta' : 'Rechazar contraoferta',
+    texto: aceptar
+        ? 'Aceptarás el precio de ${formatearPrecio(s.contraoferta!)}. Después, el proveedor deberá confirmar el servicio.'
+        : 'Se conservará tu presupuesto original. El proveedor podrá aceptarlo o proponer otro precio.',
+    boton: aceptar ? 'Aceptar precio' : 'Rechazar precio',
+    accion: () => _repo.responderContraoferta(
+      s.id,
+      aceptar: aceptar,
+      version: s.versionContraoferta,
+    ),
+    exito: aceptar
+        ? 'Precio aceptado. Esperando confirmación del proveedor.'
+        : 'Contraoferta rechazada.',
+  );
 
   /// Rechaza la solicitud con un motivo obligatorio (mínimo 5 caracteres).
   Future<void> _rechazar(Solicitud s) async {
@@ -171,7 +212,7 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
         ],
       ),
     );
-    if (ok == true) _hacer(s, accion, exito);
+    if (ok == true && mounted) await _hacer(s, accion, exito);
   }
 
   void _verServicio(Solicitud s) =>
@@ -339,6 +380,24 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
           style: _estiloPrincipal(),
           child: const Text('Marcar como completada'),
         ),
+      if (s.puedeContraofertar)
+        OutlinedButton(
+          onPressed: () => _contraofertar(s),
+          style: _estiloSecundario(),
+          child: const Text('Contraoferta'),
+        ),
+      if (s.puedeResponderContraoferta) ...[
+        OutlinedButton(
+          onPressed: () => _responderContraoferta(s, false),
+          style: _estiloSecundario(),
+          child: const Text('Rechazar contraoferta'),
+        ),
+        FilledButton(
+          onPressed: () => _responderContraoferta(s, true),
+          style: _estiloPrincipal(),
+          child: const Text('Aceptar contraoferta'),
+        ),
+      ],
       if (s.puedeCancelar)
         OutlinedButton(
           onPressed: () => _confirmar(
@@ -531,7 +590,13 @@ class _TarjetaSolicitud extends StatelessWidget {
       if (s.presupuesto != null)
         ('Presupuesto', formatearPrecio(s.presupuesto!)),
       if (s.contraoferta != null)
-        ('Contraoferta', formatearPrecio(s.contraoferta!)),
+        (
+          'Contraoferta (${s.estadoContraoferta ?? 'aceptada'})',
+          formatearPrecio(s.contraoferta!),
+        ),
+      if ((s.estado == 'Aceptada' || s.estado == 'Completada') &&
+          s.precioAcordado != null)
+        ('Precio acordado', formatearPrecio(s.precioAcordado!)),
       if (s.fechaDeseada != null)
         (
           'Fecha',
@@ -673,6 +738,17 @@ class _TarjetaSolicitud extends StatelessWidget {
                   ),
                 ),
               ],
+              if (s.avisoContraoferta != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  s.avisoContraoferta!,
+                  style: AppText.poppins(
+                    13,
+                    color: AppColors.teal2,
+                    height: 1.4,
+                  ),
+                ),
+              ],
               if (acciones.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 ocupada
@@ -741,17 +817,18 @@ class _Miniatura extends StatelessWidget {
   }
 }
 
-/// Diálogo para aceptar; devuelve `(contraoferta: n)` o null si se cancela.
-class _DialogoAceptar extends StatefulWidget {
+/// Proponer un precio no acepta el servicio; primero debe responder el cliente.
+class _DialogoContraoferta extends StatefulWidget {
   final Solicitud solicitud;
-  const _DialogoAceptar({required this.solicitud});
+  const _DialogoContraoferta({required this.solicitud});
 
   @override
-  State<_DialogoAceptar> createState() => _DialogoAceptarState();
+  State<_DialogoContraoferta> createState() => _DialogoContraofertaState();
 }
 
-class _DialogoAceptarState extends State<_DialogoAceptar> {
+class _DialogoContraofertaState extends State<_DialogoContraoferta> {
   final _contraoferta = TextEditingController();
+  String? _error;
 
   @override
   void dispose() {
@@ -764,15 +841,15 @@ class _DialogoAceptarState extends State<_DialogoAceptar> {
     final s = widget.solicitud;
     return AlertDialog(
       backgroundColor: AppColors.card,
-      title: Text('Aceptar solicitud', style: AppText.serif(22)),
+      title: Text('Enviar contraoferta', style: AppText.serif(22)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             s.presupuesto != null
-                ? '${s.cliente.nombre} ofrece ${formatearPrecio(s.presupuesto!)}. Si quieres otro precio, escribe una contraoferta.'
-                : 'Si quieres proponer un precio, escribe una contraoferta.',
+                ? '${s.cliente.nombre} ofrece ${formatearPrecio(s.presupuesto!)}. Propón otro precio; cuando lo acepte podrás confirmar el servicio.'
+                : 'Propón un precio; cuando el cliente lo acepte podrás confirmar el servicio.',
             style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
           ),
           const SizedBox(height: 14),
@@ -783,8 +860,9 @@ class _DialogoAceptarState extends State<_DialogoAceptar> {
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(8),
             ],
-            decoration: const InputDecoration(
-              labelText: 'Contraoferta (opcional)',
+            decoration: InputDecoration(
+              labelText: 'Precio de la contraoferta',
+              errorText: _error,
               prefixText: '\$ ',
             ),
           ),
@@ -798,11 +876,13 @@ class _DialogoAceptarState extends State<_DialogoAceptar> {
         TextButton(
           onPressed: () {
             final n = int.tryParse(_contraoferta.text);
-            Navigator.of(
-              context,
-            ).pop((contraoferta: n != null && n > 0 ? n : null));
+            if (n == null || n < 1 || n > 99999999) {
+              setState(() => _error = 'Ingresa un precio entre 1 y 99.999.999');
+              return;
+            }
+            Navigator.of(context).pop(n);
           },
-          child: const Text('Aceptar'),
+          child: const Text('Enviar contraoferta'),
         ),
       ],
     );

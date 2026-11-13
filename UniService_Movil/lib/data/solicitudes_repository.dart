@@ -67,8 +67,23 @@ class SolicitudesRepository {
   }
 
   // Transiciones de estado: el backend valida quién puede ejecutar cada una.
-  Future<void> aceptar(int id, {int? contraoferta}) =>
-      _transicion(id, 'aceptar', {'contraoferta': contraoferta});
+  Future<void> aceptar(int id, {int version = 0}) =>
+      _transicion(id, 'aceptar', {'version_contraoferta': version});
+  Future<void> contraofertar(int id, int precio, {required int version}) =>
+      _transicion(id, 'contraoferta', {
+        'precio': precio,
+        'version_contraoferta': version,
+      });
+  Future<void> responderContraoferta(
+    int id, {
+    required bool aceptar,
+    required int version,
+  }) => _transicion(
+    id,
+    aceptar ? 'aceptar-contraoferta' : 'rechazar-contraoferta',
+    {'version_contraoferta': version},
+  );
+  void avisarCambio() => cambios.value++;
   Future<void> rechazar(int id, String motivo) =>
       _transicion(id, 'rechazar', {'motivo': motivo.trim()});
   Future<void> completar(int id) => _transicion(id, 'completar');

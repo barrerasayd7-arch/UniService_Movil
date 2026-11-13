@@ -28,6 +28,8 @@ class Solicitud {
   final String descripcion;
   final int? presupuesto;
   final int? contraoferta;
+  final String? estadoContraoferta;
+  final int versionContraoferta;
   final String? motivoRechazo;
   final DateTime? fechaDeseada;
   final String? horaDeseada; // "HH:mm"
@@ -54,6 +56,8 @@ class Solicitud {
     required this.proveedor,
     this.presupuesto,
     this.contraoferta,
+    this.estadoContraoferta,
+    this.versionContraoferta = 0,
     this.motivoRechazo,
     this.fechaDeseada,
     this.horaDeseada,
@@ -75,6 +79,8 @@ class Solicitud {
       descripcion: (j['descripcion'] as String?) ?? '',
       presupuesto: (j['presupuesto'] as num?)?.round(),
       contraoferta: (j['contraoferta'] as num?)?.round(),
+      estadoContraoferta: j['estado_contraoferta'] as String?,
+      versionContraoferta: leerInt(j['version_contraoferta']),
       motivoRechazo: j['motivo_rechazo'] as String?,
       // "2026-11-20": fecha sin hora, no se convierte de zona horaria.
       fechaDeseada: fecha is String ? DateTime.tryParse(fecha) : null,
@@ -99,6 +105,7 @@ class Solicitud {
   }
 
   bool get soyCliente => rol == 'cliente';
+
   /// Sigue en curso: ni terminada, ni rechazada, ni cancelada.
   bool get activa => estado == 'Pendiente' || estado == 'Aceptada';
 
@@ -106,7 +113,35 @@ class Solicitud {
   ParteSolicitud get contraparte => soyCliente ? proveedor : cliente;
 
   // Permisos derivados del rol y del estado; la UI muestra los botones según estos.
-  bool get puedeAceptar => !soyCliente && estado == 'Pendiente';
+  bool get puedeAceptar =>
+      !soyCliente && estado == 'Pendiente' && estadoContraoferta != 'pendiente';
+  bool get puedeContraofertar =>
+      !soyCliente &&
+      estado == 'Pendiente' &&
+      (estadoContraoferta == null || estadoContraoferta == 'rechazada');
+  bool get puedeResponderContraoferta =>
+      soyCliente && estado == 'Pendiente' && estadoContraoferta == 'pendiente';
+  int? get precioAcordado =>
+      estadoContraoferta == 'aceptada' ? contraoferta : presupuesto;
+  String? get avisoContraoferta {
+    if (estado != 'Pendiente') return null;
+    return switch (estadoContraoferta) {
+      'pendiente' =>
+        soyCliente
+            ? 'El proveedor propone otro precio. Acepta o rechaza la contraoferta.'
+            : 'Contraoferta enviada. Esperando la respuesta del cliente.',
+      'aceptada' =>
+        soyCliente
+            ? 'Aceptaste la contraoferta. Falta que el proveedor confirme el servicio.'
+            : 'El cliente aceptó tu contraoferta. Pulsa Aceptar para confirmar el servicio.',
+      'rechazada' =>
+        soyCliente
+            ? 'Rechazaste la contraoferta. Tu presupuesto original sigue vigente.'
+            : 'El cliente rechazó la contraoferta. Puedes aceptar su presupuesto original o proponer otro precio.',
+      _ => null,
+    };
+  }
+
   bool get puedeRechazar => !soyCliente && estado == 'Pendiente';
   bool get puedeCompletar => !soyCliente && estado == 'Aceptada';
   bool get puedeCancelar => soyCliente && activa;
