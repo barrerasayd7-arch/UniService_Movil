@@ -237,7 +237,26 @@ try {
   await expect(404, 'POST', `/api/solicitudes/${sol.id_solicitud}/aceptar`, { as: BETO, body: {} }, 'El cliente no acepta');
   await expect(409, 'POST', `/api/solicitudes/${sol.id_solicitud}/completar`, { as: ANA }, 'No se completa sin aceptar');
   await expect(400, 'POST', `/api/solicitudes/${sol.id_solicitud}/rechazar`, { as: ANA, body: { motivo: '' } }, 'Rechazo sin motivo');
-  await expect(200, 'POST', `/api/solicitudes/${sol.id_solicitud}/aceptar`, { as: ANA, body: { contraoferta: 35000 } }, 'Ana acepta');
+  const rutaSol = `/api/solicitudes/${sol.id_solicitud}`;
+  await expect(400, 'POST', `${rutaSol}/aceptar`, { as: ANA, body: { contraoferta: 35000 } }, 'Aceptar no cambia el precio');
+  await expect(404, 'POST', `${rutaSol}/contraoferta`, { as: BETO, body: { precio: 35000 } }, 'El cliente no propone precios');
+  for (const precio of [0, -1, 100000000, 35000.5]) {
+    await expect(400, 'POST', `${rutaSol}/contraoferta`, { as: ANA, body: { precio } }, `Precio inválido: ${precio}`);
+  }
+  await expect(200, 'POST', `${rutaSol}/contraoferta`, { as: ANA, body: { precio: 35000, version_contraoferta: 0 } }, 'Ana propone precio');
+  const avisosCliente = await expect(200, 'GET', '/api/notificaciones', { as: BETO }, 'Aviso de precio al cliente');
+  ok(avisosCliente.some((x) => x.id.startsWith(`solicitud:${sol.id_solicitud}:`) && x.argumento === 1 && x.texto.includes('contraoferta')), 'La contraoferta dirige al cliente a Enviadas');
+  await expect(409, 'POST', `${rutaSol}/aceptar`, { as: ANA, body: { version_contraoferta: 1 } }, 'No confirma antes del cliente');
+  await expect(404, 'POST', `${rutaSol}/aceptar-contraoferta`, { as: ANA, body: { version_contraoferta: 1 } }, 'El proveedor no responde por el cliente');
+  await expect(200, 'POST', `${rutaSol}/rechazar-contraoferta`, { as: BETO, body: { version_contraoferta: 1 } }, 'Beto rechaza el precio');
+  await expect(200, 'POST', `${rutaSol}/contraoferta`, { as: ANA, body: { precio: 36000, version_contraoferta: 1 } }, 'Ana propone otro precio');
+  await expect(409, 'POST', `${rutaSol}/aceptar-contraoferta`, { as: BETO, body: { version_contraoferta: 1 } }, 'Una pantalla antigua no aprueba otro precio');
+  await expect(200, 'POST', `${rutaSol}/aceptar-contraoferta`, { as: BETO, body: { version_contraoferta: 2 } }, 'Beto acepta el precio');
+  const negociada = await expect(200, 'GET', rutaSol, { as: ANA }, 'Consultar negociación');
+  ok(negociada.estado === 'Pendiente' && negociada.presupuesto === 40000 && negociada.contraoferta === 36000 && negociada.estado_contraoferta === 'aceptada', 'El presupuesto se conserva y falta confirmar el servicio');
+  const avisosProveedor = await expect(200, 'GET', '/api/notificaciones', { as: ANA }, 'Aviso de aprobación al proveedor');
+  ok(avisosProveedor.some((x) => x.id.startsWith(`solicitud:${sol.id_solicitud}:`) && x.argumento === 0 && x.texto.includes('aceptó tu contraoferta')), 'La aprobación dirige al proveedor a Recibidas');
+  await expect(200, 'POST', `${rutaSol}/aceptar`, { as: ANA, body: { version_contraoferta: 2 } }, 'Ana confirma el servicio al precio acordado');
   await expect(409, 'POST', `/api/solicitudes/${sol.id_solicitud}/aceptar`, { as: ANA, body: {} }, 'No se acepta dos veces');
   await expect(409, 'DELETE', `/api/servicios/${S}`, { as: ANA }, 'No se borra con solicitudes aceptadas');
 
@@ -258,6 +277,9 @@ try {
 
   // ═══ Cancelar y borrar ═══
   const sol2 = await expect(201, 'POST', '/api/solicitudes', { as: BETO, body: solicitud }, 'Nueva solicitud tras completar');
+  await expect(200, 'POST', `/api/solicitudes/${sol2.id_solicitud}/aceptar`, { as: ANA, body: {} }, 'Aceptar directamente el presupuesto original');
+  const directa = await expect(200, 'GET', `/api/solicitudes/${sol2.id_solicitud}`, { as: BETO }, 'Consultar aceptación directa');
+  ok(directa.estado === 'Aceptada' && directa.presupuesto === 40000 && directa.contraoferta === null, 'Aceptar conserva el precio sin crear contraoferta');
   await expect(404, 'POST', `/api/solicitudes/${sol2.id_solicitud}/cancelar`, { as: ANA }, 'El proveedor no cancela');
   await expect(200, 'POST', `/api/solicitudes/${sol2.id_solicitud}/cancelar`, { as: BETO }, 'El cliente cancela');
   await expect(200, 'PATCH', `/api/admin/servicios/${S}/ocultar`, { as: ADMIN, body: { motivo: 'Contenido duplicado' } }, 'Admin oculta');

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:app_uniservice/data/chat_realtime.dart';
+import 'package:app_uniservice/data/solicitudes_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes/chat_api_falsa.dart';
@@ -52,9 +53,11 @@ void main() {
         }
       });
       final api = ChatApiFalsa();
+      final solicitudes = SolicitudesRepository();
       int? usuario = 1;
       final vivo = ChatRealtime(
         repositorio: api.repo,
+        solicitudes: solicitudes,
         baseUrl: 'http://127.0.0.1:${server.port}',
         usuarioActual: () => usuario,
         tokenActual: () => usuario == null ? null : 'jwt-prueba',
@@ -66,6 +69,7 @@ void main() {
         }
         await server.close(force: true);
         vivo.conectado.dispose();
+        solicitudes.cambios.dispose();
       });
       await vivo.conectar().timeout(const Duration(seconds: 10));
       final socket = await listo.future.timeout(const Duration(seconds: 5));
@@ -95,6 +99,24 @@ void main() {
         })}\u001e',
       );
       expect(await lectura.timeout(const Duration(seconds: 5)), 7);
+
+      final aviso = Completer<void>();
+      void cambioSolicitud() {
+        if (!aviso.isCompleted) aviso.complete();
+      }
+
+      solicitudes.cambios.addListener(cambioSolicitud);
+      socket.add(
+        '${jsonEncode({
+          'type': 1,
+          'target': 'SolicitudActualizada',
+          'arguments': [
+            {'id_solicitud': 40},
+          ],
+        })}\u001e',
+      );
+      await aviso.future.timeout(const Duration(seconds: 5));
+      solicitudes.cambios.removeListener(cambioSolicitud);
 
       usuario = null;
       await vivo.desconectar();

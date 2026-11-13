@@ -53,7 +53,7 @@ try {
       id_cliente integer NOT NULL CONSTRAINT fk_solicitud_cliente REFERENCES usuarios(id_usuario),
       id_proveedor integer NOT NULL CONSTRAINT fk_solicitud_proveedor REFERENCES usuarios(id_usuario),
       id_servicio integer NOT NULL CONSTRAINT fk_solicitud_servicio REFERENCES servicios(id_servicio),
-      fue_aceptada boolean DEFAULT false, descripcion text, presupuesto numeric, motivo_rechazo text, archivo varchar(255),
+      fue_aceptada boolean DEFAULT false, descripcion text, presupuesto numeric, contraoferta numeric, motivo_rechazo text, archivo varchar(255),
       estado varchar(20) DEFAULT 'Pendiente', campos_personalizados jsonb DEFAULT '{}');
     CREATE TABLE calificaciones (
       id_calificacion serial PRIMARY KEY,
@@ -152,6 +152,17 @@ try {
   check(nueva.fecha_creacion !== null, 'Solicitud nueva guarda su fecha');
   check((await one('SELECT fecha_creacion IS NULL AS v FROM solicitudes WHERE id_solicitud = 100')).v, 'Solicitudes antiguas sin fecha inventada');
 
+  // Migración 011: conserva datos anteriores y admite una segunda ejecución segura.
+  await db.exec('UPDATE solicitudes SET contraoferta = 35000 WHERE id_solicitud IN (100, 102)');
+  await migration('011_contraofertas_solicitudes.sql');
+  await migration('011_contraofertas_solicitudes.sql');
+  check((await one('SELECT estado_contraoferta FROM solicitudes WHERE id_solicitud = 100')).estado_contraoferta === 'aceptada', 'Conserva el precio de solicitudes antiguas completadas');
+  check((await one('SELECT estado_contraoferta FROM solicitudes WHERE id_solicitud = 102')).estado_contraoferta === 'pendiente', 'Precio antiguo pendiente necesita consentimiento');
+  await rejects('UPDATE solicitudes SET estado_contraoferta = NULL WHERE id_solicitud = 100', '23514');
+  await rejects('UPDATE solicitudes SET contraoferta = NULL WHERE id_solicitud = 100', '23514');
+  await rejects('UPDATE solicitudes SET version_contraoferta = 0 WHERE id_solicitud = 100', '23514');
+  await rejects("UPDATE solicitudes SET estado_contraoferta = 'inventada' WHERE id_solicitud = 100", '23514');
+
   // Ejecuta la consulta real del controlador de avisos contra datos inventados.
   const controladorAvisos = await readFile(new URL('../../../UniserviceAPI/UniserviceAPI/Controllers/NotificacionesController.cs', import.meta.url), 'utf8');
   const consultaAvisos = controladorAvisos.match(/internal const string Consulta = """([\s\S]*?)""";/)[1].replaceAll('@user', '$1');
@@ -163,6 +174,22 @@ try {
   check(proveedor.some((n) => n.id.startsWith('resena:') && n.destino === 'servicio' && n.argumento === 10), 'Proveedor ve reseñas de su servicio');
   check((await avisos(3)).length === 0, 'Otro usuario no recibe avisos ajenos');
   check(!(await avisos(2)).some((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:`)), 'Enviar una solicitud no genera un aviso propio');
+  await db.query("UPDATE solicitudes SET presupuesto = 40000, contraoferta = 50000, estado_contraoferta = 'pendiente', version_contraoferta = 1, fecha_actualizacion = now() WHERE id_solicitud = $1", [nueva.id_solicitud]);
+  const oferta = (await avisos(2)).find((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:`));
+  check(oferta?.argumento === 1 && oferta.texto.includes('50000'), 'La contraoferta avisa al cliente con precio y destino Enviadas');
+  check(!(await avisos(1)).some((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:`)), 'El proveedor no recibe como nueva su propia propuesta');
+  await db.query("UPDATE solicitudes SET estado_contraoferta = 'rechazada' WHERE id_solicitud = $1", [nueva.id_solicitud]);
+  check((await avisos(1)).some((n) => n.texto.includes('rechazó tu contraoferta')), 'El rechazo del precio avisa al proveedor');
+  await db.query("UPDATE solicitudes SET contraoferta = 55000, estado_contraoferta = 'pendiente', version_contraoferta = 2 WHERE id_solicitud = $1", [nueva.id_solicitud]);
+  await migration('011_contraofertas_solicitudes.sql');
+  const vigente = await one('SELECT estado_contraoferta, version_contraoferta FROM solicitudes WHERE id_solicitud = $1', [nueva.id_solicitud]);
+  check(vigente.version_contraoferta === 2 && vigente.estado_contraoferta === 'pendiente', 'Repetir migración no reinicia negociaciones');
+  check((await avisos(2)).find((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:`)).id !== oferta.id, 'Una nueva propuesta tiene otro ID de aviso y se cuenta sin leer');
+  await db.query("UPDATE solicitudes SET estado_contraoferta = 'aceptada' WHERE id_solicitud = $1", [nueva.id_solicitud]);
+  const negociada = await one('SELECT estado, presupuesto FROM solicitudes WHERE id_solicitud = $1', [nueva.id_solicitud]);
+  check(negociada.estado === 'Pendiente' && Number(negociada.presupuesto) === 40000, 'Aprobar precio no acepta el servicio ni altera presupuesto original');
+  check((await avisos(1)).some((n) => n.texto.includes('aceptó tu contraoferta') && n.argumento === 0), 'Proveedor recibe aprobación y debe confirmar en Recibidas');
+  check(!(await avisos(2)).some((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:`)), 'Responder no genera aviso al propio cliente');
   await db.query("UPDATE solicitudes SET estado = 'Aceptada', fecha_actualizacion = now() WHERE id_solicitud = $1", [nueva.id_solicitud]);
   const aceptada = (await avisos(2)).find((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:Aceptada`));
   check(aceptada?.argumento === 1 && aceptada.texto.includes('aceptada'), 'Cliente recibe aceptación y destino Enviadas');
@@ -185,7 +212,7 @@ try {
     'anon no puede ejecutar el listado');
   check((await one("SELECT count(*)::integer AS n FROM uniservice_mobile.migraciones WHERE version = '008_servicios_movil'")).n === 1, '008 registrada');
 
-  console.log(`PASS: ${assertions} comprobaciones de la migración 008 en PostgreSQL/PGlite; sin conexión remota.`);
+  console.log(`PASS: ${assertions} comprobaciones de servicios, contraofertas y avisos en PostgreSQL/PGlite; sin conexión remota.`);
 } finally {
   await db.close();
 }

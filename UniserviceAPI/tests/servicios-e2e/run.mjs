@@ -3,7 +3,7 @@
 // Requiere Docker y el SDK de .NET. Desde esta carpeta:  node run.mjs
 //
 // 1. Levanta un PostgreSQL desechable en Docker (puerto 55432) con las tablas antiguas (base_legado.sql).
-// 2. Aplica las migraciones 001 → 010 de UniService_Movil/database/migrations.
+// 2. Aplica las migraciones 001 → 011 de UniService_Movil/database/migrations.
 // 3. Compila la API en una carpeta temporal (no choca con una API que ya esté corriendo).
 // 4. Ejecuta e2e.mjs y luego perfil.mjs: cada una arranca la API contra esa base, con Storage falso y correos desactivados.
 // No usa Supabase, ni la clave de Storage, ni envía correos. El contenedor se borra al terminar.
@@ -35,7 +35,7 @@ try {
 
   psql(readFileSync(join(aqui, 'base_legado.sql'), 'utf8'));
   for (const m of ['001_bolsa_y_perfiles', '002_operaciones_servidor', '004_correo_institucional_otp',
-    '005_panel_admin', '007_cerrar_acceso_publico', '008_servicios_movil', '009_perfil_y_relaciones', '010_clave_admin']) {
+    '005_panel_admin', '007_cerrar_acceso_publico', '008_servicios_movil', '009_perfil_y_relaciones', '010_clave_admin', '011_contraofertas_solicitudes']) {
     psql(readFileSync(join(migraciones, `${m}.sql`), 'utf8'));
     console.log(`Migración ${m} aplicada`);
   }
