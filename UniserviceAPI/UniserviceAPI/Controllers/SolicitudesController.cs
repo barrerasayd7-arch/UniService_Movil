@@ -136,8 +136,23 @@ public class SolicitudesController(IConfiguration config, EmailService email, IH
 
     [HttpPost("{id:int}/aceptar")]
     public Task<IActionResult> Aceptar(int id, AceptarSolicitudDTO dto, CancellationToken ct) =>
-        Transicion(id, "id_proveedor", ["Pendiente"], "Aceptada", ", fue_aceptada = true, contraoferta = @extra",
-            dto.contraoferta, NpgsqlDbType.Numeric, ct);
+        dto.contraoferta != null
+            ? Task.FromResult<IActionResult>(BadRequest(new { error = "Usa Contraoferta para proponer otro precio antes de aceptar" }))
+            : Negociar(id, "aceptar", dto.version_contraoferta, null, ct);
+
+    [HttpPost("{id:int}/contraoferta")]
+    public Task<IActionResult> Contraofertar(int id, ContraofertaSolicitudDTO dto, CancellationToken ct) =>
+        decimal.Truncate(dto.precio) != dto.precio
+            ? Task.FromResult<IActionResult>(BadRequest(new { error = "Ingresa el precio en pesos enteros" }))
+            : Negociar(id, "contraoferta", dto.version_contraoferta, dto.precio, ct);
+
+    [HttpPost("{id:int}/aceptar-contraoferta")]
+    public Task<IActionResult> AceptarContraoferta(int id, ResponderContraofertaDTO dto, CancellationToken ct) =>
+        Negociar(id, "aceptar-contraoferta", dto.version_contraoferta, null, ct);
+
+    [HttpPost("{id:int}/rechazar-contraoferta")]
+    public Task<IActionResult> RechazarContraoferta(int id, ResponderContraofertaDTO dto, CancellationToken ct) =>
+        Negociar(id, "rechazar-contraoferta", dto.version_contraoferta, null, ct);
 
     [HttpPost("{id:int}/rechazar")]
     public Task<IActionResult> Rechazar(int id, RechazarSolicitudDTO dto, CancellationToken ct) =>
@@ -157,7 +172,7 @@ public class SolicitudesController(IConfiguration config, EmailService email, IH
     private const string Select = """
         SELECT so.id_solicitud, so.estado, so.descripcion, so.presupuesto, so.contraoferta, so.motivo_rechazo,
                so.fecha_deseada, so.hora_deseada, so.campos_personalizados::text AS campos,
-               so.fecha_creacion, so.fecha_actualizacion,
+               so.fecha_creacion, so.fecha_actualizacion, so.estado_contraoferta, so.version_contraoferta,
                so.id_servicio, s.titulo AS titulo_servicio, c.nombre_categoria AS categoria,
                (SELECT i.url_imagen FROM servicios_imagenes i WHERE i.id_servicio = s.id_servicio ORDER BY i.orden LIMIT 1) AS imagen,
                so.id_cliente, cl.nombre AS nombre_cliente, cl.avatar AS avatar_cliente,
@@ -203,6 +218,8 @@ public class SolicitudesController(IConfiguration config, EmailService email, IH
             descripcion = r.Get<string?>("descripcion"),
             presupuesto = r.Get<decimal?>("presupuesto"),
             contraoferta = r.Get<decimal?>("contraoferta"),
+            estado_contraoferta = r.Get<string?>("estado_contraoferta"),
+            version_contraoferta = r.Get<int>("version_contraoferta"),
             motivo_rechazo = r.Get<string?>("motivo_rechazo"),
             fecha_deseada = r.Get<DateOnly?>("fecha_deseada"),
             hora_deseada = r.Get<TimeOnly?>("hora_deseada")?.ToString("HH:mm"),
@@ -221,6 +238,100 @@ public class SolicitudesController(IConfiguration config, EmailService email, IH
             puede_calificar = soyCliente && estado == "Completada" && idCalificacion == null,
             id_calificacion = idCalificacion
         };
+    }
+
+    // El bloqueo y la versión impiden aprobar un precio cambiado desde otra pantalla.
+    private async Task<IActionResult> Negociar(int id, string accion, int version, decimal? precio, CancellationToken ct)
+    {
+        await using var conn = await Open(config, ct);
+        await using var tx = await conn.BeginTransactionAsync(ct);
+        var respondeCliente = accion is "aceptar-contraoferta" or "rechazar-contraoferta";
+        int cliente, proveedor, versionActual;
+        string estado, titulo;
+        string? negociacion;
+        decimal? presupuesto, oferta;
+        await using (var cmd = new NpgsqlCommand("""
+            SELECT so.id_cliente, so.id_proveedor, so.estado, so.estado_contraoferta,
+                   so.version_contraoferta, so.presupuesto, so.contraoferta, s.titulo
+            FROM solicitudes so JOIN servicios s ON s.id_servicio = so.id_servicio
+            WHERE so.id_solicitud = @id
+              AND CASE WHEN @cliente THEN so.id_cliente ELSE so.id_proveedor END = @user
+            FOR UPDATE OF so
+            """, conn, tx))
+        {
+            cmd.Parameters.AddWithValue("id", id);
+            cmd.Parameters.AddWithValue("cliente", respondeCliente);
+            cmd.Parameters.AddWithValue("user", UserId);
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            if (!await r.ReadAsync(ct)) return NotFound(new { error = "Solicitud no encontrada" });
+            cliente = r.GetInt32(0); proveedor = r.GetInt32(1); estado = r.GetString(2);
+            negociacion = r.IsDBNull(3) ? null : r.GetString(3);
+            versionActual = r.GetInt32(4);
+            presupuesto = r.IsDBNull(5) ? null : r.GetDecimal(5);
+            oferta = r.IsDBNull(6) ? null : r.GetDecimal(6);
+            titulo = r.GetString(7);
+        }
+        if (estado != "Pendiente" || version != versionActual)
+            return Conflict(new { error = "La solicitud cambió. Actualiza la bandeja antes de continuar" });
+        if (respondeCliente && negociacion != "pendiente")
+            return Conflict(new { error = "La contraoferta ya fue respondida. Actualiza la bandeja" });
+        if (accion == "contraoferta" && negociacion is "pendiente" or "aceptada")
+            return Conflict(new { error = "Ya existe una contraoferta en curso para esta solicitud" });
+        if (accion == "aceptar" && negociacion == "pendiente")
+            return Conflict(new { error = "Espera a que el cliente acepte la contraoferta antes de confirmar el servicio" });
+
+        var set = accion switch
+        {
+            "contraoferta" => "contraoferta = @precio, estado_contraoferta = 'pendiente', version_contraoferta = version_contraoferta + 1",
+            "aceptar-contraoferta" => "estado_contraoferta = 'aceptada'",
+            "rechazar-contraoferta" => "estado_contraoferta = 'rechazada'",
+            _ => "estado = 'Aceptada', fue_aceptada = true"
+        };
+        await using (var update = new NpgsqlCommand($"UPDATE solicitudes SET {set}, fecha_actualizacion = now() WHERE id_solicitud = @id", conn, tx))
+        {
+            update.Parameters.AddWithValue("id", id);
+            if (accion == "contraoferta") update.Parameters.AddWithValue("precio", precio!.Value);
+            await update.ExecuteNonQueryAsync(ct);
+        }
+        string Importe(decimal? valor) => valor is null ? "el presupuesto original" :
+            "$" + valor.Value.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("es-CO"));
+        var detalle = accion switch
+        {
+            "contraoferta" => $"El proveedor propone {Importe(precio)}. Responde la contraoferta en Mis solicitudes → Enviadas.",
+            "aceptar-contraoferta" => $"El cliente aceptó la contraoferta de {Importe(oferta)}. El proveedor debe confirmar el servicio en Mis solicitudes → Recibidas.",
+            "rechazar-contraoferta" => "El cliente rechazó la contraoferta. La solicitud sigue pendiente con el presupuesto original.",
+            _ => $"El proveedor aceptó el servicio por {Importe(negociacion == "aceptada" ? oferta : presupuesto)}. Ya pueden coordinar los detalles."
+        };
+        var mensaje = $"Solicitud #{id} · {titulo}\n{detalle}";
+        var destinatario = respondeCliente ? proveedor : cliente;
+        await using var chat = new NpgsqlCommand("""
+            WITH c AS (
+              INSERT INTO chats(id_usuario1, id_usuario2, ultimo_mensaje) VALUES (@u1, @u2, now())
+              ON CONFLICT (id_usuario1, id_usuario2) DO UPDATE SET ultimo_mensaje = now()
+              RETURNING id_chat)
+            INSERT INTO mensajes(id_chat, id_remitente, id_destinatario, mensaje, tipo)
+            SELECT id_chat, @user, @destinatario, @mensaje, 'sistema' FROM c RETURNING id_chat
+            """, conn, tx);
+        chat.Parameters.AddWithValue("u1", Math.Min(UserId, destinatario));
+        chat.Parameters.AddWithValue("u2", Math.Max(UserId, destinatario));
+        chat.Parameters.AddWithValue("user", UserId);
+        chat.Parameters.AddWithValue("destinatario", destinatario);
+        chat.Parameters.AddWithValue("mensaje", mensaje);
+        var idChat = Convert.ToInt32(await chat.ExecuteScalarAsync(ct));
+        await tx.CommitAsync(ct);
+        // La operación ya está guardada: un fallo del transporte no debe provocar reenvíos.
+        try
+        {
+            var participantes = chatHub.Clients.Groups(ChatHub.GrupoUsuario(UserId), ChatHub.GrupoUsuario(destinatario));
+            await participantes.SendAsync("RecibirMensaje", new
+            {
+                id_chat = idChat, id_remitente = UserId, id_destinatario = destinatario,
+                mensaje, tipo = "sistema", fecha_envio = DateTime.UtcNow.ToString("o")
+            });
+            await participantes.SendAsync("SolicitudActualizada", new { id_solicitud = id });
+        }
+        catch (Exception ex) { Console.WriteLine($"[SOLICITUD] Aviso en tiempo real no disponible: {ex.GetType().Name}"); }
+        return Ok(new { ok = true, estado = accion == "aceptar" ? "Aceptada" : "Pendiente" });
     }
 
     // Cambia el estado sólo si el usuario tiene el rol indicado y la solicitud está en un estado de origen válido.

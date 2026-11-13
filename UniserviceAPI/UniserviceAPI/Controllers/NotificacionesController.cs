@@ -31,8 +31,16 @@ public sealed class NotificacionesController(IConfiguration config) : Controller
     internal const string Consulta = """
         SELECT * FROM (
           SELECT concat('solicitud:', so.id_solicitud, ':', so.estado, ':',
+                        CASE WHEN so.estado_contraoferta IS NOT NULL
+                          THEN so.estado_contraoferta || ':' || so.version_contraoferta || ':' ELSE '' END,
                         coalesce(so.fecha_actualizacion, so.fecha_creacion)::text) AS id,
-            CASE WHEN so.estado = 'Pendiente'
+            CASE WHEN so.estado = 'Pendiente' AND so.estado_contraoferta = 'pendiente'
+              THEN 'Recibiste una contraoferta de $' || so.contraoferta || ' para "' || s.titulo || '". Acepta o rechaza el precio.'
+              WHEN so.estado = 'Pendiente' AND so.estado_contraoferta = 'aceptada'
+              THEN cl.nombre || ' aceptó tu contraoferta de $' || so.contraoferta || ' para "' || s.titulo || '". Confirma el servicio en Recibidas.'
+              WHEN so.estado = 'Pendiente' AND so.estado_contraoferta = 'rechazada'
+              THEN cl.nombre || ' rechazó tu contraoferta para "' || s.titulo || '". Puedes aceptar el presupuesto original o proponer otro precio.'
+              WHEN so.estado = 'Pendiente'
               THEN cl.nombre || ' solicitó tu servicio "' || s.titulo || '".'
               WHEN so.estado = 'Cancelada'
               THEN cl.nombre || ' canceló la solicitud de "' || s.titulo || '".'
@@ -46,8 +54,10 @@ public sealed class NotificacionesController(IConfiguration config) : Controller
           FROM solicitudes so
           JOIN servicios s ON s.id_servicio = so.id_servicio
           JOIN usuarios cl ON cl.id_usuario = so.id_cliente
-          WHERE (so.id_proveedor = @user AND so.estado IN ('Pendiente', 'Cancelada'))
-             OR (so.id_cliente = @user AND so.estado IN ('Aceptada', 'Rechazada', 'Completada'))
+          WHERE (so.id_proveedor = @user AND (so.estado = 'Cancelada'
+                   OR (so.estado = 'Pendiente' AND so.estado_contraoferta IS DISTINCT FROM 'pendiente')))
+             OR (so.id_cliente = @user AND (so.estado IN ('Aceptada', 'Rechazada', 'Completada')
+                   OR (so.estado = 'Pendiente' AND so.estado_contraoferta = 'pendiente')))
 
           UNION ALL
           SELECT concat('servicio:', s.id_servicio, ':', s.estado, ':', s.revisado_en::text),

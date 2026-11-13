@@ -52,8 +52,25 @@ public class CrearSolicitudDTO
 
 public class AceptarSolicitudDTO
 {
+    [Range(0, int.MaxValue)]
+    public int version_contraoferta { get; set; }
+    // Se rechaza el antiguo flujo de aceptar imponiendo otro precio.
     [Range(typeof(decimal), "1", "99999999", ErrorMessage = "La contraoferta debe ser mayor a 0")]
     public decimal? contraoferta { get; set; }
+}
+
+public class ContraofertaSolicitudDTO
+{
+    [Range(typeof(decimal), "1", "99999999")]
+    public decimal precio { get; set; }
+    [Range(0, int.MaxValue)]
+    public int version_contraoferta { get; set; }
+}
+
+public class ResponderContraofertaDTO
+{
+    [Range(1, int.MaxValue)]
+    public int version_contraoferta { get; set; }
 }
 
 public class RechazarSolicitudDTO
