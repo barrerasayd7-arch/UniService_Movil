@@ -1,7 +1,10 @@
 # Campana de notificaciones
 
-Reiniciar la API y la app para habilitar `GET /api/notificaciones`. No requiere una
-migración nueva: consulta las tablas de solicitudes, servicios y calificaciones existentes.
+Reiniciar la API y la app para habilitar `GET /api/notificaciones`. Consulta las tablas
+de solicitudes, servicios y calificaciones existentes.
+
+Con el flujo de contraofertas actualizado, aplicar también la migración 011 antes de
+iniciar la API. Ver [CONTRAOFERTAS.md](CONTRAOFERTAS.md).
 
 La campana muestra hasta 100 avisos recientes de la cuenta autenticada:
 
@@ -9,6 +12,8 @@ La campana muestra hasta 100 avisos recientes de la cuenta autenticada:
 - Solicitud aceptada, rechazada o completada: se avisa al cliente y abre Enviadas.
 - Servicio aprobado o rechazado con fecha de revisión: abre Mis servicios.
 - Reseña recibida o editada: abre el servicio correspondiente.
+- Contraoferta pendiente: avisa al cliente y abre Enviadas.
+- Contraoferta aceptada o rechazada: avisa al proveedor y abre Recibidas.
 
 Los avisos reflejan el último estado disponible de cada registro. No constituyen un
 historial completo de transiciones; al cambiar el estado o eliminar el registro puede
