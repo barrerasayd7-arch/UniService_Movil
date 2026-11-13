@@ -53,7 +53,7 @@ try {
       id_cliente integer NOT NULL CONSTRAINT fk_solicitud_cliente REFERENCES usuarios(id_usuario),
       id_proveedor integer NOT NULL CONSTRAINT fk_solicitud_proveedor REFERENCES usuarios(id_usuario),
       id_servicio integer NOT NULL CONSTRAINT fk_solicitud_servicio REFERENCES servicios(id_servicio),
-      fue_aceptada boolean DEFAULT false, descripcion text, presupuesto numeric, archivo varchar(255),
+      fue_aceptada boolean DEFAULT false, descripcion text, presupuesto numeric, motivo_rechazo text, archivo varchar(255),
       estado varchar(20) DEFAULT 'Pendiente', campos_personalizados jsonb DEFAULT '{}');
     CREATE TABLE calificaciones (
       id_calificacion serial PRIMARY KEY,
@@ -148,9 +148,30 @@ try {
   await rejects('INSERT INTO solicitudes(id_cliente, id_proveedor, id_servicio) VALUES (2, 1, 11)', '23505');
   await rejects("INSERT INTO solicitudes(id_cliente, id_proveedor, id_servicio, estado) VALUES (2, 1, 10, 'Borrada')", '23514');
   await rejects('INSERT INTO solicitudes(id_cliente, id_proveedor, id_servicio) VALUES (1, 1, 10)', '23514');
-  const nueva = await one('INSERT INTO solicitudes(id_cliente, id_proveedor, id_servicio) VALUES (2, 1, 10) RETURNING fecha_creacion');
+  const nueva = await one('INSERT INTO solicitudes(id_cliente, id_proveedor, id_servicio) VALUES (2, 1, 10) RETURNING fecha_creacion, id_solicitud');
   check(nueva.fecha_creacion !== null, 'Solicitud nueva guarda su fecha');
   check((await one('SELECT fecha_creacion IS NULL AS v FROM solicitudes WHERE id_solicitud = 100')).v, 'Solicitudes antiguas sin fecha inventada');
+
+  // Ejecuta la consulta real del controlador de avisos contra datos inventados.
+  const controladorAvisos = await readFile(new URL('../../../UniserviceAPI/UniserviceAPI/Controllers/NotificacionesController.cs', import.meta.url), 'utf8');
+  const consultaAvisos = controladorAvisos.match(/internal const string Consulta = """([\s\S]*?)""";/)[1].replaceAll('@user', '$1');
+  const avisos = (usuario) => rows(consultaAvisos, [usuario]);
+  await db.exec("UPDATE servicios SET revisado_en = now() WHERE id_servicio = 10");
+  const proveedor = await avisos(1);
+  check(proveedor.some((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:Pendiente`) && n.argumento === 0), 'Proveedor ve solicitud recibida');
+  check(proveedor.some((n) => n.destino === 'mis-servicios' && n.argumento === 10), 'Proveedor ve moderación real');
+  check(proveedor.some((n) => n.id.startsWith('resena:') && n.destino === 'servicio' && n.argumento === 10), 'Proveedor ve reseñas de su servicio');
+  check((await avisos(3)).length === 0, 'Otro usuario no recibe avisos ajenos');
+  check(!(await avisos(2)).some((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:`)), 'Enviar una solicitud no genera un aviso propio');
+  await db.query("UPDATE solicitudes SET estado = 'Aceptada', fecha_actualizacion = now() WHERE id_solicitud = $1", [nueva.id_solicitud]);
+  const aceptada = (await avisos(2)).find((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:Aceptada`));
+  check(aceptada?.argumento === 1 && aceptada.texto.includes('aceptada'), 'Cliente recibe aceptación y destino Enviadas');
+  check((await avisos(2)).some((n) => n.id === aceptada.id), 'Actualizar la bandeja no cambia el identificador');
+  check(!(await avisos(1)).some((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:`)), 'Aceptar no genera aviso al propio proveedor');
+  await db.query("UPDATE solicitudes SET estado = 'Rechazada', motivo_rechazo = 'Sin disponibilidad', fecha_actualizacion = now() WHERE id_solicitud = $1", [nueva.id_solicitud]);
+  check((await avisos(2)).some((n) => n.texto.includes('Sin disponibilidad')), 'El rechazo explica el motivo al cliente');
+  await db.query("UPDATE solicitudes SET estado = 'Cancelada', fecha_actualizacion = now() WHERE id_solicitud = $1", [nueva.id_solicitud]);
+  check((await avisos(1)).some((n) => n.id.startsWith(`solicitud:${nueva.id_solicitud}:Cancelada`)), 'Cancelación avisa al proveedor');
 
   // Borrar un servicio arrastra su historial.
   await db.exec('DELETE FROM servicios WHERE id_servicio = 10');
