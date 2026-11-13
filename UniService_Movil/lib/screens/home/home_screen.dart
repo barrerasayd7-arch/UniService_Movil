@@ -205,6 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onAncla: _irA,
                               onPerfil: _irAPerfil,
                               onSolicitudes: () => _abrir('/solicitudes'),
+                              onMisServicios: () => _abrir('/mis-servicios'),
                               onProximamente: () =>
                                   _proximamente('Esta sección'),
                             ),

@@ -14,12 +14,14 @@ class FooterHome extends StatelessWidget {
   final ValueChanged<String> onAncla;
   final VoidCallback onPerfil;
   final VoidCallback onSolicitudes;
+  final VoidCallback onMisServicios;
   final VoidCallback onProximamente; // enlaces que aún no tienen vista
   const FooterHome({
     super.key,
     required this.onAncla,
     required this.onPerfil,
     required this.onSolicitudes,
+    required this.onMisServicios,
     required this.onProximamente,
   });
 
@@ -106,9 +108,8 @@ class FooterHome extends StatelessWidget {
       _link('Buscar servicios', () => onAncla('buscar')),
       _link('Publicar servicio', () => onAncla('publicar')),
     ]);
-    // "Mis servicios" y los enlaces legales aún no tienen vista propia.
     final cuenta = _columna('Mi cuenta', [
-      _link('Mis servicios', onProximamente),
+      _link('Mis servicios', onMisServicios),
       _link('Solicitudes', onSolicitudes),
       _link('Perfil', onPerfil),
     ]);

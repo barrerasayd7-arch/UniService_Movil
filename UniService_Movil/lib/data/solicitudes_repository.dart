@@ -41,14 +41,21 @@ class SolicitudesRepository {
   }
 
   /// Solicitudes que hice como cliente.
-  Future<List<Solicitud>> enviadas() => _listar('enviadas');
+  Future<List<Solicitud>> enviadas({String? estado}) =>
+      _listar('enviadas', estado);
 
   /// Solicitudes que recibí como proveedor.
-  Future<List<Solicitud>> recibidas() => _listar('recibidas');
+  Future<List<Solicitud>> recibidas({String? estado}) =>
+      _listar('recibidas', estado);
 
-  Future<List<Solicitud>> _listar(String tipo) async {
-    final data = await _api.get('/api/solicitudes/$tipo') as List;
-    return [for (final s in data) Solicitud.fromJson(s as Map<String, dynamic>)];
+  Future<List<Solicitud>> _listar(String tipo, String? estado) async {
+    final query = estado == null
+        ? ''
+        : '?${Uri(queryParameters: {'estado': estado}).query}';
+    final data = await _api.get('/api/solicitudes/$tipo$query') as List;
+    return [
+      for (final s in data) Solicitud.fromJson(s as Map<String, dynamic>),
+    ];
   }
 
   /// Solicitud activa (Pendiente o Aceptada) del usuario para ese servicio, si la hay.

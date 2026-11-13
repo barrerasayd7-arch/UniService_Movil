@@ -25,6 +25,7 @@ import 'galeria_servicio.dart';
 import 'navbar_servicio.dart';
 import 'proveedor_card.dart';
 import 'skeleton_servicio.dart';
+import '../profile/profile_modals.dart' show mostrarReportar;
 
 /// Detalle de un servicio (`GET /api/servicios/{id}`).
 ///
@@ -490,7 +491,8 @@ class _DetailScreenState extends State<DetailScreen> {
     if (!_haySesion || d.esPropio) return titulo;
 
     final reportar = _BtnReportar(
-      onTap: () => _aviso('Reportar: próxima vista por implementar'),
+      onTap: () =>
+          mostrarReportar(context, idServicio: s.id, tituloServicio: s.titulo),
     );
     if (movil) {
       return Column(
@@ -518,7 +520,9 @@ class _DetailScreenState extends State<DetailScreen> {
         ProveedorCard(
           detalle: d,
           onTap: _haySesion
-              ? () => Navigator.of(context).pushNamed('/perfil-externo', arguments: p.id)
+              ? () => Navigator.of(
+                  context,
+                ).pushNamed('/perfil-externo', arguments: p.id)
               : _iniciarSesion,
         ),
         if (d.esPropio)
@@ -534,9 +538,16 @@ class _DetailScreenState extends State<DetailScreen> {
           ContactoBotones(
             contacto: d.contacto!,
             onContactar: () => _contactar(d),
-            onMensaje: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
-              contacto: ContactoChat(id: p.id, nombre: p.nombre, avatar: p.avatar),
-            )),
+            onMensaje: () => Navigator.of(context).pushNamed(
+              '/chat',
+              arguments: DestinoChat(
+                contacto: ContactoChat(
+                  id: p.id,
+                  nombre: p.nombre,
+                  avatar: p.avatar,
+                ),
+              ),
+            ),
           ),
         SeccionInfo(
           icono: Icons.person,
@@ -564,9 +575,16 @@ class _DetailScreenState extends State<DetailScreen> {
             idServicio: s.id,
             categoria: s.categoria,
             proveedorNombre: s.proveedor.isEmpty ? 'el proveedor' : s.proveedor,
-            onChatear: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
-              contacto: ContactoChat(id: p.id, nombre: p.nombre, avatar: p.avatar),
-            )),
+            onChatear: () => Navigator.of(context).pushNamed(
+              '/chat',
+              arguments: DestinoChat(
+                contacto: ContactoChat(
+                  id: p.id,
+                  nombre: p.nombre,
+                  avatar: p.avatar,
+                ),
+              ),
+            ),
             onVerSolicitudes: () =>
                 Navigator.of(context).pushNamed('/solicitudes', arguments: 1),
           ),
@@ -818,7 +836,6 @@ class _InvitaSesion extends StatelessWidget {
     );
   }
 }
-
 
 /// Tarjeta de una reseña con avatar de iniciales, fecha y estrellas.
 class _ResenaCard extends StatelessWidget {

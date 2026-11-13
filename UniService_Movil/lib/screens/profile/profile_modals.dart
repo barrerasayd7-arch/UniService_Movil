@@ -500,7 +500,9 @@ Future<void> mostrarCambiarAvatar(
           return;
         }
         try {
-          onCambio(await PerfilRepository.instance.subirAvatar(bytes, foto.name));
+          onCambio(
+            await PerfilRepository.instance.subirAvatar(bytes, foto.name),
+          );
           if (ctx.mounted) Navigator.of(ctx).pop();
           if (context.mounted) {
             mostrarNotificacion(context, 'Foto actualizada', exito: true);
@@ -588,9 +590,12 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
 
   // Las mismas reglas que valida el servidor.
   String? _errorNueva(String p) {
-    if (p.length < 8) return 'La nueva contraseña debe tener mínimo 8 caracteres';
+    if (p.length < 8) {
+      return 'La nueva contraseña debe tener mínimo 8 caracteres';
+    }
     if (p.length > 72) return 'La nueva contraseña es demasiado larga';
-    if (!p.contains(RegExp(r'\p{L}', unicode: true)) || !p.contains(RegExp(r'\d'))) {
+    if (!p.contains(RegExp(r'\p{L}', unicode: true)) ||
+        !p.contains(RegExp(r'\d'))) {
       return 'La nueva contraseña debe combinar letras y números';
     }
     return null;
@@ -599,7 +604,9 @@ class _SeguridadContenidoState extends State<_SeguridadContenido> {
   Future<void> _guardarPassword() async {
     // Evita un segundo envío mientras la petición anterior sigue en curso.
     if (_guardando) return;
-    if (_actual.text.isEmpty || _nueva.text.isEmpty || _confirmar.text.isEmpty) {
+    if (_actual.text.isEmpty ||
+        _nueva.text.isEmpty ||
+        _confirmar.text.isEmpty) {
       mostrarNotificacion(context, 'Completa todos los campos');
       return;
     }
@@ -739,7 +746,9 @@ Future<void> mostrarListaPersonas(
         }
         if (snap.hasError) {
           final e = snap.error;
-          return aviso(e is ApiException ? e.mensaje : 'No se pudo cargar la lista');
+          return aviso(
+            e is ApiException ? e.mensaje : 'No se pudo cargar la lista',
+          );
         }
         final lista = snap.data!;
         if (lista.isEmpty) return aviso(vacio);
@@ -752,7 +761,9 @@ Future<void> mostrarListaPersonas(
                 child: MenuItem(
                   icono: Icons.person,
                   title: p.nombre,
-                  desc: p.universidad.isEmpty ? 'Sin universidad' : p.universidad,
+                  desc: p.universidad.isEmpty
+                      ? 'Sin universidad'
+                      : p.universidad,
                   leading: ClipOval(child: fotoPerfil(p.avatarUrl, size: 44)),
                   onTap: () {
                     Navigator.of(ctx).pop();
@@ -768,7 +779,7 @@ Future<void> mostrarListaPersonas(
 }
 
 // ═════════════════════════════════════════════════════════════
-// Reportar (POST /api/reportes): a un usuario o un problema general
+// Reportar (POST /api/reportes): servicio, usuario o problema general
 // ═════════════════════════════════════════════════════════════
 // Códigos que espera la API, con su etiqueta visible en los chips.
 const Map<String, String> _motivosUsuario = {
@@ -786,33 +797,63 @@ const Map<String, String> _motivosGenerales = {
   'otro': 'Otro',
 };
 
-/// Reporte general o contra un usuario según [idUsuario]; la API valida el
-/// resto, aquí sólo se comprueban longitudes mínimas.
+const Map<String, String> _motivosServicio = {
+  'servicio_fraude': 'Fraude o estafa',
+  'servicio_inapropiado': 'Servicio inapropiado',
+  'contenido_inapropiado': 'Contenido inapropiado',
+  'otro': 'Otro',
+};
+
+/// Reporte de servicio, usuario o problema general; la API valida las referencias.
 Future<void> mostrarReportar(
   BuildContext context, {
   int? idUsuario,
   String? nombreUsuario,
+  int? idServicio,
+  String? tituloServicio,
+  PerfilRepository? repositorio,
 }) {
+  assert(idUsuario == null || idServicio == null);
   return mostrarImageMenu<void>(
     context,
-    titulo: idUsuario == null ? 'Reportar un problema' : 'Reportar a ${nombreUsuario ?? 'usuario'}',
+    titulo: idServicio != null
+        ? 'Reportar servicio'
+        : idUsuario == null
+        ? 'Reportar un problema'
+        : 'Reportar a ${nombreUsuario ?? 'usuario'}',
     icono: Icons.flag_outlined,
-    builder: (ctx) => _ReporteContenido(idUsuario: idUsuario),
+    builder: (ctx) => _ReporteContenido(
+      idUsuario: idUsuario,
+      idServicio: idServicio,
+      tituloServicio: tituloServicio,
+      repositorio: repositorio,
+    ),
   );
 }
 
 /// Formulario de reporte: motivo, título y descripción.
 class _ReporteContenido extends StatefulWidget {
   final int? idUsuario;
-  const _ReporteContenido({this.idUsuario});
+  final int? idServicio;
+  final String? tituloServicio;
+  final PerfilRepository? repositorio;
+  const _ReporteContenido({
+    this.idUsuario,
+    this.idServicio,
+    this.tituloServicio,
+    this.repositorio,
+  });
 
   @override
   State<_ReporteContenido> createState() => _ReporteContenidoState();
 }
 
 class _ReporteContenidoState extends State<_ReporteContenido> {
-  late final Map<String, String> _motivos =
-      widget.idUsuario == null ? _motivosGenerales : _motivosUsuario;
+  late final Map<String, String> _motivos = widget.idServicio != null
+      ? _motivosServicio
+      : widget.idUsuario == null
+      ? _motivosGenerales
+      : _motivosUsuario;
   late String _tipo = _motivos.keys.first;
   final _titulo = TextEditingController();
   final _descripcion = TextEditingController();
@@ -826,26 +867,38 @@ class _ReporteContenidoState extends State<_ReporteContenido> {
   }
 
   Future<void> _enviar() async {
+    if (_enviando) return;
     final titulo = _titulo.text.trim();
     final descripcion = _descripcion.text.trim();
     if (titulo.length < 5) {
-      mostrarNotificacion(context, 'El título debe tener al menos 5 caracteres');
+      mostrarNotificacion(
+        context,
+        'El título debe tener al menos 5 caracteres',
+      );
       return;
     }
     if (descripcion.length < 10) {
-      mostrarNotificacion(context, 'Describe lo ocurrido (mínimo 10 caracteres)');
+      mostrarNotificacion(
+        context,
+        'Describe lo ocurrido (mínimo 10 caracteres)',
+      );
       return;
     }
     setState(() => _enviando = true);
     try {
-      await PerfilRepository.instance.reportar(
+      await (widget.repositorio ?? PerfilRepository.instance).reportar(
         tipo: _tipo,
         titulo: titulo,
         descripcion: descripcion,
         idUsuarioReportado: widget.idUsuario,
+        idServicio: widget.idServicio,
       );
       if (!mounted) return;
-      await mostrarNotificacion(context, 'Reporte enviado. El equipo lo revisará.', exito: true);
+      await mostrarNotificacion(
+        context,
+        'Reporte enviado. El equipo lo revisará.',
+        exito: true,
+      );
       if (mounted) Navigator.of(context).pop();
     } on ApiException catch (e) {
       if (mounted) mostrarNotificacion(context, e.mensaje);
@@ -860,6 +913,13 @@ class _ReporteContenidoState extends State<_ReporteContenido> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.tituloServicio != null) ...[
+          Text(
+            widget.tituloServicio!,
+            style: AppText.poppins(14, weight: FontWeight.w600),
+          ),
+          const SizedBox(height: 14),
+        ],
         Text('Motivo', style: AppText.poppins(13.6, color: AppColors.texto2)),
         const SizedBox(height: 8),
         Wrap(
@@ -875,7 +935,9 @@ class _ReporteContenidoState extends State<_ReporteContenido> {
                 backgroundColor: const Color(0x0DFFFFFF),
                 labelStyle: AppText.poppins(12.8),
                 side: BorderSide(
-                  color: _tipo == m.key ? AppColors.teal : const Color(0x26FFFFFF),
+                  color: _tipo == m.key
+                      ? AppColors.teal
+                      : const Color(0x26FFFFFF),
                 ),
                 showCheckmark: false,
               ),

@@ -36,7 +36,12 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
   List<Solicitud>? _enviadas;
   String? _errorRecibidas;
   String? _errorEnviadas;
-  final Set<int> _ocupadas = {}; // ids con una acción en curso (spinner por tarjeta)
+  String? _filtroRecibidas;
+  String? _filtroEnviadas;
+  int _cargaRecibidas = 0;
+  int _cargaEnviadas = 0;
+  final Set<int> _ocupadas =
+      {}; // ids con una acción en curso (spinner por tarjeta)
 
   @override
   void initState() {
@@ -52,33 +57,40 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
   }
 
   /// Recarga ambas bandejas en paralelo; también se dispara al cambiar el repo.
-  Future<void> _cargar() => Future.wait([_cargarRecibidas(), _cargarEnviadas()]);
+  Future<void> _cargar() =>
+      Future.wait([_cargarRecibidas(), _cargarEnviadas()]);
 
   Future<void> _cargarRecibidas() async {
+    final carga = ++_cargaRecibidas;
     try {
-      final l = await _repo.recibidas();
-      if (mounted) {
+      final l = await _repo.recibidas(estado: _filtroRecibidas);
+      if (mounted && carga == _cargaRecibidas) {
         setState(() {
           _recibidas = l;
           _errorRecibidas = null;
         });
       }
     } on ApiException catch (e) {
-      if (mounted) setState(() => _errorRecibidas = e.mensaje);
+      if (mounted && carga == _cargaRecibidas) {
+        setState(() => _errorRecibidas = e.mensaje);
+      }
     }
   }
 
   Future<void> _cargarEnviadas() async {
+    final carga = ++_cargaEnviadas;
     try {
-      final l = await _repo.enviadas();
-      if (mounted) {
+      final l = await _repo.enviadas(estado: _filtroEnviadas);
+      if (mounted && carga == _cargaEnviadas) {
         setState(() {
           _enviadas = l;
           _errorEnviadas = null;
         });
       }
     } on ApiException catch (e) {
-      if (mounted) setState(() => _errorEnviadas = e.mensaje);
+      if (mounted && carga == _cargaEnviadas) {
+        setState(() => _errorEnviadas = e.mensaje);
+      }
     }
   }
 
@@ -189,7 +201,9 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Recibidas'),
+                    const Flexible(
+                      child: Text('Recibidas', overflow: TextOverflow.ellipsis),
+                    ),
                     if (pendientes > 0) ...[
                       const SizedBox(width: 6),
                       Badge(
@@ -206,28 +220,78 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
           ),
         ),
         body: TabBarView(
-          children: [
-            _Lista(
-              solicitudes: _recibidas,
-              error: _errorRecibidas,
-              onRecargar: _cargarRecibidas,
-              vacioTitulo: 'Aún no recibes solicitudes',
-              vacioTexto:
-                  'Cuando alguien solicite uno de tus servicios aparecerá aquí.',
-              tarjeta: _tarjeta,
-            ),
-            _Lista(
-              solicitudes: _enviadas,
-              error: _errorEnviadas,
-              onRecargar: _cargarEnviadas,
-              vacioTitulo: 'Aún no envías solicitudes',
-              vacioTexto:
-                  'Busca un servicio en el inicio y toca "Enviar solicitud".',
-              tarjeta: _tarjeta,
-            ),
-          ],
+          children: [_bandeja(recibidas: true), _bandeja(recibidas: false)],
         ),
       ),
+    );
+  }
+
+  Widget _bandeja({required bool recibidas}) {
+    final filtro = recibidas ? _filtroRecibidas : _filtroEnviadas;
+    const opciones = <String?, String>{
+      null: 'Todas',
+      'Pendiente': 'Pendientes',
+      'Aceptada': 'Aceptadas',
+      'Completada': 'Completadas',
+      'Rechazada': 'Rechazadas',
+      'Cancelada': 'Canceladas',
+    };
+    return Column(
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Row(
+            children: [
+              for (final opcion in opciones.entries)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(opcion.value),
+                    selected: filtro == opcion.key,
+                    onSelected: (_) {
+                      if (filtro == opcion.key) return;
+                      setState(() {
+                        if (recibidas) {
+                          _filtroRecibidas = opcion.key;
+                          _recibidas = null;
+                          _errorRecibidas = null;
+                        } else {
+                          _filtroEnviadas = opcion.key;
+                          _enviadas = null;
+                          _errorEnviadas = null;
+                        }
+                      });
+                      if (recibidas) {
+                        _cargarRecibidas();
+                      } else {
+                        _cargarEnviadas();
+                      }
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _Lista(
+            solicitudes: recibidas ? _recibidas : _enviadas,
+            error: recibidas ? _errorRecibidas : _errorEnviadas,
+            onRecargar: recibidas ? _cargarRecibidas : _cargarEnviadas,
+            vacioTitulo: filtro != null
+                ? 'No hay solicitudes ${opciones[filtro]!.toLowerCase()}'
+                : recibidas
+                ? 'Aún no recibes solicitudes'
+                : 'Aún no envías solicitudes',
+            vacioTexto: filtro != null
+                ? 'Selecciona otro estado o Todas para ver más solicitudes.'
+                : recibidas
+                ? 'Cuando alguien solicite uno de tus servicios aparecerá aquí.'
+                : 'Busca un servicio en el inicio y toca "Enviar solicitud".',
+            tarjeta: _tarjeta,
+          ),
+        ),
+      ],
     );
   }
 
@@ -235,9 +299,16 @@ class _SolicitudesScreenState extends State<SolicitudesScreen> {
   Widget _tarjeta(Solicitud s) {
     final acciones = <Widget>[
       OutlinedButton.icon(
-        onPressed: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
-          contacto: ContactoChat(id: s.contraparte.id, nombre: s.contraparte.nombre, avatar: s.contraparte.avatar),
-        )),
+        onPressed: () => Navigator.of(context).pushNamed(
+          '/chat',
+          arguments: DestinoChat(
+            contacto: ContactoChat(
+              id: s.contraparte.id,
+              nombre: s.contraparte.nombre,
+              avatar: s.contraparte.avatar,
+            ),
+          ),
+        ),
         style: _estiloSecundario(),
         icon: const Icon(Icons.chat_bubble_outline, size: 18),
         label: const Text('Chatear'),
@@ -340,11 +411,17 @@ class _Lista extends StatelessWidget {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.teal),
       );
-    } else if (lista == null) {
-      contenido = _Aviso(
-        icono: Icons.cloud_off_rounded,
-        titulo: 'No pudimos cargar las solicitudes',
-        texto: error!,
+    } else if (error != null || lista == null) {
+      contenido = Column(
+        children: [
+          _Aviso(
+            icono: Icons.cloud_off_rounded,
+            titulo: 'No pudimos cargar las solicitudes',
+            texto: error!,
+          ),
+          const SizedBox(height: 12),
+          TextButton(onPressed: onRecargar, child: const Text('Reintentar')),
+        ],
       );
     } else if (lista.isEmpty) {
       contenido = _Aviso(
@@ -389,7 +466,11 @@ class _Aviso extends StatelessWidget {
   final IconData icono;
   final String titulo;
   final String texto;
-  const _Aviso({required this.icono, required this.titulo, required this.texto});
+  const _Aviso({
+    required this.icono,
+    required this.titulo,
+    required this.texto,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +528,8 @@ class _TarjetaSolicitud extends StatelessWidget {
     final s = solicitud;
     final color = colorEstadoSolicitud(s.estado);
     final datos = <(String, String)>[
-      if (s.presupuesto != null) ('Presupuesto', formatearPrecio(s.presupuesto!)),
+      if (s.presupuesto != null)
+        ('Presupuesto', formatearPrecio(s.presupuesto!)),
       if (s.contraoferta != null)
         ('Contraoferta', formatearPrecio(s.contraoferta!)),
       if (s.fechaDeseada != null)
@@ -772,7 +854,9 @@ class _DialogoRechazarState extends State<_DialogoRechazar> {
           onPressed: () {
             final t = _motivo.text.trim();
             if (t.length < 5) {
-              setState(() => _error = 'Explica el motivo (mínimo 5 caracteres)');
+              setState(
+                () => _error = 'Explica el motivo (mínimo 5 caracteres)',
+              );
               return;
             }
             Navigator.of(context).pop(t);
