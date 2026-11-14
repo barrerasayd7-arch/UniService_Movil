@@ -14,7 +14,11 @@ import '../../widgets/app_buttons.dart' show HoverBuilder;
 class FooterInvitado extends StatelessWidget {
   final ValueChanged<String> onAncla;
   final VoidCallback onLogin;
-  const FooterInvitado({super.key, required this.onAncla, required this.onLogin});
+  const FooterInvitado({
+    super.key,
+    required this.onAncla,
+    required this.onLogin,
+  });
 
   // Enlace de texto con hover; mismo tratamiento que en el footer autenticado.
   Widget _link(String texto, VoidCallback onTap) {
@@ -106,15 +110,24 @@ class FooterInvitado extends StatelessWidget {
       _link('Perfil', onLogin),
     ]);
     final categorias = _columna('Categorías', [
-      for (final c in ['Tutorías', 'Ensayos', 'Programación', 'Diseño', 'Arriendo'])
+      for (final c in [
+        'Tutorías',
+        'Ensayos',
+        'Programación',
+        'Diseño',
+        'Arriendo',
+      ])
         _link(c, () => onAncla('buscar')),
     ]);
-    // Soporte y legales todavía no tienen vista: los enlaces quedan inertes.
+    // Información pública: no requiere iniciar sesión.
     final soporte = _columna('Soporte', [
-      _link('Centro de ayuda', () {}),
-      _link('Términos de uso', () {}), 
-      _link('Privacidad', () {}), 
-      _link('Contacto', () {}),
+      _link('Centro de ayuda', () => Navigator.of(context).pushNamed('/ayuda')),
+      _link(
+        'Términos de uso',
+        () => Navigator.of(context).pushNamed('/terminos'),
+      ),
+      _link('Privacidad', () => Navigator.of(context).pushNamed('/privacidad')),
+      _link('Contacto', () => Navigator.of(context).pushNamed('/contacto')),
     ]);
 
     return Container(

@@ -15,14 +15,14 @@ class FooterHome extends StatelessWidget {
   final VoidCallback onPerfil;
   final VoidCallback onSolicitudes;
   final VoidCallback onMisServicios;
-  final VoidCallback onProximamente; // enlaces que aún no tienen vista
+  final ValueChanged<String> onSoporte;
   const FooterHome({
     super.key,
     required this.onAncla,
     required this.onPerfil,
     required this.onSolicitudes,
     required this.onMisServicios,
-    required this.onProximamente,
+    required this.onSoporte,
   });
 
   // Enlace de texto con hover; el color cambia a teal sin subrayado.
@@ -124,10 +124,10 @@ class FooterHome extends StatelessWidget {
         _link(c, () => onAncla('buscar')),
     ]);
     final soporte = _columna('Soporte', [
-      _link('Centro de ayuda', onProximamente),
-      _link('Términos de uso', onProximamente), // se conectará a /terminos
-      _link('Privacidad', onProximamente), // se conectará a /privacidad
-      _link('Contacto', onProximamente),
+      _link('Centro de ayuda', () => onSoporte('/ayuda')),
+      _link('Términos de uso', () => onSoporte('/terminos')),
+      _link('Privacidad', () => onSoporte('/privacidad')),
+      _link('Contacto', () => onSoporte('/contacto')),
     ]);
 
     return Container(

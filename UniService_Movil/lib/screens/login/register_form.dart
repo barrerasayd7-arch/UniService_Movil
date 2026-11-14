@@ -3,6 +3,7 @@
 // Se usa desde: login_screen.dart (_Formulario).
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
@@ -195,6 +196,19 @@ class _RegisterFormState extends State<RegisterForm> {
       cargando: _cargando,
       onTap: _enviarCodigo,
     ),
+    Wrap(
+      alignment: WrapAlignment.center,
+      children: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pushNamed('/terminos'),
+          child: const Text('Términos y condiciones'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pushNamed('/privacidad'),
+          child: const Text('Política de privacidad'),
+        ),
+      ],
+    ),
     const SizedBox(height: 8),
   ];
 
@@ -295,11 +309,28 @@ class _RegisterFormState extends State<RegisterForm> {
   ];
 }
 
-/// Casilla de aceptación; toda la fila es tocable.
-class _Terminos extends StatelessWidget {
+/// Abrir un documento no marca la aceptación ni descarta el formulario.
+class _Terminos extends StatefulWidget {
   final bool valor;
   final ValueChanged<bool> onChanged;
   const _Terminos({required this.valor, required this.onChanged});
+
+  @override
+  State<_Terminos> createState() => _TerminosState();
+}
+
+class _TerminosState extends State<_Terminos> {
+  late final _terminos = TapGestureRecognizer()
+    ..onTap = () => Navigator.of(context).pushNamed('/terminos');
+  late final _privacidad = TapGestureRecognizer()
+    ..onTap = () => Navigator.of(context).pushNamed('/privacidad');
+
+  @override
+  void dispose() {
+    _terminos.dispose();
+    _privacidad.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -313,7 +344,7 @@ class _Terminos extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 14),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () => onChanged(!valor),
+        onTap: () => widget.onChanged(!widget.valor),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
@@ -323,8 +354,8 @@ class _Terminos extends StatelessWidget {
                 width: 32,
                 height: 24,
                 child: Checkbox(
-                  value: valor,
-                  onChanged: (v) => onChanged(v ?? false),
+                  value: widget.valor,
+                  onChanged: (v) => widget.onChanged(v ?? false),
                   activeColor: AppColors.teal,
                   checkColor: AppColors.bg,
                   side: const BorderSide(color: AppColors.texto2, width: 1.5),
@@ -342,10 +373,17 @@ class _Terminos extends StatelessWidget {
                     ),
                     children: [
                       const TextSpan(text: 'Acepto los '),
-                      // Pendiente: enlazar cuando existan las páginas de términos y privacidad.
-                      TextSpan(text: 'términos', style: enlace),
+                      TextSpan(
+                        text: 'términos',
+                        style: enlace,
+                        recognizer: _terminos,
+                      ),
                       const TextSpan(text: ' y la '),
-                      TextSpan(text: 'política de privacidad', style: enlace),
+                      TextSpan(
+                        text: 'política de privacidad',
+                        style: enlace,
+                        recognizer: _privacidad,
+                      ),
                     ],
                   ),
                 ),

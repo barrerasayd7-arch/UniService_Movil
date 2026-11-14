@@ -89,20 +89,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Aviso para las vistas que todavía no están portadas a Flutter.
-  void _proximamente(String que) {
-    setState(() => _menuAbierto = false);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('$que: próxima vista por implementar'),
-          backgroundColor: AppColors.card,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-  }
-
   // Cierra el menú móvil antes de navegar para que no quede superpuesto.
   void _abrir(String ruta) {
     setState(() => _menuAbierto = false);
@@ -206,8 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               onPerfil: _irAPerfil,
                               onSolicitudes: () => _abrir('/solicitudes'),
                               onMisServicios: () => _abrir('/mis-servicios'),
-                              onProximamente: () =>
-                                  _proximamente('Esta sección'),
+                              onSoporte: _abrir,
                             ),
                           ),
                         ],

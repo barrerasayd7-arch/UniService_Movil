@@ -26,6 +26,7 @@ import 'screens/profile/profile_screen.dart';
 import 'screens/publicar/publicar_screen.dart';
 import 'screens/service_detail/detail_screen.dart';
 import 'screens/solicitudes/solicitudes_screen.dart';
+import 'screens/soporte/soporte_screen.dart';
 import 'screens/admin/admin_actividad_screen.dart';
 import 'screens/admin/admin_categorias_screen.dart';
 import 'screens/admin/admin_reportes_screen.dart';
@@ -101,6 +102,8 @@ class UniServiceApp extends StatelessWidget {
         '/login': (_) => const LoginScreen(),
         '/home-guest': (_) => const HomeGuestScreen(),
         '/home': (_) => const HomeScreen(),
+        for (final pagina in PaginaSoporte.values)
+          pagina.ruta: (_) => SoporteScreen(pagina: pagina),
         '/perfil': (_) => const ProfileScreen(),
         // Argumento: el Servicio de la tarjeta o el id (int).
         '/servicio': (ctx) {
