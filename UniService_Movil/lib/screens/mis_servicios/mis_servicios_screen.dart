@@ -326,39 +326,53 @@ class _TarjetaMiServicio extends StatelessWidget {
                           style: AppText.poppins(13, color: AppColors.texto2),
                         ),
                         const SizedBox(height: 2),
-                        Row(
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 4,
                           children: [
-                            const Icon(
-                              Icons.star_rounded,
-                              size: 15,
-                              color: AppColors.estrella,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              s.numResenas == 0
-                                  ? 'Sin reseñas'
-                                  : '${formatearDecimal(s.promedio)} (${s.numResenas})',
+                            Text.rich(
+                              TextSpan(
+                                children: [
+                                  const WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Icon(
+                                      Icons.star_rounded,
+                                      size: 15,
+                                      color: AppColors.estrella,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: s.numResenas == 0
+                                        ? ' Sin reseñas'
+                                        : ' ${formatearDecimal(s.promedio)} (${s.numResenas})',
+                                  ),
+                                ],
+                              ),
                               style: AppText.poppins(
                                 12.5,
                                 color: AppColors.texto2,
                               ),
                             ),
-                            if (s.numImagenes == 0) ...[
-                              const SizedBox(width: 10),
-                              const Icon(
-                                Icons.hide_image_outlined,
-                                size: 15,
-                                color: AppColors.texto3,
-                              ),
-                              const SizedBox(width: 3),
-                              Text(
-                                'Sin fotos',
+                            if (s.numImagenes == 0)
+                              Text.rich(
+                                const TextSpan(
+                                  children: [
+                                    WidgetSpan(
+                                      alignment: PlaceholderAlignment.middle,
+                                      child: Icon(
+                                        Icons.hide_image_outlined,
+                                        size: 15,
+                                        color: AppColors.texto3,
+                                      ),
+                                    ),
+                                    TextSpan(text: ' Sin fotos'),
+                                  ],
+                                ),
                                 style: AppText.poppins(
                                   12.5,
                                   color: AppColors.texto3,
                                 ),
                               ),
-                            ],
                           ],
                         ),
                       ],
@@ -415,7 +429,10 @@ class _TarjetaMiServicio extends StatelessWidget {
                         foregroundColor: AppColors.amarillo,
                         minimumSize: const Size(48, 40),
                       ),
-                      icon: const Icon(Icons.mark_email_unread_outlined, size: 18),
+                      icon: const Icon(
+                        Icons.mark_email_unread_outlined,
+                        size: 18,
+                      ),
                       label: Text(
                         s.solicitudesPendientes == 1
                             ? '1 solicitud por responder'

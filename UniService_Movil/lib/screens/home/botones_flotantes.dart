@@ -112,22 +112,9 @@ class _BotonesFlotantesState extends State<BotonesFlotantes>
 
   @override
   Widget build(BuildContext context) {
-    // La campana se encoge en pantallas pequeñas para no tapar contenido.
-    final ancho = MediaQuery.of(context).size.width;
-    final bell = ancho <= 480
-        ? 42.0
-        : ancho <= 768
-        ? 48.0
-        : ancho <= 1024
-        ? 55.0
-        : 60.0;
-    final bellIcon = ancho <= 480
-        ? 18.0
-        : ancho <= 768
-        ? 20.0
-        : ancho <= 1024
-        ? 22.0
-        : 24.0;
+    // Mismo tamaño para ambos accesos, más compacto que el chat anterior (66).
+    const ladoBoton = 56.0;
+    const ladoIcono = 24.0;
 
     // El panel va en la misma columna (encima de los botones) para que
     // reciba los toques; Positioned no pasa hit-test fuera de su Stack.
@@ -148,9 +135,9 @@ class _BotonesFlotantesState extends State<BotonesFlotantes>
               button: true,
               label: 'Mis chats, $total mensajes sin leer',
               child: _CircleButton(
-                size: 66,
+                size: ladoBoton,
                 icono: Icons.chat_bubble,
-                iconSize: 26,
+                iconSize: ladoIcono,
                 badge: total,
                 onTap: widget.onChat,
               ),
@@ -161,9 +148,9 @@ class _BotonesFlotantesState extends State<BotonesFlotantes>
             button: true,
             label: 'Notificaciones, ${_control.noLeidas} sin leer',
             child: _CircleButton(
-              size: bell,
+              size: ladoBoton,
               icono: Icons.notifications,
-              iconSize: bellIcon,
+              iconSize: ladoIcono,
               badge: _control.noLeidas,
               onTap: () {
                 setState(() => _abierto = !_abierto);
