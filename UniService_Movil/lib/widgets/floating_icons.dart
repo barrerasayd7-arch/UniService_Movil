@@ -145,7 +145,11 @@ class _FloatingIconsState extends State<FloatingIcons>
         opacity: opacity.clamp(0.0, 1.0).toDouble(),
         child: Transform.rotate(
           angle: p * 2 * math.pi,
-          child: Icon(it.icon, size: it.size, color: AppColors.tealBrillante),
+          child: Icon(
+            it.icon,
+            size: it.size,
+            color: AppColors.of(context).tealBrillante,
+          ),
         ),
       ),
     );

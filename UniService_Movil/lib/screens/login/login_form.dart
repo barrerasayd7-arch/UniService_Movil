@@ -150,7 +150,7 @@ class _LoginFormState extends State<LoginForm> {
           Center(
             child: AuthTextButton(
               label: 'Continuar sin cuenta',
-              color: AppColors.texto2,
+              color: AppColors.of(context).texto2,
               onTap: () =>
                   Navigator.of(context).pushReplacementNamed('/home-guest'),
             ),

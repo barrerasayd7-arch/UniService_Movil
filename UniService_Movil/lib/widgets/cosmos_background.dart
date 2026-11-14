@@ -46,17 +46,17 @@ class _CosmosBackgroundState extends State<CosmosBackground>
         fit: StackFit.expand,
         children: [
           // Degradado base + resplandores
-          const DecoratedBox(
+          DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 stops: [0, 0.4, 0.7, 1],
                 colors: [
-                  Color(0xFF070D16),
-                  Color(0xFF0A1628),
-                  Color(0xFF0E1F3A),
-                  Color(0xFF081220),
+                  AppColors.of(context).bg,
+                  AppColors.of(context).bg2,
+                  AppColors.of(context).bg3,
+                  AppColors.of(context).bg2,
                 ],
               ),
             ),
@@ -66,7 +66,10 @@ class _CosmosBackgroundState extends State<CosmosBackground>
               gradient: RadialGradient(
                 center: const Alignment(-0.4, -0.6),
                 radius: 0.9,
-                colors: [AppColors.a(AppColors.teal, 0.08), Colors.transparent],
+                colors: [
+                  AppColors.a(AppColors.of(context).teal, 0.08),
+                  Colors.transparent,
+                ],
                 stops: const [0, 0.6],
               ),
             ),
@@ -77,7 +80,7 @@ class _CosmosBackgroundState extends State<CosmosBackground>
                 center: const Alignment(0.4, 0.6),
                 radius: 0.8,
                 colors: [
-                  AppColors.a(AppColors.amarillo, 0.04),
+                  AppColors.a(AppColors.of(context).amarillo, 0.04),
                   Colors.transparent,
                 ],
                 stops: const [0, 0.5],
@@ -87,15 +90,19 @@ class _CosmosBackgroundState extends State<CosmosBackground>
           // Anillos, puntos, estrellas
           AnimatedBuilder(
             animation: _c,
-            builder: (context, _) =>
-                CustomPaint(painter: _CosmosPainter(_c.value * _ciclo)),
+            builder: (context, _) => CustomPaint(
+              painter: _CosmosPainter(_c.value * _ciclo, AppColors.of(context)),
+            ),
           ),
           // Viñeta
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: RadialGradient(
                 radius: 0.85,
-                colors: [Colors.transparent, AppColors.a(AppColors.bg, 0.65)],
+                colors: [
+                  Colors.transparent,
+                  AppColors.a(AppColors.of(context).bg, 0.65),
+                ],
                 stops: const [0.3, 1],
               ),
             ),
@@ -129,8 +136,10 @@ class _Ring {
 }
 
 class _CosmosPainter extends CustomPainter {
+  final AppPalette paleta;
+
   final double t;
-  _CosmosPainter(this.t);
+  _CosmosPainter(this.t, this.paleta);
 
   static const _teal = Color(0xFF0EA5A0);
   static const _oro = Color(0xFFF5C842);
@@ -329,8 +338,8 @@ class _CosmosPainter extends CustomPainter {
       Paint()
         ..shader = RadialGradient(
           colors: [
-            AppColors.a(AppColors.teal, 0.20),
-            AppColors.a(AppColors.teal, 0.0),
+            AppColors.a(paleta.teal, 0.20),
+            AppColors.a(paleta.teal, 0.0),
           ],
         ).createShader(Rect.fromCircle(center: c, radius: 85)),
     );
@@ -340,8 +349,8 @@ class _CosmosPainter extends CustomPainter {
       Paint()
         ..shader = RadialGradient(
           colors: [
-            AppColors.teal,
-            AppColors.a(AppColors.teal, 0.3),
+            paleta.teal,
+            AppColors.a(paleta.teal, 0.3),
             Colors.transparent,
           ],
           stops: const [0, 0.3, 0.7],
@@ -359,7 +368,7 @@ class _CosmosPainter extends CustomPainter {
       canvas.drawCircle(
         o,
         1.4,
-        Paint()..color = AppColors.a(AppColors.teal, 0.7 * op),
+        Paint()..color = AppColors.a(paleta.teal, 0.7 * op),
       );
     }
 
@@ -381,5 +390,6 @@ class _CosmosPainter extends CustomPainter {
 
   // `t` es lo único que cambia: repintar sólo cuando avanza el reloj.
   @override
-  bool shouldRepaint(covariant _CosmosPainter old) => old.t != t;
+  bool shouldRepaint(covariant _CosmosPainter old) =>
+      old.t != t || old.paleta.oscuro != paleta.oscuro;
 }

@@ -65,7 +65,11 @@ class ImagenServicioView extends StatelessWidget {
 class GaleriaServicio extends StatefulWidget {
   final List<ImagenServicio> imagenes;
   final IconData icono;
-  const GaleriaServicio({super.key, required this.imagenes, required this.icono});
+  const GaleriaServicio({
+    super.key,
+    required this.imagenes,
+    required this.icono,
+  });
 
   @override
   State<GaleriaServicio> createState() => _GaleriaServicioState();
@@ -112,9 +116,9 @@ class _GaleriaServicioState extends State<GaleriaServicio> {
       clipBehavior: Clip.antiAlias,
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.of(context).card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -122,11 +126,11 @@ class _GaleriaServicioState extends State<GaleriaServicio> {
           // --- Imagen grande y marcador sin fotos ---
           Container(
             height: hayImagenes ? altoGrande : 160,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.bg2, AppColors.bg3],
+                colors: [AppColors.of(context).bg2, AppColors.of(context).bg3],
               ),
             ),
             child: hayImagenes
@@ -147,14 +151,14 @@ class _GaleriaServicioState extends State<GaleriaServicio> {
                         Icon(
                           Icons.image_outlined,
                           size: 32,
-                          color: AppColors.texto2.withAlpha(102),
+                          color: AppColors.of(context).texto2.withAlpha(102),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'No hay imágenes disponibles',
                           style: AppText.poppins(
                             12,
-                            color: AppColors.texto2.withAlpha(128),
+                            color: AppColors.of(context).texto2.withAlpha(128),
                           ),
                         ),
                       ],
@@ -165,7 +169,7 @@ class _GaleriaServicioState extends State<GaleriaServicio> {
           // --- Miniaturas: 3 columnas en móvil y 5 en pantallas amplias ---
           if (hayImagenes)
             Container(
-              color: AppColors.bg2,
+              color: AppColors.of(context).bg2,
               padding: const EdgeInsets.all(10),
               child: LayoutBuilder(
                 builder: (context, box) {
@@ -188,13 +192,18 @@ class _GaleriaServicioState extends State<GaleriaServicio> {
                                 clipBehavior: Clip.antiAlias,
                                 decoration: BoxDecoration(
                                   color: activa
-                                      ? AppColors.a(AppColors.teal, 0.15)
-                                      : (hover ? AppColors.tealDim : AppColors.card),
+                                      ? AppColors.a(
+                                          AppColors.of(context).teal,
+                                          0.15,
+                                        )
+                                      : (hover
+                                            ? AppColors.of(context).tealDim
+                                            : AppColors.of(context).card),
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: activa || hover
-                                        ? AppColors.teal
-                                        : AppColors.borde,
+                                        ? AppColors.of(context).teal
+                                        : AppColors.of(context).borde,
                                     width: 2,
                                   ),
                                 ),

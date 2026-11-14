@@ -191,11 +191,15 @@ class _SolicitudesScreenState extends State<SolicitudesScreen>
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
+        backgroundColor: AppColors.of(context).card,
         title: Text(titulo, style: AppText.serif(22)),
         content: Text(
           texto,
-          style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
+          style: AppText.poppins(
+            14,
+            color: AppColors.of(context).texto2,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
@@ -205,7 +209,9 @@ class _SolicitudesScreenState extends State<SolicitudesScreen>
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: peligro
-                ? TextButton.styleFrom(foregroundColor: AppColors.errorTexto)
+                ? TextButton.styleFrom(
+                    foregroundColor: AppColors.of(context).errorTexto,
+                  )
                 : null,
             child: Text(boton),
           ),
@@ -226,16 +232,16 @@ class _SolicitudesScreenState extends State<SolicitudesScreen>
       length: 2,
       initialIndex: widget.pestanaInicial,
       child: Scaffold(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         appBar: AppBar(
-          backgroundColor: AppColors.bg,
+          backgroundColor: AppColors.of(context).bg,
           surfaceTintColor: Colors.transparent,
           title: Text('Mis solicitudes', style: AppText.serif(22)),
           bottom: TabBar(
-            indicatorColor: AppColors.teal,
-            labelColor: AppColors.teal,
-            unselectedLabelColor: AppColors.texto2,
-            dividerColor: AppColors.borde,
+            indicatorColor: AppColors.of(context).teal,
+            labelColor: AppColors.of(context).teal,
+            unselectedLabelColor: AppColors.of(context).texto2,
+            dividerColor: AppColors.of(context).borde,
             labelStyle: AppText.poppins(14.5, weight: FontWeight.w600),
             tabs: [
               Tab(
@@ -249,8 +255,8 @@ class _SolicitudesScreenState extends State<SolicitudesScreen>
                       const SizedBox(width: 6),
                       Badge(
                         label: Text('$pendientes'),
-                        backgroundColor: AppColors.amarillo,
-                        textColor: AppColors.bg,
+                        backgroundColor: AppColors.of(context).amarillo,
+                        textColor: AppColors.of(context).bg,
                       ),
                     ],
                   ],
@@ -429,16 +435,16 @@ class _SolicitudesScreenState extends State<SolicitudesScreen>
   }
 
   ButtonStyle _estiloPrincipal() => FilledButton.styleFrom(
-    backgroundColor: AppColors.teal,
-    foregroundColor: AppColors.bg,
+    backgroundColor: AppColors.of(context).teal,
+    foregroundColor: AppColors.of(context).bg,
     minimumSize: const Size(48, 44),
     textStyle: AppText.poppins(14, weight: FontWeight.w700),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
   );
 
   ButtonStyle _estiloSecundario() => OutlinedButton.styleFrom(
-    foregroundColor: AppColors.texto,
-    side: const BorderSide(color: AppColors.bordeCampo),
+    foregroundColor: AppColors.of(context).texto,
+    side: BorderSide(color: AppColors.of(context).bordeCampo),
     minimumSize: const Size(48, 44),
     textStyle: AppText.poppins(14, weight: FontWeight.w600),
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -467,8 +473,8 @@ class _Lista extends StatelessWidget {
     final lista = solicitudes;
     Widget contenido;
     if (lista == null && error == null) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.teal),
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.of(context).teal),
       );
     } else if (error != null || lista == null) {
       contenido = Column(
@@ -490,8 +496,8 @@ class _Lista extends StatelessWidget {
       );
     } else {
       return RefreshIndicator(
-        color: AppColors.teal,
-        backgroundColor: AppColors.card,
+        color: AppColors.of(context).teal,
+        backgroundColor: AppColors.of(context).card,
         onRefresh: onRecargar,
         child: ListView.separated(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -508,8 +514,8 @@ class _Lista extends StatelessWidget {
       );
     }
     return RefreshIndicator(
-      color: AppColors.teal,
-      backgroundColor: AppColors.card,
+      color: AppColors.of(context).teal,
+      backgroundColor: AppColors.of(context).card,
       onRefresh: onRecargar,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -535,14 +541,18 @@ class _Aviso extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icono, size: 48, color: AppColors.texto2),
+        Icon(icono, size: 48, color: AppColors.of(context).texto2),
         const SizedBox(height: 16),
         Text(titulo, textAlign: TextAlign.center, style: AppText.serif(24)),
         const SizedBox(height: 8),
         Text(
           texto,
           textAlign: TextAlign.center,
-          style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
+          style: AppText.poppins(
+            14,
+            color: AppColors.of(context).texto2,
+            height: 1.5,
+          ),
         ),
       ],
     );
@@ -550,13 +560,14 @@ class _Aviso extends StatelessWidget {
 }
 
 /// Estado de una solicitud -> color; los estados desconocidos usan gris.
-Color colorEstadoSolicitud(String estado) => switch (estado) {
-  'Pendiente' => AppColors.amarillo,
-  'Aceptada' => AppColors.teal2,
-  'Completada' => const Color(0xFF34D399),
-  'Rechazada' => AppColors.errorTexto,
-  _ => const Color(0xFF94A3B8), // Cancelada
-};
+Color colorEstadoSolicitud(BuildContext context, String estado) =>
+    switch (estado) {
+      'Pendiente' => AppColors.of(context).amarillo,
+      'Aceptada' => AppColors.of(context).teal2,
+      'Completada' => AppColors.of(context).legible(const Color(0xFF34D399)),
+      'Rechazada' => AppColors.of(context).errorTexto,
+      _ => AppColors.of(context).legible(const Color(0xFF94A3B8)), // Cancelada
+    };
 
 // Nombres legibles de los campos extra que devuelve la API.
 const _nombresCampos = {
@@ -585,7 +596,7 @@ class _TarjetaSolicitud extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = solicitud;
-    final color = colorEstadoSolicitud(s.estado);
+    final color = colorEstadoSolicitud(context, s.estado);
     final datos = <(String, String)>[
       if (s.presupuesto != null)
         ('Presupuesto', formatearPrecio(s.presupuesto!)),
@@ -615,7 +626,7 @@ class _TarjetaSolicitud extends StatelessWidget {
     ];
 
     return Material(
-      color: AppColors.card,
+      color: AppColors.of(context).card,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -625,7 +636,9 @@ class _TarjetaSolicitud extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: s.activa ? AppColors.a(color, 0.35) : AppColors.borde,
+              color: s.activa
+                  ? AppColors.a(color, 0.35)
+                  : AppColors.of(context).borde,
             ),
           ),
           child: Column(
@@ -657,7 +670,10 @@ class _TarjetaSolicitud extends StatelessWidget {
                               : 'De ${s.cliente.nombre}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppText.poppins(13, color: AppColors.texto2),
+                          style: AppText.poppins(
+                            13,
+                            color: AppColors.of(context).texto2,
+                          ),
                         ),
                       ],
                     ),
@@ -691,7 +707,7 @@ class _TarjetaSolicitud extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppText.poppins(
                     13.5,
-                    color: AppColors.texto,
+                    color: AppColors.of(context).texto,
                     height: 1.45,
                   ),
                 ),
@@ -710,7 +726,7 @@ class _TarjetaSolicitud extends StatelessWidget {
                               text: '$k: ',
                               style: AppText.poppins(
                                 12.5,
-                                color: AppColors.texto2,
+                                color: AppColors.of(context).texto2,
                               ),
                             ),
                             TextSpan(
@@ -733,7 +749,7 @@ class _TarjetaSolicitud extends StatelessWidget {
                   'Motivo: ${s.motivoRechazo}',
                   style: AppText.poppins(
                     12.5,
-                    color: AppColors.texto2,
+                    color: AppColors.of(context).texto2,
                     height: 1.4,
                   ),
                 ),
@@ -744,7 +760,7 @@ class _TarjetaSolicitud extends StatelessWidget {
                   s.avisoContraoferta!,
                   style: AppText.poppins(
                     13,
-                    color: AppColors.teal2,
+                    color: AppColors.of(context).teal2,
                     height: 1.4,
                   ),
                 ),
@@ -752,7 +768,7 @@ class _TarjetaSolicitud extends StatelessWidget {
               if (acciones.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 ocupada
-                    ? const Center(
+                    ? Center(
                         child: Padding(
                           padding: EdgeInsets.all(10),
                           child: SizedBox(
@@ -760,7 +776,7 @@ class _TarjetaSolicitud extends StatelessWidget {
                             height: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.teal,
+                              color: AppColors.of(context).teal,
                             ),
                           ),
                         ),
@@ -789,7 +805,9 @@ class _Miniatura extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const lado = 52.0;
-    final color = coloresCategoria[categoria]?.color ?? AppColors.teal;
+    final color = AppColors.of(
+      context,
+    ).legible(coloresCategoria[categoria]?.color ?? AppColors.of(context).teal);
     final respaldo = ColoredBox(
       color: AppColors.a(color, 0.15),
       child: Icon(
@@ -840,7 +858,7 @@ class _DialogoContraofertaState extends State<_DialogoContraoferta> {
   Widget build(BuildContext context) {
     final s = widget.solicitud;
     return AlertDialog(
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       title: Text('Enviar contraoferta', style: AppText.serif(22)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
@@ -850,7 +868,11 @@ class _DialogoContraofertaState extends State<_DialogoContraoferta> {
             s.presupuesto != null
                 ? '${s.cliente.nombre} ofrece ${formatearPrecio(s.presupuesto!)}. Propón otro precio; cuando lo acepte podrás confirmar el servicio.'
                 : 'Propón un precio; cuando el cliente lo acepte podrás confirmar el servicio.',
-            style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
+            style: AppText.poppins(
+              14,
+              color: AppColors.of(context).texto2,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 14),
           TextField(
@@ -910,7 +932,7 @@ class _DialogoRechazarState extends State<_DialogoRechazar> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       title: Text('Rechazar solicitud', style: AppText.serif(22)),
       content: TextField(
         controller: _motivo,
@@ -941,7 +963,9 @@ class _DialogoRechazarState extends State<_DialogoRechazar> {
             }
             Navigator.of(context).pop(t);
           },
-          style: TextButton.styleFrom(foregroundColor: AppColors.errorTexto),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.of(context).errorTexto,
+          ),
           child: const Text('Rechazar'),
         ),
       ],

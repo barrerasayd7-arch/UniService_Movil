@@ -36,7 +36,8 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
   String _busqueda = '';
   // La cola de pendientes nace filtrada; la vista general empieza sin filtro.
   late String _estado = widget.soloPendientes ? 'pendiente' : '';
-  int? _accionando; // id del servicio con una acción en curso (deshabilita las demás)
+  int?
+  _accionando; // id del servicio con una acción en curso (deshabilita las demás)
 
   @override
   void dispose() {
@@ -140,7 +141,7 @@ class _AdminServiciosScreenState extends State<AdminServiciosScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       builder: (_) => _DetalleServicio(servicio: s),
     );
     if (accion == null || !mounted) return;
@@ -226,7 +227,8 @@ class _TarjetaServicio extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (etiqueta, color) = estadoServicio(s.estado);
+    final (etiqueta, colorOriginal) = estadoServicio(s.estado);
+    final color = AppColors.of(context).legible(colorOriginal);
     final icono = iconosPorCategoria[s.categoria] ?? iconoPorDefecto;
     final pendiente = s.estado == 'pendiente';
     final publicado = s.estado == 'aprobado' || s.estado == 'pausado';
@@ -247,18 +249,21 @@ class _TarjetaServicio extends StatelessWidget {
                   height: 64,
                   child: s.imagen == null
                       ? ColoredBox(
-                          color: AppColors.bg3,
-                          child: Icon(icono, color: AppColors.texto2),
+                          color: AppColors.of(context).bg3,
+                          child: Icon(
+                            icono,
+                            color: AppColors.of(context).texto2,
+                          ),
                         )
                       : Image.network(
                           s.imagen!,
                           fit: BoxFit.cover,
                           cacheWidth: 160,
-                          errorBuilder: (_, _, _) => const ColoredBox(
-                            color: AppColors.bg3,
+                          errorBuilder: (_, _, _) => ColoredBox(
+                            color: AppColors.of(context).bg3,
                             child: Icon(
                               Icons.broken_image_outlined,
-                              color: AppColors.texto3,
+                              color: AppColors.of(context).texto3,
                             ),
                           ),
                         ),
@@ -284,12 +289,18 @@ class _TarjetaServicio extends StatelessWidget {
                       '${s.proveedor} · ${etiquetaCategoria(s.categoria)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.poppins(12.5, color: AppColors.texto2),
+                      style: AppText.poppins(
+                        12.5,
+                        color: AppColors.of(context).texto2,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${formatearPrecio(s.precio)} ${unidadesPrecio[s.unidadPrecio] ?? ''} · ${formatearFecha(s.fechaPublicacion)}',
-                      style: AppText.poppins(12.5, color: AppColors.texto2),
+                      style: AppText.poppins(
+                        12.5,
+                        color: AppColors.of(context).texto2,
+                      ),
                     ),
                   ],
                 ),
@@ -306,12 +317,12 @@ class _TarjetaServicio extends StatelessWidget {
                 PildoraEstado(
                   texto:
                       '${s.reportes} ${s.reportes == 1 ? 'reporte' : 'reportes'}',
-                  color: AppColors.errorTexto,
+                  color: AppColors.of(context).errorTexto,
                 ),
               if (!s.proveedorActivo)
-                const PildoraEstado(
+                PildoraEstado(
                   texto: 'Proveedor suspendido',
-                  color: AppColors.errorTexto,
+                  color: AppColors.of(context).errorTexto,
                 ),
             ],
           ),
@@ -322,7 +333,7 @@ class _TarjetaServicio extends StatelessWidget {
               'Motivo: ${s.motivoRechazo}',
               style: AppText.poppins(
                 12.5,
-                color: AppColors.texto2,
+                color: AppColors.of(context).texto2,
                 height: 1.4,
               ),
             ),
@@ -336,20 +347,20 @@ class _TarjetaServicio extends StatelessWidget {
               BotonAdmin(
                 label: 'Ver',
                 icono: Icons.visibility_outlined,
-                color: AppColors.texto2,
+                color: AppColors.of(context).texto2,
                 onTap: bloqueado ? null : onVer,
               ),
               if (pendiente) ...[
                 BotonAdmin(
                   label: 'Rechazar',
                   icono: Icons.close_rounded,
-                  color: AppColors.errorTexto,
+                  color: AppColors.of(context).errorTexto,
                   onTap: bloqueado ? null : onRechazar,
                 ),
                 BotonAdmin(
                   label: 'Aprobar',
                   icono: Icons.check_rounded,
-                  color: AppColors.verificado,
+                  color: AppColors.of(context).verificado,
                   relleno: true,
                   cargando: ocupado,
                   onTap: bloqueado ? null : onAprobar,
@@ -359,7 +370,7 @@ class _TarjetaServicio extends StatelessWidget {
                 BotonAdmin(
                   label: 'Ocultar',
                   icono: Icons.visibility_off_outlined,
-                  color: AppColors.amarillo,
+                  color: AppColors.of(context).amarillo,
                   cargando: ocupado,
                   onTap: bloqueado ? null : onOcultar,
                 ),
@@ -410,12 +421,12 @@ class _DetalleServicioState extends State<_DetalleServicio> {
 
   Widget _cuerpo() {
     if (_cargando) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: 32),
         child: Center(
           child: CircularProgressIndicator(
             strokeWidth: 2.4,
-            color: AppColors.admin,
+            color: AppColors.of(context).admin,
           ),
         ),
       );
@@ -427,11 +438,11 @@ class _DetalleServicioState extends State<_DetalleServicio> {
           Text(
             _error ?? 'No pudimos cargar el servicio.',
             textAlign: TextAlign.center,
-            style: AppText.poppins(14, color: AppColors.texto2),
+            style: AppText.poppins(14, color: AppColors.of(context).texto2),
           ),
           AuthTextButton(
             label: 'Reintentar',
-            color: AppColors.admin,
+            color: AppColors.of(context).admin,
             onTap: _cargar,
           ),
         ],
@@ -445,7 +456,7 @@ class _DetalleServicioState extends State<_DetalleServicio> {
         if (imgs.isEmpty)
           Text(
             'Este servicio no tiene imágenes.',
-            style: AppText.poppins(13.5, color: AppColors.texto2),
+            style: AppText.poppins(13.5, color: AppColors.of(context).texto2),
           )
         else
           SizedBox(
@@ -467,16 +478,16 @@ class _DetalleServicioState extends State<_DetalleServicio> {
                         width: 110,
                         height: 110,
                         child: url == null
-                            ? const ColoredBox(color: AppColors.bg3)
+                            ? ColoredBox(color: AppColors.of(context).bg3)
                             : Image.network(
                                 url,
                                 fit: BoxFit.cover,
                                 cacheWidth: 260,
-                                errorBuilder: (_, _, _) => const ColoredBox(
-                                  color: AppColors.bg3,
+                                errorBuilder: (_, _, _) => ColoredBox(
+                                  color: AppColors.of(context).bg3,
                                   child: Icon(
                                     Icons.broken_image_outlined,
-                                    color: AppColors.texto3,
+                                    color: AppColors.of(context).texto3,
                                   ),
                                 ),
                               ),
@@ -492,9 +503,9 @@ class _DetalleServicioState extends State<_DetalleServicio> {
           width: double.infinity,
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.bg2,
+            color: AppColors.of(context).bg2,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borde),
+            border: Border.all(color: AppColors.of(context).borde),
           ),
           child: Text(
             sv.descripcion.isEmpty ? 'Sin descripción.' : sv.descripcion,
@@ -530,7 +541,8 @@ class _DetalleServicioState extends State<_DetalleServicio> {
   @override
   Widget build(BuildContext context) {
     final s = widget.servicio;
-    final (etiqueta, color) = estadoServicio(s.estado);
+    final (etiqueta, colorOriginal) = estadoServicio(s.estado);
+    final color = AppColors.of(context).legible(colorOriginal);
     return SafeArea(
       child: ConstrainedBox(
         constraints: BoxConstraints(
@@ -553,7 +565,7 @@ class _DetalleServicioState extends State<_DetalleServicio> {
                     PildoraEstado(
                       texto:
                           '${s.reportes} ${s.reportes == 1 ? 'reporte' : 'reportes'}',
-                      color: AppColors.errorTexto,
+                      color: AppColors.of(context).errorTexto,
                     ),
                 ],
               ),
@@ -564,7 +576,7 @@ class _DetalleServicioState extends State<_DetalleServicio> {
                   'Motivo: ${s.motivoRechazo}',
                   style: AppText.poppins(
                     13.5,
-                    color: AppColors.texto2,
+                    color: AppColors.of(context).texto2,
                     height: 1.4,
                   ),
                 ),
@@ -579,7 +591,7 @@ class _DetalleServicioState extends State<_DetalleServicio> {
                       child: BotonAdmin(
                         label: 'Rechazar',
                         icono: Icons.close_rounded,
-                        color: AppColors.errorTexto,
+                        color: AppColors.of(context).errorTexto,
                         expandido: true,
                         onTap: () => Navigator.of(context).pop('rechazar'),
                       ),
@@ -589,7 +601,7 @@ class _DetalleServicioState extends State<_DetalleServicio> {
                       child: BotonAdmin(
                         label: 'Aprobar',
                         icono: Icons.check_rounded,
-                        color: AppColors.verificado,
+                        color: AppColors.of(context).verificado,
                         relleno: true,
                         expandido: true,
                         onTap: () => Navigator.of(context).pop('aprobar'),
@@ -602,7 +614,7 @@ class _DetalleServicioState extends State<_DetalleServicio> {
                 BotonAdmin(
                   label: 'Ocultar servicio',
                   icono: Icons.visibility_off_outlined,
-                  color: AppColors.amarillo,
+                  color: AppColors.of(context).amarillo,
                   expandido: true,
                   onTap: () => Navigator.of(context).pop('ocultar'),
                 ),

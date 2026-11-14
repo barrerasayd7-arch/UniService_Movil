@@ -83,7 +83,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           : await PerfilRepository.instance.miPerfil();
       if (mounted) setState(() => _perfil = perfil);
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.status == 404 ? 'Este perfil no existe o no está disponible.' : e.mensaje);
+      if (mounted)
+        setState(
+          () => _error = e.status == 404
+              ? 'Este perfil no existe o no está disponible.'
+              : e.mensaje,
+        );
     }
   }
 
@@ -93,8 +98,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final seguir = !_usuario.loSigo;
     setState(() => _guardandoSeguir = true);
     try {
-      final total = await PerfilRepository.instance.seguir(_usuario.id, seguir: seguir);
-      if (mounted) setState(() => _perfil = _usuario.copyWith(loSigo: seguir, totalSeguidores: total));
+      final total = await PerfilRepository.instance.seguir(
+        _usuario.id,
+        seguir: seguir,
+      );
+      if (mounted)
+        setState(
+          () => _perfil = _usuario.copyWith(
+            loSigo: seguir,
+            totalSeguidores: total,
+          ),
+        );
     } on ApiException catch (e) {
       if (mounted) mostrarNotificacion(context, e.mensaje);
     } finally {
@@ -170,8 +184,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Botón flotante: problema general. En perfiles ajenos: "Reportar usuario".
   void _reportarProblema() => mostrarReportar(context);
-  void _reportarUsuario() =>
-      mostrarReportar(context, idUsuario: _usuario.id, nombreUsuario: _usuario.nombre);
+  void _reportarUsuario() => mostrarReportar(
+    context,
+    idUsuario: _usuario.id,
+    nombreUsuario: _usuario.nombre,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -180,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final movil = ancho <= 1100;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       // SafeArea: la barra superior no queda bajo la hora/batería del celular.
       body: SafeArea(
         bottom: false,
@@ -205,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Expanded(
                   child: _perfil != null
                       ? RefreshIndicator(
-                          color: AppColors.teal,
+                          color: AppColors.of(context).teal,
                           onRefresh: _cargar,
                           child: SingleChildScrollView(
                             physics: const AlwaysScrollableScrollPhysics(),
@@ -237,7 +254,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Spinner mientras no hay perfil; si falló, mensaje con reintento.
   Widget _estadoCarga() {
     if (_error == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.teal));
+      return Center(
+        child: CircularProgressIndicator(color: AppColors.of(context).teal),
+      );
     }
     return Center(
       child: Padding(
@@ -245,18 +264,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.person_off_outlined, size: 48, color: AppColors.texto3),
+            Icon(
+              Icons.person_off_outlined,
+              size: 48,
+              color: AppColors.of(context).texto3,
+            ),
             const SizedBox(height: 12),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: AppText.poppins(14.4, color: AppColors.texto2),
+              style: AppText.poppins(14.4, color: AppColors.of(context).texto2),
             ),
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: _cargar,
-              icon: const Icon(Icons.refresh, color: AppColors.teal),
-              label: Text('Reintentar', style: AppText.poppins(14, color: AppColors.teal)),
+              icon: Icon(Icons.refresh, color: AppColors.of(context).teal),
+              label: Text(
+                'Reintentar',
+                style: AppText.poppins(14, color: AppColors.of(context).teal),
+              ),
             ),
           ],
         ),
@@ -283,7 +309,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           context,
           tieneAvatar: _usuario.avatarUrl != null,
           onCambio: (url) => setState(
-            () => _perfil = _usuario.copyWith(avatarUrl: url, quitarAvatar: url == null),
+            () => _perfil = _usuario.copyWith(
+              avatarUrl: url,
+              quitarAvatar: url == null,
+            ),
           ),
         ),
         onSeguidores: _abrirSeguidores,
@@ -295,9 +324,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         onCompartir: _compartir,
         onSeguir: _alternarSeguir,
-        onChatear: () => Navigator.of(context).pushNamed('/chat', arguments: DestinoChat(
-          contacto: ContactoChat(id: _usuario.id, nombre: _usuario.nombre, avatar: _usuario.avatarUrl),
-        )),
+        onChatear: () => Navigator.of(context).pushNamed(
+          '/chat',
+          arguments: DestinoChat(
+            contacto: ContactoChat(
+              id: _usuario.id,
+              nombre: _usuario.nombre,
+              avatar: _usuario.avatarUrl,
+            ),
+          ),
+        ),
       ),
     );
 
@@ -307,9 +343,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       totalServicios: _totalServicios,
       onSeguridad: () => mostrarSeguridad(context),
       onReportarUsuario: _reportarUsuario,
-      onMisServicios: () => Navigator.of(context)
-          .pushNamed('/mis-servicios')
-          .then((_) => _contarServicios()),
+      onMisServicios: () => Navigator.of(
+        context,
+      ).pushNamed('/mis-servicios').then((_) => _contarServicios()),
     );
 
     return Padding(
@@ -406,7 +442,7 @@ class _BotonReportar extends StatelessWidget {
                 child: Icon(
                   Icons.bug_report,
                   size: icono,
-                  color: const Color(0xFFF87171),
+                  color: AppColors.of(context).errorTexto,
                 ),
               ),
             ),
@@ -474,12 +510,19 @@ class _TarjetaPerfil extends StatelessWidget {
         transform: Matrix4.translationValues(0, hover ? -4 : 0, 0),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: AppColors.of(context).card,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: hover ? AppColors.teal2 : AppColors.borde),
+          border: Border.all(
+            color: hover
+                ? AppColors.of(context).teal2
+                : AppColors.of(context).borde,
+          ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.a(AppColors.teal, hover ? 0.25 : 0.10),
+              color: AppColors.a(
+                AppColors.of(context).teal,
+                hover ? 0.25 : 0.10,
+              ),
               blurRadius: hover ? 60 : 32,
               offset: Offset(0, hover ? 20 : 8),
             ),
@@ -555,7 +598,9 @@ class _TarjetaPerfil extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
                       usuario.descripcion.isEmpty
-                          ? (externo ? 'Sin descripción.' : 'Aún no tienes descripción. Toca "Editar Perfil" para agregarla.')
+                          ? (externo
+                                ? 'Sin descripción.'
+                                : 'Aún no tienes descripción. Toca "Editar Perfil" para agregarla.')
                           : usuario.descripcion,
                       textAlign: TextAlign.center,
                       style: AppText.poppins(
@@ -568,9 +613,9 @@ class _TarjetaPerfil extends StatelessWidget {
                   const SizedBox(height: 25),
                   Container(
                     padding: const EdgeInsets.only(bottom: 25),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(
-                        bottom: BorderSide(color: AppColors.borde),
+                        bottom: BorderSide(color: AppColors.of(context).borde),
                       ),
                     ),
                     child: Row(
@@ -731,7 +776,10 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.a(AppColors.amarillo, 0.3),
+                            color: AppColors.a(
+                              AppColors.of(context).amarillo,
+                              0.3,
+                            ),
                             blurRadius: 20,
                           ),
                           BoxShadow(
@@ -750,10 +798,10 @@ class _AvatarState extends State<_Avatar> with SingleTickerProviderStateMixin {
                 height: s,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.bg, width: 4),
+                  border: Border.all(color: AppColors.of(context).bg, width: 4),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.a(AppColors.teal, 0.3),
+                      color: AppColors.a(AppColors.of(context).teal, 0.3),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -824,7 +872,9 @@ class _PanelDerecho extends StatelessWidget {
       if (!externo)
         InfoItem(
           label: 'Teléfono (solo tú lo ves)',
-          value: (usuario.telefono ?? '').isEmpty ? 'No disponible' : usuario.telefono!,
+          value: (usuario.telefono ?? '').isEmpty
+              ? 'No disponible'
+              : usuario.telefono!,
         )
       else
         InfoItem(
@@ -842,7 +892,7 @@ class _PanelDerecho extends StatelessWidget {
       else
         MenuItem(
           icono: Icons.flag,
-          colorIcono: const Color(0xFFFF6B6B),
+          colorIcono: AppColors.of(context).errorTexto,
           title: 'Reportar usuario',
           desc: 'Acoso, fraude, abuso u otro motivo',
           onTap: onReportarUsuario,

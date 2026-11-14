@@ -93,9 +93,10 @@ class SoporteScreen extends StatelessWidget {
                       child: Text(pagina.titulo, style: AppText.serif(32)),
                     ),
                     const SizedBox(height: 24),
-                    if (legal) ..._legal(),
+                    if (legal) ..._legal(context),
                     if (pagina == PaginaSoporte.ayuda) ...[
                       _parrafo(
+                        context,
                         'Encuentra respuestas sobre tu cuenta, tus publicaciones y tus solicitudes.',
                       ),
                       const SizedBox(height: 16),
@@ -118,22 +119,24 @@ class SoporteScreen extends StatelessWidget {
                               16,
                               20,
                             ),
-                            children: [_parrafo(pregunta.texto)],
+                            children: [_parrafo(context, pregunta.texto)],
                           ),
                         ),
                     ],
                     if (pagina == PaginaSoporte.contacto) ...[
-                      const Icon(
+                      Icon(
                         Icons.support_agent,
                         size: 48,
-                        color: AppColors.teal,
+                        color: AppColors.of(context).teal,
                       ),
                       const SizedBox(height: 16),
                       _parrafo(
+                        context,
                         'Los canales oficiales de contacto aún no están disponibles. Publicaremos aquí la información de atención cuando esté definida.',
                       ),
                       const SizedBox(height: 16),
                       _parrafo(
+                        context,
                         'Mientras tanto, puedes consultar el Centro de ayuda. Si necesitas reportar un servicio, utiliza la opción Reportar en su detalle.',
                       ),
                     ],
@@ -161,10 +164,13 @@ class SoporteScreen extends StatelessWidget {
     );
   }
 
-  List<Widget> _legal() {
+  List<Widget> _legal(BuildContext context) {
     final esTerminos = pagina == PaginaSoporte.terminos;
     return [
-      _parrafo(esTerminos ? introduccionTerminos : introduccionPrivacidad),
+      _parrafo(
+        context,
+        esTerminos ? introduccionTerminos : introduccionPrivacidad,
+      ),
       for (final seccion in esTerminos ? terminos : privacidad) ...[
         const SizedBox(height: 28),
         Semantics(
@@ -175,20 +181,24 @@ class SoporteScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        _parrafo(seccion.texto),
+        _parrafo(context, seccion.texto),
       ],
       if (!esTerminos) ...[
         const SizedBox(height: 24),
-        _parrafo(avisoPrivacidad, destacado: true),
+        _parrafo(context, avisoPrivacidad, destacado: true),
       ],
     ];
   }
 
-  Widget _parrafo(String texto, {bool destacado = false}) => SelectableText(
+  Widget _parrafo(
+    BuildContext context,
+    String texto, {
+    bool destacado = false,
+  }) => SelectableText(
     texto,
     style: AppText.poppins(
       15,
-      color: AppColors.texto2,
+      color: AppColors.of(context).texto2,
       height: 1.7,
       weight: destacado ? FontWeight.w600 : FontWeight.w400,
     ),

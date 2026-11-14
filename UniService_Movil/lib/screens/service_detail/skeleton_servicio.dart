@@ -21,8 +21,10 @@ class _SkeletonServicioState extends State<SkeletonServicio>
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))
-      ..repeat();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
   }
 
   @override
@@ -50,7 +52,11 @@ class _SkeletonServicioState extends State<SkeletonServicio>
                 begin: Alignment(dx - 1, 0),
                 end: Alignment(dx + 1, 0),
                 stops: const [0.25, 0.5, 0.75],
-                colors: const [AppColors.bg2, AppColors.bg3, AppColors.bg2],
+                colors: [
+                  AppColors.of(context).bg2,
+                  AppColors.of(context).bg3,
+                  AppColors.of(context).bg2,
+                ],
               ),
             ),
           ),
@@ -65,11 +71,7 @@ class _SkeletonServicioState extends State<SkeletonServicio>
       padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _barra(40, 0.6),
-          _barra(20, 0.9),
-          _barra(20, 0.4),
-        ],
+        children: [_barra(40, 0.6), _barra(20, 0.9), _barra(20, 0.4)],
       ),
     );
   }

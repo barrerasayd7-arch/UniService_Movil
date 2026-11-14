@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
+import '../../widgets/boton_tema.dart';
 import '../../widgets/animacion_ambiental.dart';
 import '../../widgets/cosmos_background.dart';
 import 'auth_lateral.dart';
@@ -44,7 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final apilado = MediaQuery.sizeOf(context).width < Breakpoints.authStack;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       body: Stack(
         children: [
           if (!apilado)
@@ -95,6 +96,11 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+          const Positioned(
+            top: 8,
+            right: 8,
+            child: SafeArea(child: BotonTema()),
+          ),
         ],
       ),
     );
@@ -120,12 +126,14 @@ class _AuthBox extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.of(context).card,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(77),
+            color: Colors.black.withAlpha(
+              AppColors.of(context).oscuro ? 77 : 20,
+            ),
             blurRadius: 40,
             offset: const Offset(0, 16),
           ),

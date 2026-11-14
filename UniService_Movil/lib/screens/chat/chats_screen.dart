@@ -96,9 +96,9 @@ class _ChatsScreenState extends State<ChatsScreen>
         )
         .toList();
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         surfaceTintColor: Colors.transparent,
         title: Text('Mis chats', style: AppText.serif(25)),
         actions: [
@@ -123,10 +123,12 @@ class _ChatsScreenState extends State<ChatsScreen>
                       hintText: 'Buscar una conversación',
                       prefixIcon: const Icon(Icons.search),
                       filled: true,
-                      fillColor: AppColors.card,
+                      fillColor: AppColors.of(context).card,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide: const BorderSide(color: AppColors.borde),
+                        borderSide: BorderSide(
+                          color: AppColors.of(context).borde,
+                        ),
                       ),
                     ),
                   ),
@@ -164,10 +166,10 @@ class _ChatsScreenState extends State<ChatsScreen>
                                   ),
                                   child: Column(
                                     children: [
-                                      const Icon(
+                                      Icon(
                                         Icons.forum_outlined,
                                         size: 56,
-                                        color: AppColors.teal,
+                                        color: AppColors.of(context).teal,
                                       ),
                                       const SizedBox(height: 20),
                                       Text(
@@ -186,7 +188,7 @@ class _ChatsScreenState extends State<ChatsScreen>
                                         textAlign: TextAlign.center,
                                         style: AppText.poppins(
                                           14,
-                                          color: AppColors.texto2,
+                                          color: AppColors.of(context).texto2,
                                         ),
                                       ),
                                     ],
@@ -195,7 +197,7 @@ class _ChatsScreenState extends State<ChatsScreen>
                               }
                               final c = chats[i];
                               return Material(
-                                color: AppColors.card,
+                                color: AppColors.of(context).card,
                                 borderRadius: BorderRadius.circular(16),
                                 clipBehavior: Clip.antiAlias,
                                 child: ListTile(
@@ -227,7 +229,7 @@ class _ChatsScreenState extends State<ChatsScreen>
                                     overflow: TextOverflow.ellipsis,
                                     style: AppText.poppins(
                                       12,
-                                      color: AppColors.texto2,
+                                      color: AppColors.of(context).texto2,
                                     ),
                                   ),
                                   trailing: Column(
@@ -238,7 +240,7 @@ class _ChatsScreenState extends State<ChatsScreen>
                                         fechaChat(c.fecha),
                                         style: AppText.poppins(
                                           10,
-                                          color: AppColors.texto2,
+                                          color: AppColors.of(context).texto2,
                                         ),
                                       ),
                                       if (c.noLeidos > 0) ...[
@@ -249,8 +251,10 @@ class _ChatsScreenState extends State<ChatsScreen>
                                                 ? '99+'
                                                 : '${c.noLeidos}',
                                           ),
-                                          backgroundColor: AppColors.teal,
-                                          textColor: AppColors.bg,
+                                          backgroundColor: AppColors.of(
+                                            context,
+                                          ).teal,
+                                          textColor: AppColors.of(context).bg,
                                         ),
                                       ],
                                     ],

@@ -53,28 +53,30 @@ class ProveedorCard extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: hover ? AppColors.a(AppColors.teal, 0.4) : AppColors.borde,
+              color: hover
+                  ? AppColors.a(AppColors.of(context).teal, 0.4)
+                  : AppColors.of(context).borde,
             ),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               stops: const [0, 0.5, 1],
               colors: [
-                const Color(0xFF0E1929),
+                AppColors.of(context).card,
                 Color.alphaBlend(
-                  AppColors.a(AppColors.teal, 0.05),
-                  const Color(0xFF0E1929),
+                  AppColors.a(AppColors.of(context).teal, 0.05),
+                  AppColors.of(context).card,
                 ),
                 Color.alphaBlend(
-                  AppColors.a(AppColors.violeta, 0.03),
-                  const Color(0xFF0E1929),
+                  AppColors.a(AppColors.of(context).violeta, 0.03),
+                  AppColors.of(context).card,
                 ),
               ],
             ),
             boxShadow: hover
                 ? [
                     BoxShadow(
-                      color: AppColors.a(AppColors.teal, 0.12),
+                      color: AppColors.a(AppColors.of(context).teal, 0.12),
                       blurRadius: 40,
                       offset: const Offset(0, 12),
                     ),
@@ -102,7 +104,7 @@ class ProveedorCard extends StatelessWidget {
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          AppColors.a(AppColors.teal, 0.08),
+                          AppColors.a(AppColors.of(context).teal, 0.08),
                           Colors.transparent,
                         ],
                         stops: const [0, 0.7],
@@ -127,7 +129,7 @@ class ProveedorCard extends StatelessWidget {
                             colors: colores,
                           ),
                           border: Border.all(
-                            color: Colors.white.withAlpha(26),
+                            color: AppColors.of(context).borde,
                             width: 3,
                           ),
                           boxShadow: [
@@ -142,9 +144,12 @@ class ProveedorCard extends StatelessWidget {
                             ? Image.network(
                                 detalle.proveedor.avatar!,
                                 fit: BoxFit.cover,
-                                cacheWidth: (avatar *
-                                        MediaQuery.devicePixelRatioOf(context))
-                                    .round(),
+                                cacheWidth:
+                                    (avatar *
+                                            MediaQuery.devicePixelRatioOf(
+                                              context,
+                                            ))
+                                        .round(),
                                 errorBuilder: avatarRespaldo,
                               )
                             : Image.asset(
@@ -167,7 +172,9 @@ class ProveedorCard extends StatelessWidget {
                               style: AppText.poppins(
                                 movil ? 15.2 : 17.6,
                                 weight: FontWeight.w700,
-                                color: hover ? AppColors.teal : AppColors.texto,
+                                color: hover
+                                    ? AppColors.of(context).teal
+                                    : AppColors.of(context).texto,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -177,7 +184,7 @@ class ProveedorCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: AppText.poppins(
                                 13.6,
-                                color: AppColors.texto2,
+                                color: AppColors.of(context).texto2,
                               ),
                             ),
                           ],
@@ -190,7 +197,7 @@ class ProveedorCard extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 14),
                     decoration: BoxDecoration(
                       border: Border(
-                        top: BorderSide(color: Colors.white.withAlpha(15)),
+                        top: BorderSide(color: AppColors.of(context).borde),
                       ),
                     ),
                     child: Row(
@@ -203,16 +210,16 @@ class ProveedorCard extends StatelessWidget {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(10),
+                              color: AppColors.of(context).cardHover,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.star_rounded,
                                   size: 14,
-                                  color: AppColors.estrella,
+                                  color: AppColors.of(context).estrella,
                                 ),
                                 const SizedBox(width: 4),
                                 Flexible(
@@ -224,7 +231,7 @@ class ProveedorCard extends StatelessWidget {
                                     style: AppText.poppins(
                                       13.12,
                                       weight: FontWeight.w500,
-                                      color: AppColors.texto2,
+                                      color: AppColors.of(context).texto2,
                                     ),
                                   ),
                                 ),
@@ -249,7 +256,7 @@ class ProveedorCard extends StatelessWidget {
                               style: AppText.poppins(
                                 12.8,
                                 weight: FontWeight.w600,
-                                color: AppColors.teal,
+                                color: AppColors.of(context).teal,
                               ),
                             ),
                           ),

@@ -104,10 +104,12 @@ class _ItemActividad extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.a(AppColors.admin, 0.12),
-              border: Border.all(color: AppColors.a(AppColors.admin, 0.3)),
+              color: AppColors.a(AppColors.of(context).admin, 0.12),
+              border: Border.all(
+                color: AppColors.a(AppColors.of(context).admin, 0.3),
+              ),
             ),
-            child: Icon(icono, size: 18, color: AppColors.admin),
+            child: Icon(icono, size: 18, color: AppColors.of(context).admin),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -124,7 +126,7 @@ class _ItemActividad extends StatelessWidget {
                     a.detalle!,
                     style: AppText.poppins(
                       13,
-                      color: AppColors.texto2,
+                      color: AppColors.of(context).texto2,
                       height: 1.4,
                     ),
                   ),
@@ -132,7 +134,10 @@ class _ItemActividad extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${a.admin} · $cuando',
-                  style: AppText.poppins(12, color: AppColors.texto3),
+                  style: AppText.poppins(
+                    12,
+                    color: AppColors.of(context).texto3,
+                  ),
                 ),
               ],
             ),

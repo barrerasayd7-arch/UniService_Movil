@@ -197,7 +197,9 @@ class _CircleButton extends StatelessWidget {
                 height: size,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: hover ? AppColors.teal : const Color(0xFF09615E),
+                  color: hover
+                      ? AppColors.of(context).teal
+                      : const Color(0xFF09615E),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withAlpha(102),
@@ -269,9 +271,11 @@ class _Panel extends StatelessWidget {
                   .clamp(100.0, 500.0),
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A2235),
+          color: AppColors.of(
+            context,
+          ).elegir(const Color(0xFF1A2235), Colors.white),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withAlpha(26)),
+          border: Border.all(color: AppColors.of(context).borde),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(128),
@@ -297,16 +301,16 @@ class _Panel extends StatelessWidget {
                   IconButton(
                     onPressed: notifs.isEmpty ? null : control.vaciar,
                     tooltip: 'Descartar avisos de este dispositivo',
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.delete_outline,
                       size: 18,
-                      color: AppColors.texto2,
+                      color: AppColors.of(context).texto2,
                     ),
                   ),
                 ],
               ),
             ),
-            Divider(height: 1, color: Colors.white.withAlpha(20)),
+            Divider(height: 1, color: AppColors.of(context).borde),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Wrap(
@@ -335,7 +339,10 @@ class _Panel extends StatelessWidget {
                       padding: const EdgeInsets.all(10),
                       child: Text(
                         control.error ?? control.errorGuardado!,
-                        style: AppText.poppins(13, color: AppColors.errorTexto),
+                        style: AppText.poppins(
+                          13,
+                          color: AppColors.of(context).errorTexto,
+                        ),
                       ),
                     ),
                   if (notifs.isEmpty &&
@@ -367,13 +374,13 @@ class _Panel extends StatelessWidget {
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.white.withAlpha(10),
+                              color: AppColors.of(context).cardHover,
                               borderRadius: BorderRadius.circular(8),
                               border: Border(
                                 left: BorderSide(
                                   color: control.leida(n)
-                                      ? AppColors.texto2
-                                      : AppColors.teal,
+                                      ? AppColors.of(context).texto2
+                                      : AppColors.of(context).teal,
                                   width: 3,
                                 ),
                               ),
@@ -385,7 +392,7 @@ class _Panel extends StatelessWidget {
                                   n.texto,
                                   style: AppText.poppins(
                                     12.8,
-                                    color: AppColors.texto,
+                                    color: AppColors.of(context).texto,
                                     height: 1.4,
                                   ),
                                 ),
@@ -397,7 +404,7 @@ class _Panel extends StatelessWidget {
                                     ).formatShortDate(n.fecha!.toLocal()),
                                     style: AppText.poppins(
                                       11,
-                                      color: AppColors.texto2,
+                                      color: AppColors.of(context).texto2,
                                     ),
                                   ),
                                 ],

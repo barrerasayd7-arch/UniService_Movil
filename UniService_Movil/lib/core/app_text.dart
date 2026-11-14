@@ -5,8 +5,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'app_colors.dart';
-
 /// Fuentes de la web: Poppins (cuerpo) y DM Serif Display (títulos).
 class AppText {
   AppText._();
@@ -15,7 +13,7 @@ class AppText {
   static TextStyle poppins(
     double size, {
     FontWeight weight = FontWeight.w400,
-    Color color = AppColors.texto,
+    Color? color,
     double? spacing,
     double? height,
     FontStyle? style,
@@ -35,7 +33,7 @@ class AppText {
   /// Título con DM Serif Display; no acepta peso porque la familia solo trae un estilo.
   static TextStyle serif(
     double size, {
-    Color color = AppColors.texto,
+    Color? color,
     FontStyle? style,
     double? height,
     List<Shadow>? shadows,

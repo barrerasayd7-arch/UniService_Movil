@@ -67,9 +67,9 @@ Future<T?> mostrarImageMenu<T>(
               ),
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: AppColors.of(context).card,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.borde),
+                border: Border.all(color: AppColors.of(context).borde),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withAlpha(128),
@@ -83,13 +83,17 @@ Future<T?> mostrarImageMenu<T>(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Container(
-                    color: AppColors.bg2,
+                    color: AppColors.of(context).bg2,
                     padding: const EdgeInsets.fromLTRB(25, 20, 25, 16),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (icono != null) ...[
-                          Icon(icono, size: 21, color: AppColors.teal),
+                          Icon(
+                            icono,
+                            size: 21,
+                            color: AppColors.of(context).teal,
+                          ),
                           const SizedBox(width: 10),
                         ],
                         if (emoji != null) ...[
@@ -155,14 +159,16 @@ class ImageOption extends StatelessWidget {
               transform: Matrix4.translationValues(h ? 5 : 0, 0, 0),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: h ? AppColors.tealDim : AppColors.bg2,
+                color: h
+                    ? AppColors.of(context).tealDim
+                    : AppColors.of(context).bg2,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: h
-                      ? AppColors.teal
+                      ? AppColors.of(context).teal
                       : (peligro
                             ? AppColors.a(const Color(0xFFEF4444), 0.3)
-                            : AppColors.borde),
+                            : AppColors.of(context).borde),
                 ),
               ),
               child: Row(
@@ -177,13 +183,17 @@ class ImageOption extends StatelessWidget {
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: h ? AppColors.teal : AppColors.bg3,
+                        color: h
+                            ? AppColors.of(context).teal
+                            : AppColors.of(context).bg3,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         icono,
                         size: 30,
-                        color: h ? AppColors.bg : AppColors.texto,
+                        color: h
+                            ? AppColors.of(context).bg
+                            : AppColors.of(context).texto,
                       ),
                     ),
                   ),
@@ -196,7 +206,7 @@ class ImageOption extends StatelessWidget {
                         weight: FontWeight.w700,
                         color: peligro
                             ? const Color(0xFFF87171)
-                            : AppColors.texto,
+                            : AppColors.of(context).texto,
                       ),
                     ),
                   ),
@@ -236,7 +246,10 @@ class _CampoModal extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: AppText.poppins(13.6, color: AppColors.texto2)),
+          Text(
+            label,
+            style: AppText.poppins(13.6, color: AppColors.of(context).texto2),
+          ),
           const SizedBox(height: 5),
           TextField(
             controller: controller,
@@ -245,12 +258,15 @@ class _CampoModal extends StatelessWidget {
             maxLines: lineas,
             minLines: 1,
             maxLength: maxLength,
-            cursorColor: AppColors.teal,
+            cursorColor: AppColors.of(context).teal,
             style: AppText.poppins(14.4),
             decoration: InputDecoration(
               isDense: true,
               hintText: hint,
-              hintStyle: AppText.poppins(14.4, color: AppColors.texto3),
+              hintStyle: AppText.poppins(
+                14.4,
+                color: AppColors.of(context).texto3,
+              ),
               filled: true,
               fillColor: const Color(0x0DFFFFFF),
               contentPadding: const EdgeInsets.symmetric(
@@ -263,7 +279,7 @@ class _CampoModal extends StatelessWidget {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.teal),
+                borderSide: BorderSide(color: AppColors.of(context).teal),
               ),
             ),
           ),
@@ -733,14 +749,16 @@ Future<void> mostrarListaPersonas(
           child: Text(
             texto,
             textAlign: TextAlign.center,
-            style: AppText.poppins(14, color: AppColors.texto2),
+            style: AppText.poppins(14, color: AppColors.of(context).texto2),
           ),
         );
         if (snap.connectionState != ConnectionState.done) {
-          return const Padding(
+          return Padding(
             padding: EdgeInsets.all(24),
             child: Center(
-              child: CircularProgressIndicator(color: AppColors.teal),
+              child: CircularProgressIndicator(
+                color: AppColors.of(context).teal,
+              ),
             ),
           );
         }
@@ -920,7 +938,10 @@ class _ReporteContenidoState extends State<_ReporteContenido> {
           ),
           const SizedBox(height: 14),
         ],
-        Text('Motivo', style: AppText.poppins(13.6, color: AppColors.texto2)),
+        Text(
+          'Motivo',
+          style: AppText.poppins(13.6, color: AppColors.of(context).texto2),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -931,12 +952,12 @@ class _ReporteContenidoState extends State<_ReporteContenido> {
                 label: Text(m.value),
                 selected: _tipo == m.key,
                 onSelected: (_) => setState(() => _tipo = m.key),
-                selectedColor: AppColors.a(AppColors.teal, 0.25),
+                selectedColor: AppColors.a(AppColors.of(context).teal, 0.25),
                 backgroundColor: const Color(0x0DFFFFFF),
                 labelStyle: AppText.poppins(12.8),
                 side: BorderSide(
                   color: _tipo == m.key
-                      ? AppColors.teal
+                      ? AppColors.of(context).teal
                       : const Color(0x26FFFFFF),
                 ),
                 showCheckmark: false,

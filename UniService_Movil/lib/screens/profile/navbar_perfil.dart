@@ -55,9 +55,11 @@ class NavbarPerfil extends StatelessWidget {
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: const BoxDecoration(
-            color: Color(0xF2070D16),
-            border: Border(bottom: BorderSide(color: AppColors.borde)),
+          decoration: BoxDecoration(
+            color: AppColors.of(context).bg.withAlpha(242),
+            border: Border(
+              bottom: BorderSide(color: AppColors.of(context).borde),
+            ),
           ),
           child: Center(
             child: ConstrainedBox(
@@ -79,7 +81,7 @@ class NavbarPerfil extends StatelessWidget {
                                 style: AppText.poppins(
                                   24,
                                   weight: FontWeight.w700,
-                                  color: AppColors.teal,
+                                  color: AppColors.of(context).teal,
                                   spacing: 0.5,
                                 ),
                               ),
@@ -88,7 +90,7 @@ class NavbarPerfil extends StatelessWidget {
                                 style: AppText.poppins(
                                   24,
                                   weight: FontWeight.w700,
-                                  color: AppColors.amarillo,
+                                  color: AppColors.of(context).amarillo,
                                   spacing: 0.5,
                                 ),
                               ),
@@ -105,7 +107,7 @@ class NavbarPerfil extends StatelessWidget {
                           padding: const EdgeInsets.all(5),
                           child: Icon(
                             menuAbierto ? Icons.close : Icons.menu,
-                            color: AppColors.texto,
+                            color: AppColors.of(context).texto,
                             size: 28,
                           ),
                         ),
@@ -178,9 +180,9 @@ class MenuMovilPerfil extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 200, maxWidth: 280),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.bg,
+        color: AppColors.of(context).bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(77),

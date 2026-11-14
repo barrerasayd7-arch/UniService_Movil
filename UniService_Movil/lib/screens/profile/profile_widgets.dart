@@ -38,7 +38,12 @@ class StatItem extends StatelessWidget {
   final String value;
   final String label;
   final VoidCallback? onTap;
-  const StatItem({super.key, required this.value, required this.label, this.onTap});
+  const StatItem({
+    super.key,
+    required this.value,
+    required this.label,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -50,14 +55,20 @@ class StatItem extends StatelessWidget {
           transform: Matrix4.translationValues(0, hover ? -3 : 0, 0),
           padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
           decoration: BoxDecoration(
-            color: hover ? AppColors.tealDim : AppColors.bg2,
+            color: hover
+                ? AppColors.of(context).tealDim
+                : AppColors.of(context).bg2,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: [
               Text(
                 value,
-                style: AppText.poppins(24, weight: FontWeight.w800, color: AppColors.teal),
+                style: AppText.poppins(
+                  24,
+                  weight: FontWeight.w800,
+                  color: AppColors.of(context).teal,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -66,7 +77,7 @@ class StatItem extends StatelessWidget {
                 style: AppText.poppins(
                   11.52,
                   weight: FontWeight.w600,
-                  color: AppColors.texto3,
+                  color: AppColors.of(context).texto3,
                   spacing: 0.5,
                 ),
               ),
@@ -96,7 +107,7 @@ class InfoItem extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: hover ? AppColors.bg3 : AppColors.bg2,
+          color: hover ? AppColors.of(context).bg3 : AppColors.of(context).bg2,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -104,13 +115,14 @@ class InfoItem extends StatelessWidget {
           children: [
             Text(
               label.toUpperCase(),
-              style: AppText.poppins(12, color: AppColors.texto3, spacing: 0.5),
+              style: AppText.poppins(
+                12,
+                color: AppColors.of(context).texto3,
+                spacing: 0.5,
+              ),
             ),
             const SizedBox(height: 6),
-            Text(
-              value,
-              style: AppText.poppins(16, weight: FontWeight.w500),
-            ),
+            Text(value, style: AppText.poppins(16, weight: FontWeight.w500)),
           ],
         ),
       ),
@@ -154,7 +166,9 @@ class MenuItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return HoverBuilder(
-      cursor: onTap == null ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      cursor: onTap == null
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
       builder: (context, hover) {
         final h = hover && onTap != null;
         return GestureDetector(
@@ -164,11 +178,13 @@ class MenuItem extends StatelessWidget {
             transform: Matrix4.translationValues(h ? 5 : 0, 0, 0),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: h ? AppColors.tealDim : AppColors.bg2,
+              color: h
+                  ? AppColors.of(context).tealDim
+                  : AppColors.of(context).bg2,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: h
-                    ? AppColors.teal
+                    ? AppColors.of(context).teal
                     : (danger ? AppColors.a(_rojo, 0.3) : Colors.transparent),
               ),
             ),
@@ -181,14 +197,20 @@ class MenuItem extends StatelessWidget {
                       height: 36,
                       decoration: BoxDecoration(
                         color: h
-                            ? AppColors.teal
-                            : (danger ? AppColors.a(_rojo, 0.15) : AppColors.bg3),
+                            ? AppColors.of(context).teal
+                            : (danger
+                                  ? AppColors.a(_rojo, 0.15)
+                                  : AppColors.of(context).bg3),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         icono,
                         size: 18,
-                        color: colorIcono ?? (h ? AppColors.bg : AppColors.texto),
+                        color:
+                            colorIcono ??
+                            (h
+                                ? AppColors.of(context).bg
+                                : AppColors.of(context).texto),
                       ),
                     ),
                 const SizedBox(width: 14),
@@ -203,7 +225,9 @@ class MenuItem extends StatelessWidget {
                         style: AppText.poppins(
                           14.4,
                           weight: FontWeight.w600,
-                          color: danger ? _rojoClaro : AppColors.texto,
+                          color: danger
+                              ? AppColors.of(context).legible(_rojoClaro)
+                              : AppColors.of(context).texto,
                         ),
                       ),
                       if (desc != null)
@@ -213,7 +237,10 @@ class MenuItem extends StatelessWidget {
                             desc!,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: AppText.poppins(12, color: AppColors.texto3),
+                            style: AppText.poppins(
+                              12,
+                              color: AppColors.of(context).texto3,
+                            ),
                           ),
                         ),
                     ],
@@ -231,8 +258,10 @@ class MenuItem extends StatelessWidget {
                         style: AppText.poppins(
                           12.8,
                           color: danger
-                              ? _rojoClaro
-                              : (h ? AppColors.teal : AppColors.texto3),
+                              ? AppColors.of(context).legible(_rojoClaro)
+                              : (h
+                                    ? AppColors.of(context).teal
+                                    : AppColors.of(context).texto3),
                         ),
                       ),
                     ),
@@ -269,13 +298,16 @@ class MenuSection extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.card,
-            Color.alphaBlend(AppColors.a(AppColors.teal, 0.10), AppColors.card),
+            AppColors.of(context).card,
+            Color.alphaBlend(
+              AppColors.a(AppColors.of(context).teal, 0.10),
+              AppColors.of(context).card,
+            ),
           ],
         ),
       ),
@@ -285,31 +317,36 @@ class MenuSection extends StatelessWidget {
           Positioned(
             top: -50,
             right: -50,
-            child: _Mancha(120, AppColors.teal, 0.08),
+            child: _Mancha(120, AppColors.of(context).teal, 0.08),
           ),
           Positioned(
             bottom: -40,
             left: -40,
-            child: _Mancha(80, AppColors.amarillo, 0.06),
+            child: _Mancha(80, AppColors.of(context).amarillo, 0.06),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(icono, size: 14, color: AppColors.teal),
+                  Icon(icono, size: 14, color: AppColors.of(context).teal),
                   const SizedBox(width: 8),
                   Text(
                     titulo.toUpperCase(),
                     style: AppText.poppins(
                       11.52,
                       weight: FontWeight.w700,
-                      color: AppColors.teal,
+                      color: AppColors.of(context).teal,
                       spacing: 2,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Expanded(child: Container(height: 1, color: AppColors.borde)),
+                  Expanded(
+                    child: Container(
+                      height: 1,
+                      color: AppColors.of(context).borde,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -374,21 +411,25 @@ class BtnAction extends StatelessWidget {
         Color bg, fg, borde;
         switch (estilo) {
           case EstiloAccion.solido:
-            bg = h ? AppColors.teal2 : AppColors.teal;
-            fg = AppColors.bg;
+            bg = h ? AppColors.of(context).teal2 : AppColors.of(context).teal;
+            fg = AppColors.of(context).bg;
             borde = bg;
           case EstiloAccion.outline:
-            bg = h ? AppColors.tealDim : Colors.transparent;
-            fg = AppColors.teal;
-            borde = AppColors.teal;
+            bg = h ? AppColors.of(context).tealDim : Colors.transparent;
+            fg = AppColors.of(context).teal;
+            borde = AppColors.of(context).teal;
           case EstiloAccion.oscuro:
-            bg = h ? AppColors.tealDim : AppColors.bg2;
-            fg = h ? AppColors.teal : AppColors.texto;
-            borde = h ? AppColors.teal : AppColors.borde;
+            bg = h ? AppColors.of(context).tealDim : AppColors.of(context).bg2;
+            fg = h ? AppColors.of(context).teal : AppColors.of(context).texto;
+            borde = h
+                ? AppColors.of(context).teal
+                : AppColors.of(context).borde;
           case EstiloAccion.sutil:
-            bg = AppColors.bg2;
-            fg = h ? AppColors.texto : AppColors.texto2;
-            borde = h ? AppColors.borde2 : AppColors.borde;
+            bg = AppColors.of(context).bg2;
+            fg = h ? AppColors.of(context).texto : AppColors.of(context).texto2;
+            borde = h
+                ? AppColors.of(context).borde2
+                : AppColors.of(context).borde;
         }
         return GestureDetector(
           onTap: onTap,
@@ -404,7 +445,7 @@ class BtnAction extends StatelessWidget {
               boxShadow: h && estilo == EstiloAccion.solido
                   ? [
                       BoxShadow(
-                        color: AppColors.a(AppColors.teal, 0.3),
+                        color: AppColors.a(AppColors.of(context).teal, 0.3),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -422,7 +463,11 @@ class BtnAction extends StatelessWidget {
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppText.poppins(13.12, weight: FontWeight.w600, color: fg),
+                    style: AppText.poppins(
+                      13.12,
+                      weight: FontWeight.w600,
+                      color: fg,
+                    ),
                   ),
                 ),
               ],

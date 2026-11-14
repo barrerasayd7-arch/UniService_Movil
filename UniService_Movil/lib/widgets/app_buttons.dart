@@ -53,13 +53,15 @@ class BtnVerde extends StatelessWidget {
           transform: Matrix4.translationValues(0, hover ? -2 : 0, 0),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: hover ? AppColors.teal2 : AppColors.teal,
+            color: hover
+                ? AppColors.of(context).teal2
+                : AppColors.of(context).teal,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.teal),
+            border: Border.all(color: AppColors.of(context).teal),
             boxShadow: hover
                 ? [
                     BoxShadow(
-                      color: AppColors.a(AppColors.teal, 0.35),
+                      color: AppColors.a(AppColors.of(context).teal, 0.35),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -72,7 +74,7 @@ class BtnVerde extends StatelessWidget {
             style: AppText.poppins(
               14.08,
               weight: FontWeight.w600,
-              color: AppColors.bg,
+              color: AppColors.of(context).bg,
               spacing: 0.3,
             ),
           ),
@@ -99,16 +101,22 @@ class BtnBorde extends StatelessWidget {
           transform: Matrix4.translationValues(0, hover ? -2 : 0, 0),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           decoration: BoxDecoration(
-            color: hover ? AppColors.teal : const Color(0x4D000000),
+            color: hover
+                ? AppColors.of(context).teal
+                : AppColors.of(
+                    context,
+                  ).elegir(const Color(0x4D000000), Colors.white),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: hover ? AppColors.teal : AppColors.borde2,
+              color: hover
+                  ? AppColors.of(context).teal
+                  : AppColors.of(context).borde2,
               width: 2,
             ),
             boxShadow: hover
                 ? [
                     BoxShadow(
-                      color: AppColors.a(AppColors.teal, 0.35),
+                      color: AppColors.a(AppColors.of(context).teal, 0.35),
                       blurRadius: 24,
                       offset: const Offset(0, 8),
                     ),
@@ -121,7 +129,9 @@ class BtnBorde extends StatelessWidget {
             style: AppText.poppins(
               14.08,
               weight: FontWeight.w600,
-              color: hover ? AppColors.bg : AppColors.texto,
+              color: hover
+                  ? AppColors.of(context).bg
+                  : AppColors.of(context).texto,
               spacing: 0.3,
             ),
           ),

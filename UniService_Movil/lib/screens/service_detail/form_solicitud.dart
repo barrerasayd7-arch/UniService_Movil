@@ -129,11 +129,11 @@ class _FormSolicitudState extends State<FormSolicitud> {
       lastDate: DateTime(hoy.year + 2),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.teal,
-            onPrimary: AppColors.bg,
-            surface: AppColors.card,
-            onSurface: AppColors.texto,
+          colorScheme: ColorScheme.dark(
+            primary: AppColors.of(context).teal,
+            onPrimary: AppColors.of(context).bg,
+            surface: AppColors.of(context).card,
+            onSurface: AppColors.of(context).texto,
           ),
         ),
         child: child!,
@@ -148,11 +148,11 @@ class _FormSolicitudState extends State<FormSolicitud> {
       initialTime: _horas[c.nombre] ?? TimeOfDay.now(),
       builder: (ctx, child) => Theme(
         data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: AppColors.teal,
-            onPrimary: AppColors.bg,
-            surface: AppColors.card,
-            onSurface: AppColors.texto,
+          colorScheme: ColorScheme.dark(
+            primary: AppColors.of(context).teal,
+            onPrimary: AppColors.of(context).bg,
+            surface: AppColors.of(context).card,
+            onSurface: AppColors.of(context).texto,
           ),
         ),
         child: child!,
@@ -233,11 +233,15 @@ class _FormSolicitudState extends State<FormSolicitud> {
     final confirmado = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
+        backgroundColor: AppColors.of(context).card,
         title: Text('¿Cancelar la solicitud?', style: AppText.serif(22)),
         content: Text(
           'Avisaremos a ${widget.proveedorNombre}. Si cambias de opinión, puedes enviar otra.',
-          style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
+          style: AppText.poppins(
+            14,
+            color: AppColors.of(context).texto2,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
@@ -246,7 +250,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.errorTexto),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.of(context).errorTexto,
+            ),
             child: const Text('Cancelar solicitud'),
           ),
         ],
@@ -291,13 +297,16 @@ class _FormSolicitudState extends State<FormSolicitud> {
       ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.card,
-            Color.alphaBlend(AppColors.a(AppColors.teal, 0.02), AppColors.card),
+            AppColors.of(context).card,
+            Color.alphaBlend(
+              AppColors.a(AppColors.of(context).teal, 0.02),
+              AppColors.of(context).card,
+            ),
           ],
         ),
       ),
@@ -307,14 +316,18 @@ class _FormSolicitudState extends State<FormSolicitud> {
           Container(
             padding: const EdgeInsets.only(bottom: 12),
             margin: const EdgeInsets.only(bottom: 24),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               border: Border(
-                bottom: BorderSide(color: AppColors.teal, width: 2),
+                bottom: BorderSide(color: AppColors.of(context).teal, width: 2),
               ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.edit_note, size: 20, color: AppColors.texto),
+                Icon(
+                  Icons.edit_note,
+                  size: 20,
+                  color: AppColors.of(context).texto,
+                ),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(
@@ -328,10 +341,12 @@ class _FormSolicitudState extends State<FormSolicitud> {
             ),
           ),
           if (_consultando)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Center(
-                child: CircularProgressIndicator(color: AppColors.teal),
+                child: CircularProgressIndicator(
+                  color: AppColors.of(context).teal,
+                ),
               ),
             )
           else if (activa != null)
@@ -354,7 +369,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
   /// Estado de la solicitud ya enviada: aviso, acceso a la lista y cancelación.
   List<Widget> _solicitudActiva(Solicitud s) {
     final aceptada = s.estado == 'Aceptada';
-    final color = aceptada ? const Color(0xFF34D399) : AppColors.amarillo;
+    final color = aceptada
+        ? AppColors.of(context).verificado
+        : AppColors.of(context).amarillo;
     return [
       Container(
         padding: const EdgeInsets.all(14),
@@ -394,7 +411,10 @@ class _FormSolicitudState extends State<FormSolicitud> {
                       if (aceptada && s.precioAcordado != null)
                         'Precio acordado: ${formatearPrecio(s.precioAcordado!)}',
                     ].join(' · '),
-                    style: AppText.poppins(13, color: AppColors.texto2),
+                    style: AppText.poppins(
+                      13,
+                      color: AppColors.of(context).texto2,
+                    ),
                   ),
                 ],
               ),
@@ -452,7 +472,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
               Icon(
                 icono,
                 size: 15,
-                color: lleno ? AppColors.teal : AppColors.texto2,
+                color: lleno
+                    ? AppColors.of(context).teal
+                    : AppColors.of(context).texto2,
               ),
               const SizedBox(width: 6),
               Flexible(
@@ -461,7 +483,9 @@ class _FormSolicitudState extends State<FormSolicitud> {
                   style: AppText.poppins(
                     13.6,
                     weight: FontWeight.w600,
-                    color: lleno ? AppColors.teal : AppColors.texto2,
+                    color: lleno
+                        ? AppColors.of(context).teal
+                        : AppColors.of(context).texto2,
                   ),
                 ),
               ),
@@ -470,7 +494,10 @@ class _FormSolicitudState extends State<FormSolicitud> {
                   padding: const EdgeInsets.only(left: 4),
                   child: Text(
                     '*',
-                    style: AppText.poppins(13.6, color: AppColors.teal),
+                    style: AppText.poppins(
+                      13.6,
+                      color: AppColors.of(context).teal,
+                    ),
                   ),
                 ),
             ],
@@ -496,7 +523,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
             maxLines: 8,
             maxLength: 2000,
             buildCounter: _sinContador,
-            cursorColor: AppColors.teal,
+            cursorColor: AppColors.of(context).teal,
             style: AppText.poppins(14.08, height: 1.6),
             decoration: _deco(c.placeholder),
           ),
@@ -512,7 +539,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
               FilteringTextInputFormatter.digitsOnly,
               LengthLimitingTextInputFormatter(8),
             ],
-            cursorColor: AppColors.teal,
+            cursorColor: AppColors.of(context).teal,
             style: AppText.poppins(14.08),
             decoration: _deco(c.placeholder),
           ),
@@ -552,10 +579,13 @@ class _FormSolicitudState extends State<FormSolicitud> {
               isExpanded: true,
               hint: Text(
                 c.placeholder ?? 'Selecciona',
-                style: AppText.poppins(14.08, color: AppColors.texto3),
+                style: AppText.poppins(
+                  14.08,
+                  color: AppColors.of(context).texto3,
+                ),
               ),
-              dropdownColor: AppColors.bg2,
-              iconEnabledColor: AppColors.teal,
+              dropdownColor: AppColors.of(context).bg2,
+              iconEnabledColor: AppColors.of(context).teal,
               icon: const Icon(Icons.arrow_drop_down),
               style: AppText.poppins(14.08),
               items: [
@@ -584,7 +614,7 @@ class _FormSolicitudState extends State<FormSolicitud> {
     enabledBorder: InputBorder.none,
     focusedBorder: InputBorder.none,
     hintText: hint,
-    hintStyle: AppText.poppins(14.08, color: AppColors.texto3),
+    hintStyle: AppText.poppins(14.08, color: AppColors.of(context).texto3),
     contentPadding: EdgeInsets.zero,
   );
 
@@ -596,11 +626,13 @@ class _FormSolicitudState extends State<FormSolicitud> {
             texto,
             style: AppText.poppins(
               14.08,
-              color: tieneValor ? AppColors.texto : AppColors.texto3,
+              color: tieneValor
+                  ? AppColors.of(context).texto
+                  : AppColors.of(context).texto3,
             ),
           ),
         ),
-        Icon(icono, size: 17, color: const Color(0xFF3AB5B0)),
+        Icon(icono, size: 17, color: AppColors.of(context).teal),
       ],
     );
   }
@@ -631,10 +663,10 @@ class _CampoCajaState extends State<CampoCaja> {
   @override
   Widget build(BuildContext context) {
     final borde = _foco
-        ? AppColors.teal
+        ? AppColors.of(context).teal
         : widget.lleno
-        ? AppColors.a(AppColors.teal, 0.4)
-        : (_hover ? AppColors.borde2 : AppColors.borde);
+        ? AppColors.a(AppColors.of(context).teal, 0.4)
+        : (_hover ? AppColors.of(context).borde2 : AppColors.of(context).borde);
 
     return MouseRegion(
       cursor: widget.onTap != null
@@ -652,13 +684,15 @@ class _CampoCajaState extends State<CampoCaja> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: _foco ? AppColors.bg3 : AppColors.bg2,
+              color: _foco
+                  ? AppColors.of(context).bg3
+                  : AppColors.of(context).bg2,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: borde, width: 2),
               boxShadow: _foco
                   ? [
                       BoxShadow(
-                        color: AppColors.a(AppColors.teal, 0.12),
+                        color: AppColors.a(AppColors.of(context).teal, 0.12),
                         spreadRadius: 3,
                       ),
                     ]

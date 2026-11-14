@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'core/app_colors.dart';
+import 'core/app_theme.dart';
+import 'data/tema_controller.dart';
 import 'data/admin_repository.dart';
 import 'data/auth_repository.dart';
 import 'screens/admin/admin_acceso_screen.dart';
@@ -55,6 +56,7 @@ Future<void> main() async {
   });
 
   final auth = AuthRepository.instance;
+  await TemaController.instance.restaurar();
   await auth.restaurar();
 
   // Si el servidor rechaza la sesión (vencida o cuenta suspendida), volver al login y avisar.
@@ -71,7 +73,7 @@ Future<void> main() async {
   runApp(UniServiceApp(rutaInicial: auth.haySesion ? '/home' : '/home-guest'));
 }
 
-/// Raíz de MaterialApp: tema oscuro, navegador global y tabla de rutas de toda la app.
+/// Raíz de MaterialApp: tema persistido, navegador global y rutas de la app.
 class UniServiceApp extends StatelessWidget {
   /// Ruta con la que arranca la app; la calcula [main] según haya sesión o no.
   final String rutaInicial;
@@ -79,81 +81,95 @@ class UniServiceApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'UniService',
-      debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey,
-      navigatorObservers: [chatRouteObserver],
-      builder: (_, child) =>
-          ChatSession(child: child ?? const SizedBox.shrink()),
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: AppColors.bg,
-        colorScheme: const ColorScheme.dark(
-          primary: AppColors.teal,
-          secondary: AppColors.amarillo,
-          surface: AppColors.card,
-        ),
-      ),
-      initialRoute: rutaInicial,
-      // Rutas nombradas; los guards de sesión/admin se aplican en la fábrica de cada pantalla.
-      routes: {
-        '/login': (_) => const LoginScreen(),
-        '/home-guest': (_) => const HomeGuestScreen(),
-        '/home': (_) => const HomeScreen(),
-        for (final pagina in PaginaSoporte.values)
-          pagina.ruta: (_) => SoporteScreen(pagina: pagina),
-        '/perfil': (_) => const ProfileScreen(),
-        // Argumento: el Servicio de la tarjeta o el id (int).
-        '/servicio': (ctx) {
-          final arg = ModalRoute.of(ctx)?.settings.arguments;
-          return DetailScreen(
-            servicio: arg is Servicio ? arg : null,
-            idServicio: arg is int ? arg : null,
+    return ListenableBuilder(
+      listenable: TemaController.instance,
+      builder: (context, _) => MaterialApp(
+        title: 'UniService',
+        debugShowCheckedModeBanner: false,
+        navigatorKey: navigatorKey,
+        navigatorObservers: [chatRouteObserver],
+        builder: (context, child) {
+          final theme = Theme.of(context);
+          final oscuro = theme.brightness == Brightness.dark;
+          return AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: oscuro
+                  ? Brightness.light
+                  : Brightness.dark,
+              statusBarBrightness: oscuro ? Brightness.dark : Brightness.light,
+              systemNavigationBarColor: theme.scaffoldBackgroundColor,
+              systemNavigationBarIconBrightness: oscuro
+                  ? Brightness.light
+                  : Brightness.dark,
+            ),
+            child: ChatSession(child: child ?? const SizedBox.shrink()),
           );
         },
-        '/perfil-externo': (ctx) => ProfileScreen(
-          externo: true,
-          idUsuario: ModalRoute.of(ctx)?.settings.arguments as int?,
-        ),
-        // Con un id (int) edita ese servicio; sin argumento publica uno nuevo.
-        '/publicar': (ctx) => _conSesion(() {
-          final arg = ModalRoute.of(ctx)?.settings.arguments;
-          return PublicarScreen(idServicio: arg is int ? arg : null);
-        }),
-        '/mis-servicios': (_) => _conSesion(() => const MisServiciosScreen()),
-        '/chats': (_) => _conSesion(() => const ChatsScreen()),
-        '/chat': (ctx) => _conSesion(() {
-          final destino = ModalRoute.of(ctx)?.settings.arguments;
-          return destino is DestinoChat
-              ? ChatScreen(destino: destino)
-              : const ChatsScreen();
-        }),
-        // Argumento opcional: 1 abre la pestaña de enviadas.
-        '/solicitudes': (ctx) => _conSesion(() {
-          final arg = ModalRoute.of(ctx)?.settings.arguments;
-          return SolicitudesScreen(pestanaInicial: arg is int ? arg : 0);
-        }),
-        // Panel admin: sin la contraseña de administrador (o vencida) muestra la puerta de acceso.
-        '/admin': (_) => _conSesion(
-          () => !(AuthRepository.instance.usuario.value?.esAdmin ?? false)
-              ? const HomeScreen()
-              : AdminRepository.instance.dentroDelPanel
-              ? const AdminPanelScreen()
-              : const AdminAccesoScreen(),
-        ),
-        '/admin/usuarios': (_) => _conPanel(() => const AdminUsuariosScreen()),
-        '/admin/servicios': (_) =>
-            _conPanel(() => const AdminServiciosScreen()),
-        '/admin/pendientes': (_) =>
-            _conPanel(() => const AdminServiciosScreen(soloPendientes: true)),
-        '/admin/reportes': (_) => _conPanel(() => const AdminReportesScreen()),
-        '/admin/categorias': (_) =>
-            _conPanel(() => const AdminCategoriasScreen()),
-        '/admin/actividad': (_) =>
-            _conPanel(() => const AdminActividadScreen()),
-      },
+        theme: AppTheme.claro,
+        darkTheme: AppTheme.oscuro,
+        themeMode: TemaController.instance.modo,
+        initialRoute: rutaInicial,
+        // Rutas nombradas; los guards de sesión/admin se aplican en la fábrica de cada pantalla.
+        routes: {
+          '/login': (_) => const LoginScreen(),
+          '/home-guest': (_) => const HomeGuestScreen(),
+          '/home': (_) => const HomeScreen(),
+          for (final pagina in PaginaSoporte.values)
+            pagina.ruta: (_) => SoporteScreen(pagina: pagina),
+          '/perfil': (_) => const ProfileScreen(),
+          // Argumento: el Servicio de la tarjeta o el id (int).
+          '/servicio': (ctx) {
+            final arg = ModalRoute.of(ctx)?.settings.arguments;
+            return DetailScreen(
+              servicio: arg is Servicio ? arg : null,
+              idServicio: arg is int ? arg : null,
+            );
+          },
+          '/perfil-externo': (ctx) => ProfileScreen(
+            externo: true,
+            idUsuario: ModalRoute.of(ctx)?.settings.arguments as int?,
+          ),
+          // Con un id (int) edita ese servicio; sin argumento publica uno nuevo.
+          '/publicar': (ctx) => _conSesion(() {
+            final arg = ModalRoute.of(ctx)?.settings.arguments;
+            return PublicarScreen(idServicio: arg is int ? arg : null);
+          }),
+          '/mis-servicios': (_) => _conSesion(() => const MisServiciosScreen()),
+          '/chats': (_) => _conSesion(() => const ChatsScreen()),
+          '/chat': (ctx) => _conSesion(() {
+            final destino = ModalRoute.of(ctx)?.settings.arguments;
+            return destino is DestinoChat
+                ? ChatScreen(destino: destino)
+                : const ChatsScreen();
+          }),
+          // Argumento opcional: 1 abre la pestaña de enviadas.
+          '/solicitudes': (ctx) => _conSesion(() {
+            final arg = ModalRoute.of(ctx)?.settings.arguments;
+            return SolicitudesScreen(pestanaInicial: arg is int ? arg : 0);
+          }),
+          // Panel admin: sin la contraseña de administrador (o vencida) muestra la puerta de acceso.
+          '/admin': (_) => _conSesion(
+            () => !(AuthRepository.instance.usuario.value?.esAdmin ?? false)
+                ? const HomeScreen()
+                : AdminRepository.instance.dentroDelPanel
+                ? const AdminPanelScreen()
+                : const AdminAccesoScreen(),
+          ),
+          '/admin/usuarios': (_) =>
+              _conPanel(() => const AdminUsuariosScreen()),
+          '/admin/servicios': (_) =>
+              _conPanel(() => const AdminServiciosScreen()),
+          '/admin/pendientes': (_) =>
+              _conPanel(() => const AdminServiciosScreen(soloPendientes: true)),
+          '/admin/reportes': (_) =>
+              _conPanel(() => const AdminReportesScreen()),
+          '/admin/categorias': (_) =>
+              _conPanel(() => const AdminCategoriasScreen()),
+          '/admin/actividad': (_) =>
+              _conPanel(() => const AdminActividadScreen()),
+        },
+      ),
     );
   }
 }

@@ -28,8 +28,10 @@ class _ProfileBackgroundState extends State<ProfileBackground>
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: _ciclo))
-      ..repeat();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: _ciclo),
+    )..repeat();
   }
 
   @override
@@ -44,7 +46,7 @@ class _ProfileBackgroundState extends State<ProfileBackground>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const ColoredBox(color: AppColors.bg),
+          ColoredBox(color: AppColors.of(context).bg),
           // La foto es opcional: si falta el asset, el fondo cae al color sólido.
           Opacity(
             opacity: 0.15,
@@ -59,7 +61,7 @@ class _ProfileBackgroundState extends State<ProfileBackground>
             child: AnimatedBuilder(
               animation: _c,
               builder: (context, _) => CustomPaint(
-                painter: _BgPainter(_c.value * _ciclo),
+                painter: _BgPainter(_c.value * _ciclo, AppColors.of(context)),
               ),
             ),
           ),
@@ -76,14 +78,25 @@ class _Glow {
   final double? top, bottom, left, right; // px o % (ver pct)
   final bool pct;
   final Color color;
-  const _Glow(this.size, this.color, this.dur, this.delay,
-      {this.top, this.bottom, this.left, this.right, this.pct = false});
+  const _Glow(
+    this.size,
+    this.color,
+    this.dur,
+    this.delay, {
+    this.top,
+    this.bottom,
+    this.left,
+    this.right,
+    this.pct = false,
+  });
 }
 
 /// Dibuja todas las capas decorativas en función del tiempo [t] (segundos).
 class _BgPainter extends CustomPainter {
+  final AppPalette paleta;
+
   final double t;
-  _BgPainter(this.t);
+  _BgPainter(this.t, this.paleta);
 
   static const _azul1 = Color(0xFF3B82F6);
   static const _azul2 = Color(0xFF2563EB);
@@ -102,7 +115,12 @@ class _BgPainter extends CustomPainter {
     final r = math.Random(17);
     return List.generate(
       24,
-      (_) => [r.nextDouble(), r.nextDouble(), 1.2 + r.nextDouble() * 1.6, r.nextDouble() * 6],
+      (_) => [
+        r.nextDouble(),
+        r.nextDouble(),
+        1.2 + r.nextDouble() * 1.6,
+        r.nextDouble() * 6,
+      ],
     );
   }();
 
@@ -146,8 +164,15 @@ class _BgPainter extends CustomPainter {
     }
 
     // ── Formas difuminadas (.shape, blur 60px) ──
-    void forma(double size, Color color,
-        {double? top, double? bottom, double? left, double? right, bool pct = false}) {
+    void forma(
+      double size,
+      Color color, {
+      double? top,
+      double? bottom,
+      double? left,
+      double? right,
+      bool pct = false,
+    }) {
       final x = left != null
           ? (pct ? w * left / 100 : left)
           : w - (pct ? w * right! / 100 : right!) - size;
@@ -163,16 +188,29 @@ class _BgPainter extends CustomPainter {
       );
     }
 
-    forma(400, AppColors.a(AppColors.teal, 0.10), top: -100, right: -100);
-    forma(300, AppColors.a(AppColors.amarillo, 0.07), bottom: -50, left: -50);
-    forma(250, AppColors.a(AppColors.teal, 0.06), top: 50, left: 30, pct: true);
-    forma(180, const Color(0xFF3B82F6).withAlpha(18), bottom: 30, right: 15, pct: true);
-    forma(120, AppColors.a(AppColors.violeta, 0.06), top: 15, left: 5, pct: true);
-    forma(200, AppColors.a(AppColors.teal, 0.05), top: 70, left: 70, pct: true);
+    forma(400, AppColors.a(paleta.teal, 0.10), top: -100, right: -100);
+    forma(300, AppColors.a(paleta.amarillo, 0.07), bottom: -50, left: -50);
+    forma(250, AppColors.a(paleta.teal, 0.06), top: 50, left: 30, pct: true);
+    forma(
+      180,
+      const Color(0xFF3B82F6).withAlpha(18),
+      bottom: 30,
+      right: 15,
+      pct: true,
+    );
+    forma(120, AppColors.a(paleta.violeta, 0.06), top: 15, left: 5, pct: true);
+    forma(200, AppColors.a(paleta.teal, 0.05), top: 70, left: 70, pct: true);
 
     // ── Anillos ──
-    void anillo(double size, Color color, double topPct, double leftOrRightPct,
-        {bool derecha = false, bool pctLeft = true, bool bottom = false}) {
+    void anillo(
+      double size,
+      Color color,
+      double topPct,
+      double leftOrRightPct, {
+      bool derecha = false,
+      bool pctLeft = true,
+      bool bottom = false,
+    }) {
       final x = derecha
           ? w - w * leftOrRightPct / 100 - size
           : w * leftOrRightPct / 100;
@@ -187,9 +225,9 @@ class _BgPainter extends CustomPainter {
       );
     }
 
-    anillo(300, AppColors.a(AppColors.teal, 0.10), -5, 20, derecha: true);
+    anillo(300, AppColors.a(paleta.teal, 0.10), -5, 20, derecha: true);
     anillo(200, const Color(0xFF3B82F6).withAlpha(18), 10, 5, bottom: true);
-    anillo(150, AppColors.a(AppColors.violeta, 0.06), 40, 60);
+    anillo(150, AppColors.a(paleta.violeta, 0.06), 40, 60);
 
     // ── Partículas ──
     const part = [
@@ -205,7 +243,7 @@ class _BgPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(w * p[0], h * p[1] + dy),
         p[2] / 2 + 0.5,
-        Paint()..color = AppColors.a(AppColors.texto, p[3]),
+        Paint()..color = AppColors.a(paleta.texto, p[3]),
       );
     }
 
@@ -225,7 +263,7 @@ class _BgPainter extends CustomPainter {
           ..shader = LinearGradient(
             colors: [
               Colors.transparent,
-              AppColors.a(AppColors.texto, l[2] * 2),
+              AppColors.a(paleta.texto, l[2] * 2),
               Colors.transparent,
             ],
           ).createShader(rect),
@@ -238,12 +276,13 @@ class _BgPainter extends CustomPainter {
       canvas.drawCircle(
         Offset(w * d[0], h * d[1]),
         d[2],
-        Paint()..color = AppColors.a(AppColors.tealBrillante, op * 0.6),
+        Paint()..color = AppColors.a(paleta.tealBrillante, op * 0.6),
       );
     }
   }
 
   // Sólo hace falta repintar cuando avanza el tiempo de animación.
   @override
-  bool shouldRepaint(covariant _BgPainter old) => old.t != t;
+  bool shouldRepaint(covariant _BgPainter old) =>
+      old.t != t || old.paleta.oscuro != paleta.oscuro;
 }

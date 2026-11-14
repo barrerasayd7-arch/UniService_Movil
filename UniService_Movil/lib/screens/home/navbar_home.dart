@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
+import '../../widgets/boton_tema.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 
 /// Entrada del navbar autenticado: texto visible y ancla de sección.
@@ -52,33 +53,42 @@ class NavBoton extends StatelessWidget {
   static const _rojoClaro = Color(0xFFF87171);
 
   // Fondo, texto y borde de cada estilo según el estado del cursor.
-  ({Color fg, Color bg, Color borde}) _colores(bool hover) {
+  ({Color fg, Color bg, Color borde}) _colores(
+    BuildContext context,
+    bool hover,
+  ) {
     switch (estilo) {
       case EstiloNav.normal:
         return (
-          fg: hover ? AppColors.texto : AppColors.texto2,
-          bg: hover ? AppColors.tealDim : Colors.transparent,
+          fg: hover
+              ? AppColors.of(context).texto
+              : AppColors.of(context).texto2,
+          bg: hover ? AppColors.of(context).tealDim : Colors.transparent,
           borde: Colors.transparent,
         );
       case EstiloNav.solicitudes:
         return (
-          fg: hover ? AppColors.bg : AppColors.amarillo,
+          fg: hover ? AppColors.of(context).bg : AppColors.of(context).amarillo,
           bg: hover
-              ? AppColors.amarillo
-              : AppColors.a(AppColors.amarillo, 0.10),
+              ? AppColors.of(context).amarillo
+              : AppColors.a(AppColors.of(context).amarillo, 0.10),
           borde: hover
-              ? AppColors.amarillo
-              : AppColors.a(AppColors.amarillo, 0.25),
+              ? AppColors.of(context).amarillo
+              : AppColors.a(AppColors.of(context).amarillo, 0.25),
         );
       case EstiloNav.perfil:
         return (
-          fg: hover ? AppColors.bg : AppColors.teal,
-          bg: hover ? AppColors.teal : AppColors.a(AppColors.teal, 0.15),
-          borde: hover ? AppColors.teal : AppColors.a(AppColors.teal, 0.35),
+          fg: hover ? AppColors.of(context).bg : AppColors.of(context).teal,
+          bg: hover
+              ? AppColors.of(context).teal
+              : AppColors.a(AppColors.of(context).teal, 0.15),
+          borde: hover
+              ? AppColors.of(context).teal
+              : AppColors.a(AppColors.of(context).teal, 0.35),
         );
       case EstiloNav.cerrar:
         return (
-          fg: hover ? Colors.white : _rojoClaro,
+          fg: hover ? Colors.white : AppColors.of(context).legible(_rojoClaro),
           bg: hover ? _rojo : AppColors.a(_rojo, 0.15),
           borde: hover ? _rojo : AppColors.a(_rojo, 0.35),
         );
@@ -99,7 +109,7 @@ class NavBoton extends StatelessWidget {
     );
     return HoverBuilder(
       builder: (context, hover) {
-        final c = _colores(hover);
+        final c = _colores(context, hover);
         return GestureDetector(
           onTap: onTap,
           child: AnimatedContainer(
@@ -120,7 +130,15 @@ class NavBoton extends StatelessWidget {
                 ],
                 // Flexible solo cuando hay ancho acotado (menú móvil); en la
                 // barra de escritorio el ancho es ilimitado y fallaría.
-                if (bloque) Flexible(child: texto(c.fg)) else texto(c.fg),
+                if (bloque)
+                  Flexible(child: texto(c.fg))
+                else if (estilo == EstiloNav.perfil)
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 140),
+                    child: texto(c.fg),
+                  )
+                else
+                  texto(c.fg),
               ],
             ),
           ),
@@ -172,8 +190,10 @@ class NavbarHome extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xF2070D16),
-            border: const Border(bottom: BorderSide(color: AppColors.borde)),
+            color: AppColors.of(context).bg.withAlpha(242),
+            border: Border(
+              bottom: BorderSide(color: AppColors.of(context).borde),
+            ),
             boxShadow: scrolled
                 ? [
                     BoxShadow(
@@ -186,7 +206,7 @@ class NavbarHome extends StatelessWidget {
           ),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
+              constraints: const BoxConstraints(maxWidth: 1400),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
@@ -204,7 +224,7 @@ class NavbarHome extends StatelessWidget {
                                 style: AppText.poppins(
                                   24,
                                   weight: FontWeight.w700,
-                                  color: AppColors.teal,
+                                  color: AppColors.of(context).teal,
                                   spacing: 0.5,
                                 ),
                               ),
@@ -213,7 +233,7 @@ class NavbarHome extends StatelessWidget {
                                 style: AppText.poppins(
                                   24,
                                   weight: FontWeight.w700,
-                                  color: AppColors.amarillo,
+                                  color: AppColors.of(context).amarillo,
                                   spacing: 0.5,
                                 ),
                               ),
@@ -224,12 +244,22 @@ class NavbarHome extends StatelessWidget {
                     ),
                     // Hamburguesa en móvil; fila completa de botones en escritorio.
                     if (movil)
-                      _Hamburguesa(activo: menuAbierto, onTap: onToggleMenu)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const BotonTema(),
+                          _Hamburguesa(
+                            activo: menuAbierto,
+                            onTap: onToggleMenu,
+                          ),
+                        ],
+                      )
                     else
                       Flexible(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
+                            const BotonTema(),
                             for (final e in enlacesNavHome)
                               Padding(
                                 padding: const EdgeInsets.only(left: 2),
@@ -301,7 +331,7 @@ class _Hamburguesa extends StatelessWidget {
         height: 2,
         transformAlignment: Alignment.center,
         transform: Matrix4.translationValues(0, dy, 0)..rotateZ(giro),
-        color: AppColors.texto.withAlpha((opacidad * 255).round()),
+        color: AppColors.of(context).texto.withAlpha((opacidad * 255).round()),
       );
     }
 
@@ -356,9 +386,9 @@ class MenuMovilHome extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 200, maxWidth: 280),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.bg,
+        color: AppColors.of(context).bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(77),

@@ -120,10 +120,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     // La barra con todos los botones no cabe en pantallas medianas
-    final movil = MediaQuery.of(context).size.width <= 1100;
+    final movil =
+        MediaQuery.of(context).size.width <= Breakpoints.navbarUsuario;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       // SafeArea: la barra superior no queda bajo la hora/batería del celular.
       body: SafeArea(
         bottom: false,
@@ -146,8 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 Expanded(
                   child: RefreshIndicator(
-                    color: AppColors.teal,
-                    backgroundColor: AppColors.card,
+                    color: AppColors.of(context).teal,
+                    backgroundColor: AppColors.of(context).card,
                     onRefresh: () async => _explorador.currentState?.recargar(),
                     child: SingleChildScrollView(
                       controller: _scroll,
@@ -172,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     '¿Qué necesitas hoy?',
                                     style: AppText.poppins(
                                       15,
-                                      color: AppColors.texto2,
+                                      color: AppColors.of(context).texto2,
                                     ),
                                   ),
                                 ],

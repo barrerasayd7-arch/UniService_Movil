@@ -69,6 +69,7 @@ class _TesseractBackgroundState extends State<TesseractBackground>
               size: Size(box.maxWidth, box.maxHeight),
               painter: _TesseractPainter(
                 t: _c.value * _segundosCiclo,
+                paleta: AppColors.of(context),
                 escala: s,
                 posX: x,
                 posY: y,
@@ -83,12 +84,15 @@ class _TesseractBackgroundState extends State<TesseractBackground>
 
 // Dibuja la escena completa; [t] es el tiempo en segundos del ciclo de animación.
 class _TesseractPainter extends CustomPainter {
+  final AppPalette paleta;
+
   final double t;
   final double escala;
   final double posX;
   final double posY;
 
   _TesseractPainter({
+    required this.paleta,
     required this.t,
     required this.escala,
     required this.posX,
@@ -150,7 +154,7 @@ class _TesseractPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final pxPorUnidad = (size.height / 2) / (_camZ * _tanHalfFov);
-    final color = AppColors.tealBrillante;
+    final color = paleta.tealBrillante;
 
     // ── Partículas ──
     final pPart = Paint()..color = AppColors.a(color, 0.35);
@@ -358,6 +362,7 @@ class _TesseractPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _TesseractPainter old) =>
       old.t != t ||
+      old.paleta.oscuro != paleta.oscuro ||
       old.escala != escala ||
       old.posX != posX ||
       old.posY != posY;

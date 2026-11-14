@@ -23,18 +23,18 @@ class SectionLabel extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            AppColors.a(AppColors.teal, 0.10),
-            AppColors.a(AppColors.teal, 0.05),
+            AppColors.a(AppColors.of(context).teal, 0.10),
+            AppColors.a(AppColors.of(context).teal, 0.05),
           ],
         ),
-        border: Border.all(color: AppColors.a(AppColors.teal, 0.3)),
+        border: Border.all(color: AppColors.a(AppColors.of(context).teal, 0.3)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: AppColors.teal),
+            Icon(icon, size: 14, color: AppColors.of(context).teal),
             const SizedBox(width: 6),
           ],
           Text(
@@ -42,7 +42,7 @@ class SectionLabel extends StatelessWidget {
             style: AppText.poppins(
               11.52,
               weight: FontWeight.w700,
-              color: AppColors.teal,
+              color: AppColors.of(context).teal,
               spacing: 2.5,
             ),
           ),
@@ -69,12 +69,18 @@ class AcentoText extends StatelessWidget {
           text,
           style: AppText.serif(
             fontSize,
-            color: AppColors.teal2,
+            color: AppColors.of(context).teal2,
             style: FontStyle.italic,
             height: 1.15,
             shadows: [
-              Shadow(color: AppColors.a(AppColors.teal, 0.3), blurRadius: 20),
-              Shadow(color: AppColors.a(AppColors.teal, 0.1), blurRadius: 60),
+              Shadow(
+                color: AppColors.a(AppColors.of(context).teal, 0.3),
+                blurRadius: 20,
+              ),
+              Shadow(
+                color: AppColors.a(AppColors.of(context).teal, 0.1),
+                blurRadius: 60,
+              ),
             ],
           ),
         ),
@@ -86,10 +92,10 @@ class AcentoText extends StatelessWidget {
             height: 2,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(2),
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  AppColors.teal2,
+                  AppColors.of(context).teal2,
                   Colors.transparent,
                 ],
               ),

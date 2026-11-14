@@ -180,7 +180,7 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
     final elegido = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -204,7 +204,10 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
                   ),
                 ),
                 trailing: e.key == _orden
-                    ? const Icon(Icons.check_rounded, color: AppColors.teal)
+                    ? Icon(
+                        Icons.check_rounded,
+                        color: AppColors.of(context).teal,
+                      )
                     : null,
                 onTap: () => Navigator.of(ctx).pop(e.key),
               ),
@@ -243,7 +246,9 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
     } else if (_servicios.isEmpty) {
       final q = _busqueda.text.trim();
       resultados = _Aviso(
-        icono: _filtrando ? Icons.search_off_rounded : Icons.storefront_outlined,
+        icono: _filtrando
+            ? Icons.search_off_rounded
+            : Icons.storefront_outlined,
         titulo: q.isNotEmpty
             ? 'Sin resultados para "$q"'
             : _filtrando
@@ -299,7 +304,7 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
                   ? TextButton.icon(
                       onPressed: _elegirOrden,
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.teal,
+                        foregroundColor: AppColors.of(context).teal,
                         minimumSize: const Size(48, 44),
                       ),
                       icon: const Icon(Icons.swap_vert_rounded, size: 18),
@@ -308,7 +313,7 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
                         style: AppText.poppins(
                           13.5,
                           weight: FontWeight.w600,
-                          color: AppColors.teal,
+                          color: AppColors.of(context).teal,
                         ),
                       ),
                     )
@@ -318,10 +323,10 @@ class ExploradorServiciosState extends State<ExploradorServicios> {
             if (_cargando && _servicios.isNotEmpty)
               Padding(
                 padding: EdgeInsets.fromLTRB(margen, 0, margen, 8),
-                child: const LinearProgressIndicator(
+                child: LinearProgressIndicator(
                   minHeight: 2,
-                  color: AppColors.teal,
-                  backgroundColor: AppColors.borde,
+                  color: AppColors.of(context).teal,
+                  backgroundColor: AppColors.of(context).borde,
                 ),
               ),
             Padding(
@@ -362,25 +367,28 @@ class _Buscador extends StatelessWidget {
         textInputAction: TextInputAction.search,
         onSubmitted: (_) => FocusScope.of(context).unfocus(),
         onTapOutside: (_) => FocusScope.of(context).unfocus(),
-        cursorColor: AppColors.teal,
+        cursorColor: AppColors.of(context).teal,
         style: AppText.poppins(15),
         decoration: InputDecoration(
           filled: true,
-          fillColor: AppColors.card,
+          fillColor: AppColors.of(context).card,
           hintText: 'Busca tutorías, diseño, arriendo…',
-          hintStyle: AppText.poppins(15, color: AppColors.placeholder),
-          prefixIcon: const Icon(
+          hintStyle: AppText.poppins(
+            15,
+            color: AppColors.of(context).placeholder,
+          ),
+          prefixIcon: Icon(
             Icons.search_rounded,
-            color: AppColors.teal,
+            color: AppColors.of(context).teal,
             size: 22,
           ),
           suffixIcon: controller.text.isEmpty
               ? null
               : IconButton(
                   tooltip: 'Borrar búsqueda',
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
-                    color: AppColors.texto2,
+                    color: AppColors.of(context).texto2,
                     size: 20,
                   ),
                   onPressed: () {
@@ -391,11 +399,14 @@ class _Buscador extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.bordeCampo),
+            borderSide: BorderSide(color: AppColors.of(context).bordeCampo),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.teal, width: 1.6),
+            borderSide: BorderSide(
+              color: AppColors.of(context).teal,
+              width: 1.6,
+            ),
           ),
         ),
       ),
@@ -432,10 +443,14 @@ class _FiltroCategorias extends StatelessWidget {
               selected: activo,
               button: true,
               child: Material(
-                color: activo ? AppColors.teal : AppColors.card,
+                color: activo
+                    ? AppColors.of(context).teal
+                    : AppColors.of(context).card,
                 shape: StadiumBorder(
                   side: BorderSide(
-                    color: activo ? AppColors.teal : AppColors.borde2,
+                    color: activo
+                        ? AppColors.of(context).teal
+                        : AppColors.of(context).borde2,
                   ),
                 ),
                 clipBehavior: Clip.antiAlias,
@@ -452,7 +467,9 @@ class _FiltroCategorias extends StatelessWidget {
                         Icon(
                           c.icono,
                           size: 16,
-                          color: activo ? AppColors.bg : AppColors.texto2,
+                          color: activo
+                              ? AppColors.of(context).bg
+                              : AppColors.of(context).texto2,
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -460,7 +477,9 @@ class _FiltroCategorias extends StatelessWidget {
                           style: AppText.poppins(
                             13.5,
                             weight: FontWeight.w600,
-                            color: activo ? AppColors.bg : AppColors.texto2,
+                            color: activo
+                                ? AppColors.of(context).bg
+                                : AppColors.of(context).texto2,
                           ),
                         ),
                       ],
@@ -575,26 +594,29 @@ class _BotonVerMas extends StatelessWidget {
             child: Text(
               error!,
               textAlign: TextAlign.center,
-              style: AppText.poppins(13, color: AppColors.errorTexto),
+              style: AppText.poppins(
+                13,
+                color: AppColors.of(context).errorTexto,
+              ),
             ),
           ),
         OutlinedButton(
           onPressed: cargando ? null : onTap,
           style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.teal,
-            side: const BorderSide(color: AppColors.bordeCampo),
+            foregroundColor: AppColors.of(context).teal,
+            side: BorderSide(color: AppColors.of(context).bordeCampo),
             minimumSize: const Size(220, 48),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
           ),
           child: cargando
-              ? const SizedBox(
+              ? SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.teal,
+                    color: AppColors.of(context).teal,
                   ),
                 )
               : Text(
@@ -604,7 +626,7 @@ class _BotonVerMas extends StatelessWidget {
                   style: AppText.poppins(
                     14,
                     weight: FontWeight.w600,
-                    color: AppColors.teal,
+                    color: AppColors.of(context).teal,
                   ),
                 ),
         ),
@@ -633,13 +655,13 @@ class _Aviso extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.of(context).card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
       ),
       child: Column(
         children: [
-          Icon(icono, size: 36, color: AppColors.texto2),
+          Icon(icono, size: 36, color: AppColors.of(context).texto2),
           const SizedBox(height: 12),
           Text(
             titulo,
@@ -650,15 +672,19 @@ class _Aviso extends StatelessWidget {
           Text(
             texto,
             textAlign: TextAlign.center,
-            style: AppText.poppins(13.5, color: AppColors.texto2, height: 1.45),
+            style: AppText.poppins(
+              13.5,
+              color: AppColors.of(context).texto2,
+              height: 1.45,
+            ),
           ),
           if (boton != null) ...[
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: onBoton,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.teal,
-                side: const BorderSide(color: AppColors.bordeCampo),
+                foregroundColor: AppColors.of(context).teal,
+                side: BorderSide(color: AppColors.of(context).bordeCampo),
                 minimumSize: const Size(160, 44),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -669,7 +695,7 @@ class _Aviso extends StatelessWidget {
                 style: AppText.poppins(
                   14,
                   weight: FontWeight.w600,
-                  color: AppColors.teal,
+                  color: AppColors.of(context).teal,
                 ),
               ),
             ),
@@ -719,7 +745,7 @@ class _TarjetaEsqueleto extends StatelessWidget {
       child: Container(
         height: alto,
         decoration: BoxDecoration(
-          color: AppColors.bg3,
+          color: AppColors.of(context).bg3,
           borderRadius: BorderRadius.circular(6),
         ),
       ),
@@ -727,16 +753,16 @@ class _TarjetaEsqueleto extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.of(context).card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const AspectRatio(
+          AspectRatio(
             aspectRatio: 16 / 9,
-            child: ColoredBox(color: AppColors.bg3),
+            child: ColoredBox(color: AppColors.of(context).bg3),
           ),
           Padding(
             padding: const EdgeInsets.all(14),

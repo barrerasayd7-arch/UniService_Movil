@@ -1,5 +1,5 @@
 // Archivo: app_colors.dart
-// Responsabilidad: paleta del tema oscuro (equivalente a las variables CSS de la web) y breakpoints.
+// Responsabilidad: paletas claro/oscuro basadas en la web y breakpoints.
 // Se usa desde: pantallas y widgets para mantener colores y cortes responsive consistentes.
 
 import 'package:flutter/material.dart';
@@ -8,6 +8,12 @@ import 'package:flutter/material.dart';
 /// (tema oscuro, que es el tema por defecto de la web).
 class AppColors {
   AppColors._();
+
+  /// Registra la dependencia del tema para actualizar incluso widgets const.
+  static AppPalette of(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+      ? const AppPalette(oscuro: true)
+      : const AppPalette(oscuro: false);
 
   static const bg = Color(0xFF070D16);
   static const bg2 = Color(0xFF0B1420);
@@ -51,6 +57,63 @@ class AppColors {
   static Color get tealDim => a(teal, 0.12);
 }
 
+/// Paleta clara basada en styles/light_theme/B_styleHome.css del proyecto web.
+/// Los acentos usados como texto se oscurecen para conservar el contraste.
+class AppPalette {
+  final bool oscuro;
+  const AppPalette({required this.oscuro});
+
+  Color get bg => oscuro ? AppColors.bg : const Color(0xFFF8F9FC);
+  Color get bg2 => oscuro ? AppColors.bg2 : const Color(0xFFF0F4F9);
+  Color get bg3 => oscuro ? AppColors.bg3 : const Color(0xFFE8ECF3);
+  Color get card => oscuro ? AppColors.card : Colors.white;
+  Color get cardHover => oscuro ? AppColors.cardHover : const Color(0xFFF3F7FC);
+  Color get borde => oscuro ? AppColors.borde : const Color(0xFFD4E4F0);
+  Color get borde2 => oscuro ? AppColors.borde2 : const Color(0xFFC0D9EB);
+  Color get teal => oscuro ? AppColors.teal : const Color(0xFF067A76);
+  Color get teal2 => oscuro ? AppColors.teal2 : const Color(0xFF087F7B);
+  Color get amarillo => oscuro ? AppColors.amarillo : const Color(0xFF806000);
+  Color get texto => oscuro ? AppColors.texto : const Color(0xFF0D1B2A);
+  Color get texto2 => oscuro ? AppColors.texto2 : const Color(0xFF3D5A73);
+  Color get texto3 => oscuro ? AppColors.texto3 : const Color(0xFF526D85);
+  Color get placeholder =>
+      oscuro ? AppColors.placeholder : const Color(0xFF526D85);
+  Color get bordeCampo =>
+      oscuro ? AppColors.bordeCampo : const Color(0xFF7B93A8);
+  Color get error => oscuro ? AppColors.error : const Color(0xFFB42326);
+  Color get errorTexto =>
+      oscuro ? AppColors.errorTexto : const Color(0xFFB42326);
+  Color get verificado =>
+      oscuro ? AppColors.verificado : const Color(0xFF16713D);
+  Color get tealBrillante => oscuro ? AppColors.tealBrillante : teal;
+  Color get estrella => oscuro ? AppColors.estrella : const Color(0xFF946000);
+  Color get violeta => oscuro ? AppColors.violeta : const Color(0xFF6D3AC7);
+  Color get admin => oscuro ? AppColors.admin : const Color(0xFF6D3AC7);
+  Color get adminHover =>
+      oscuro ? AppColors.adminHover : const Color(0xFF5525AB);
+  Color get tealDim => AppColors.a(teal, 0.12);
+  Color get sobreAcento => oscuro ? AppColors.bg : Colors.white;
+  Color get mensajePropio =>
+      oscuro ? const Color(0xFF104A4D) : const Color(0xFFDDF3EF);
+
+  Color elegir(Color noche, Color dia) => oscuro ? noche : dia;
+
+  /// Los chips conservan su matiz; en claro requieren un tono más oscuro.
+  Color legible(Color color) {
+    if (oscuro) return color;
+    var hsl = HSLColor.fromColor(color);
+    var resultado = color;
+    while ((card.computeLuminance() + 0.05) /
+                (resultado.computeLuminance() + 0.05) <
+            5 &&
+        hsl.lightness > 0.1) {
+      hsl = hsl.withLightness((hsl.lightness - 0.025).clamp(0.0, 1.0));
+      resultado = hsl.toColor();
+    }
+    return resultado;
+  }
+}
+
 /// Puntos de quiebre usados en los @media del CSS original.
 class Breakpoints {
   Breakpoints._();
@@ -58,4 +121,6 @@ class Breakpoints {
   static const double mobile = 640; // hero, labels, cantidad por página
   static const double authStack = 680; // login: una columna
   static const double tablet = 768; // navbar hamburguesa, carrusel top
+  static const double navbarInvitado = 1024;
+  static const double navbarUsuario = 1400;
 }

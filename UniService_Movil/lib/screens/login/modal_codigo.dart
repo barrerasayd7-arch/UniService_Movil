@@ -141,9 +141,9 @@ class _ModalCodigoState extends State<_ModalCodigo> {
             constraints: const BoxConstraints(maxWidth: 380),
             padding: const EdgeInsets.fromLTRB(24, 26, 24, 20),
             decoration: BoxDecoration(
-              color: AppColors.card,
+              color: AppColors.of(context).card,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.borde2),
+              border: Border.all(color: AppColors.of(context).borde2),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -155,7 +155,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                   TextSpan(
                     style: AppText.poppins(
                       13.2,
-                      color: AppColors.texto2,
+                      color: AppColors.of(context).texto2,
                       height: 1.5,
                     ),
                     children: [
@@ -167,7 +167,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                         style: AppText.poppins(
                           13.2,
                           weight: FontWeight.w600,
-                          color: AppColors.texto,
+                          color: AppColors.of(context).texto,
                           height: 1.5,
                         ),
                       ),
@@ -197,7 +197,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                             _error!,
                             style: AppText.poppins(
                               12.5,
-                              color: AppColors.error,
+                              color: AppColors.of(context).error,
                             ),
                           ),
                         ),
@@ -218,11 +218,14 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                           ? null
                           : () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.texto2,
+                        foregroundColor: AppColors.of(context).texto2,
                       ),
                       child: Text(
                         widget.textoSalir,
-                        style: AppText.poppins(12.8, color: AppColors.texto2),
+                        style: AppText.poppins(
+                          12.8,
+                          color: AppColors.of(context).texto2,
+                        ),
                       ),
                     ),
                     TextButton(
@@ -230,7 +233,7 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                           ? null
                           : _reenviar,
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.teal,
+                        foregroundColor: AppColors.of(context).teal,
                       ),
                       child: Text(
                         _reenviando
@@ -242,8 +245,8 @@ class _ModalCodigoState extends State<_ModalCodigo> {
                           12.8,
                           weight: FontWeight.w600,
                           color: _espera > 0
-                              ? AppColors.texto3
-                              : AppColors.teal,
+                              ? AppColors.of(context).texto3
+                              : AppColors.of(context).teal,
                         ),
                       ),
                     ),
@@ -317,7 +320,7 @@ class _CeldasCodigo extends StatelessWidget {
                 children: [
                   for (var i = 0; i < largo; i++) ...[
                     if (i > 0) SizedBox(width: i == largo ~/ 2 ? 14 : 8),
-                    Expanded(child: _celda(i, texto)),
+                    Expanded(child: _celda(context, i, texto)),
                   ],
                 ],
               );
@@ -328,28 +331,28 @@ class _CeldasCodigo extends StatelessWidget {
     );
   }
 
-  Widget _celda(int i, String texto) {
+  Widget _celda(BuildContext context, int i, String texto) {
     final activa = focusNode.hasFocus && i == texto.length.clamp(0, largo - 1);
     final llena = i < texto.length;
     final color = error
-        ? AppColors.error
+        ? AppColors.of(context).error
         : activa
-        ? AppColors.teal
+        ? AppColors.of(context).teal
         : llena
-        ? AppColors.borde2
-        : AppColors.borde;
+        ? AppColors.of(context).borde2
+        : AppColors.of(context).borde;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
       height: 56,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: activa ? AppColors.bg3 : AppColors.bg2,
+        color: activa ? AppColors.of(context).bg3 : AppColors.of(context).bg2,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color, width: activa ? 2 : 1.5),
       ),
       child: Text(
         llena ? texto[i] : '',
-        style: AppText.serif(28, color: AppColors.texto),
+        style: AppText.serif(28, color: AppColors.of(context).texto),
       ),
     );
   }

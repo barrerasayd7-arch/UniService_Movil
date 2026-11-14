@@ -73,7 +73,7 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
     final opcion = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -114,13 +114,13 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
                 onTap: () => Navigator.of(ctx).pop('reanudar'),
               ),
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.delete_outline,
-                color: AppColors.errorTexto,
+                color: AppColors.of(context).errorTexto,
               ),
-              title: const Text(
+              title: Text(
                 'Eliminar',
-                style: TextStyle(color: AppColors.errorTexto),
+                style: TextStyle(color: AppColors.of(context).errorTexto),
               ),
               onTap: () => Navigator.of(ctx).pop('eliminar'),
             ),
@@ -150,11 +150,15 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
+        backgroundColor: AppColors.of(context).card,
         title: Text('¿Eliminar este servicio?', style: AppText.serif(22)),
         content: Text(
           'Se borrarán también sus fotos, solicitudes y reseñas. No se puede deshacer.',
-          style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
+          style: AppText.poppins(
+            14,
+            color: AppColors.of(context).texto2,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
@@ -163,7 +167,9 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.errorTexto),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.of(context).errorTexto,
+            ),
             child: const Text('Eliminar'),
           ),
         ],
@@ -176,9 +182,9 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
   Widget build(BuildContext context) {
     final lista = _servicios;
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         surfaceTintColor: Colors.transparent,
         title: Text('Mis servicios', style: AppText.serif(22)),
         actions: [
@@ -188,35 +194,37 @@ class _MisServiciosScreenState extends State<MisServiciosScreen> {
             onPressed: () => Navigator.of(context).pushNamed('/solicitudes'),
           ),
         ],
-        bottom: const PreferredSize(
+        bottom: PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.borde),
+          child: Divider(height: 1, color: AppColors.of(context).borde),
         ),
       ),
       floatingActionButton: lista == null || lista.isEmpty
           ? null
           : FloatingActionButton.extended(
               onPressed: () => Navigator.of(context).pushNamed('/publicar'),
-              backgroundColor: AppColors.teal,
-              foregroundColor: AppColors.bg,
+              backgroundColor: AppColors.of(context).teal,
+              foregroundColor: AppColors.of(context).bg,
               icon: const Icon(Icons.add),
               label: Text(
                 'Publicar',
                 style: AppText.poppins(
                   15,
                   weight: FontWeight.w700,
-                  color: AppColors.bg,
+                  color: AppColors.of(context).bg,
                 ),
               ),
             ),
       body: RefreshIndicator(
-        color: AppColors.teal,
-        backgroundColor: AppColors.card,
+        color: AppColors.of(context).teal,
+        backgroundColor: AppColors.of(context).card,
         onRefresh: _cargar,
         child: lista == null
             ? (_error == null
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.teal),
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.of(context).teal,
+                      ),
                     )
                   : _Vacio(
                       icono: Icons.cloud_off_rounded,
@@ -281,9 +289,10 @@ class _TarjetaMiServicio extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = servicio;
-    final (etiqueta, color) = estadoServicio(s.estado);
+    final (etiqueta, colorOriginal) = estadoServicio(s.estado);
+    final color = AppColors.of(context).legible(colorOriginal);
     return Material(
-      color: AppColors.card,
+      color: AppColors.of(context).card,
       borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -291,7 +300,7 @@ class _TarjetaMiServicio extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borde),
+            border: Border.all(color: AppColors.of(context).borde),
           ),
           padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
           child: Column(
@@ -323,7 +332,10 @@ class _TarjetaMiServicio extends StatelessWidget {
                           '${textoPrecio(s.precio, s.unidadPrecio)} · ${etiquetaCategoria(s.categoria)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppText.poppins(13, color: AppColors.texto2),
+                          style: AppText.poppins(
+                            13,
+                            color: AppColors.of(context).texto2,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Wrap(
@@ -333,12 +345,12 @@ class _TarjetaMiServicio extends StatelessWidget {
                             Text.rich(
                               TextSpan(
                                 children: [
-                                  const WidgetSpan(
+                                  WidgetSpan(
                                     alignment: PlaceholderAlignment.middle,
                                     child: Icon(
                                       Icons.star_rounded,
                                       size: 15,
-                                      color: AppColors.estrella,
+                                      color: AppColors.of(context).estrella,
                                     ),
                                   ),
                                   TextSpan(
@@ -350,19 +362,19 @@ class _TarjetaMiServicio extends StatelessWidget {
                               ),
                               style: AppText.poppins(
                                 12.5,
-                                color: AppColors.texto2,
+                                color: AppColors.of(context).texto2,
                               ),
                             ),
                             if (s.numImagenes == 0)
                               Text.rich(
-                                const TextSpan(
+                                TextSpan(
                                   children: [
                                     WidgetSpan(
                                       alignment: PlaceholderAlignment.middle,
                                       child: Icon(
                                         Icons.hide_image_outlined,
                                         size: 15,
-                                        color: AppColors.texto3,
+                                        color: AppColors.of(context).texto3,
                                       ),
                                     ),
                                     TextSpan(text: ' Sin fotos'),
@@ -370,7 +382,7 @@ class _TarjetaMiServicio extends StatelessWidget {
                                 ),
                                 style: AppText.poppins(
                                   12.5,
-                                  color: AppColors.texto3,
+                                  color: AppColors.of(context).texto3,
                                 ),
                               ),
                           ],
@@ -379,23 +391,23 @@ class _TarjetaMiServicio extends StatelessWidget {
                     ),
                   ),
                   ocupado
-                      ? const Padding(
+                      ? Padding(
                           padding: EdgeInsets.all(14),
                           child: SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.teal,
+                              color: AppColors.of(context).teal,
                             ),
                           ),
                         )
                       : IconButton(
                           tooltip: 'Opciones',
                           onPressed: onOpciones,
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.more_vert,
-                            color: AppColors.texto2,
+                            color: AppColors.of(context).texto2,
                           ),
                         ),
                 ],
@@ -406,14 +418,14 @@ class _TarjetaMiServicio extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 10, right: 8),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.a(AppColors.errorTexto, 0.08),
+                    color: AppColors.a(AppColors.of(context).errorTexto, 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     'Motivo: ${s.motivoRechazo}. Edítalo para enviarlo de nuevo a revisión.',
                     style: AppText.poppins(
                       12.5,
-                      color: AppColors.texto2,
+                      color: AppColors.of(context).texto2,
                       height: 1.4,
                     ),
                   ),
@@ -426,7 +438,7 @@ class _TarjetaMiServicio extends StatelessWidget {
                     child: TextButton.icon(
                       onPressed: onSolicitudes,
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.amarillo,
+                        foregroundColor: AppColors.of(context).amarillo,
                         minimumSize: const Size(48, 40),
                       ),
                       icon: const Icon(
@@ -440,7 +452,7 @@ class _TarjetaMiServicio extends StatelessWidget {
                         style: AppText.poppins(
                           13,
                           weight: FontWeight.w600,
-                          color: AppColors.amarillo,
+                          color: AppColors.of(context).amarillo,
                         ),
                       ),
                     ),
@@ -463,7 +475,9 @@ class _Miniatura extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const lado = 76.0;
-    final color = coloresCategoria[categoria]?.color ?? AppColors.teal;
+    final color = AppColors.of(
+      context,
+    ).legible(coloresCategoria[categoria]?.color ?? AppColors.of(context).teal);
     final respaldo = ColoredBox(
       color: AppColors.a(color, 0.15),
       child: Icon(
@@ -536,22 +550,26 @@ class _Vacio extends StatelessWidget {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(24, 80, 24, 24),
       children: [
-        Icon(icono, size: 48, color: AppColors.texto2),
+        Icon(icono, size: 48, color: AppColors.of(context).texto2),
         const SizedBox(height: 16),
         Text(titulo, textAlign: TextAlign.center, style: AppText.serif(24)),
         const SizedBox(height: 8),
         Text(
           texto,
           textAlign: TextAlign.center,
-          style: AppText.poppins(14, color: AppColors.texto2, height: 1.5),
+          style: AppText.poppins(
+            14,
+            color: AppColors.of(context).texto2,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 24),
         Center(
           child: FilledButton(
             onPressed: onBoton,
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.teal,
-              foregroundColor: AppColors.bg,
+              backgroundColor: AppColors.of(context).teal,
+              foregroundColor: AppColors.of(context).bg,
               minimumSize: const Size(220, 50),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -562,7 +580,7 @@ class _Vacio extends StatelessWidget {
               style: AppText.poppins(
                 15,
                 weight: FontWeight.w700,
-                color: AppColors.bg,
+                color: AppColors.of(context).bg,
               ),
             ),
           ),

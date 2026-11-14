@@ -84,7 +84,7 @@ class _AdminReportesScreenState extends State<AdminReportesScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       builder: (_) => _DetalleReporte(reporte: r),
     );
     if (!mounted) return;
@@ -140,7 +140,7 @@ class _TarjetaReporte extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _colorEstado(r.estado);
+    final color = AppColors.of(context).legible(_colorEstado(r.estado));
     return TarjetaAdmin(
       acento: color,
       onTap: onTap,
@@ -174,12 +174,16 @@ class _TarjetaReporte extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             _etiquetaTipo(r.tipo),
-            style: AppText.poppins(13, color: AppColors.texto2),
+            style: AppText.poppins(13, color: AppColors.of(context).texto2),
           ),
           const SizedBox(height: 4),
           Text(
             'Reporta: ${r.usuario} · ${formatearFecha(r.fecha)}',
-            style: AppText.poppins(12.5, color: AppColors.texto2, height: 1.4),
+            style: AppText.poppins(
+              12.5,
+              color: AppColors.of(context).texto2,
+              height: 1.4,
+            ),
           ),
           if (r.reportado != null) ...[
             const SizedBox(height: 2),
@@ -188,7 +192,7 @@ class _TarjetaReporte extends StatelessWidget {
               style: AppText.poppins(
                 12.5,
                 weight: FontWeight.w600,
-                color: AppColors.errorTexto,
+                color: AppColors.of(context).errorTexto,
               ),
             ),
           ],
@@ -287,11 +291,11 @@ class _DetalleReporteState extends State<_DetalleReporte> {
                 children: [
                   PildoraEstado(
                     texto: _etiquetaTipo(r.tipo),
-                    color: AppColors.texto2,
+                    color: AppColors.of(context).texto2,
                   ),
                   PildoraEstado(
                     texto: _etiquetaEstado(r.estado),
-                    color: _colorEstado(r.estado),
+                    color: AppColors.of(context).legible(_colorEstado(r.estado)),
                   ),
                 ],
               ),
@@ -300,9 +304,9 @@ class _DetalleReporteState extends State<_DetalleReporte> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.bg2,
+                  color: AppColors.of(context).bg2,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borde),
+                  border: Border.all(color: AppColors.of(context).borde),
                 ),
                 child: Text(
                   r.descripcion,
@@ -317,7 +321,7 @@ class _DetalleReporteState extends State<_DetalleReporte> {
                   style: AppText.poppins(
                     13,
                     weight: FontWeight.w600,
-                    color: AppColors.texto2,
+                    color: AppColors.of(context).texto2,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -342,11 +346,11 @@ class _DetalleReporteState extends State<_DetalleReporte> {
                                   r.evidencias[i],
                                   fit: BoxFit.cover,
                                   cacheWidth: 220,
-                                  errorBuilder: (_, _, _) => const ColoredBox(
-                                    color: AppColors.bg3,
+                                  errorBuilder: (_, _, _) => ColoredBox(
+                                    color: AppColors.of(context).bg3,
                                     child: Icon(
                                       Icons.broken_image_outlined,
-                                      color: AppColors.texto3,
+                                      color: AppColors.of(context).texto3,
                                     ),
                                   ),
                                 ),
@@ -358,7 +362,7 @@ class _DetalleReporteState extends State<_DetalleReporte> {
                         BotonAdmin(
                           label: 'Enlace ${i + 1}',
                           icono: Icons.link_rounded,
-                          color: AppColors.texto2,
+                          color: AppColors.of(context).texto2,
                           onTap: () => _abrirEnlace(r.evidencias[i]),
                         ),
                   ],
@@ -388,7 +392,7 @@ class _DetalleReporteState extends State<_DetalleReporte> {
               if (r.fechaResolucion != null)
                 FilaDatoAdmin('Resuelto', formatearFecha(r.fechaResolucion)),
               const SizedBox(height: 12),
-              const Divider(height: 1, color: AppColors.borde),
+              Divider(height: 1, color: AppColors.of(context).borde),
               const SizedBox(height: 16),
               // --- Gestión: estado y notas ---
               Semantics(
@@ -411,27 +415,30 @@ class _DetalleReporteState extends State<_DetalleReporte> {
                 minLines: 3,
                 maxLines: 6,
                 maxLength: 2000,
-                cursorColor: AppColors.admin,
+                cursorColor: AppColors.of(context).admin,
                 style: AppText.poppins(14.5, height: 1.5),
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: AppColors.bg2,
+                  fillColor: AppColors.of(context).bg2,
                   hintText: 'Notas de resolución (opcional)',
                   hintStyle: AppText.poppins(
                     14.5,
-                    color: AppColors.placeholder,
+                    color: AppColors.of(context).placeholder,
                   ),
-                  counterStyle: AppText.poppins(11.5, color: AppColors.texto3),
-                  enabledBorder: borde(AppColors.bordeCampo),
-                  focusedBorder: borde(AppColors.admin, 1.6),
+                  counterStyle: AppText.poppins(
+                    11.5,
+                    color: AppColors.of(context).texto3,
+                  ),
+                  enabledBorder: borde(AppColors.of(context).bordeCampo),
+                  focusedBorder: borde(AppColors.of(context).admin, 1.6),
                 ),
               ),
               const SizedBox(height: 8),
               AuthAviso(mensaje: _aviso),
               AuthPrimaryButton(
                 label: 'Guardar cambios',
-                color: AppColors.admin,
-                colorHover: AppColors.adminHover,
+                color: AppColors.of(context).admin,
+                colorHover: AppColors.of(context).adminHover,
                 cargando: _guardando,
                 onTap: _guardar,
               ),

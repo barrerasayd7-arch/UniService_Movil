@@ -31,9 +31,9 @@ class SeccionInfo extends StatelessWidget {
       margin: margen,
       padding: EdgeInsets.all(movil ? 16 : 24),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.of(context).card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,13 +42,18 @@ class SeccionInfo extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.only(bottom: 12),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.teal, width: 2)),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.of(context).teal,
+                    width: 2,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
                   if (icono != null) ...[
-                    Icon(icono, size: 17, color: AppColors.texto),
+                    Icon(icono, size: 17, color: AppColors.of(context).texto),
                     const SizedBox(width: 8),
                   ],
                   Flexible(
@@ -89,7 +94,9 @@ class InfoRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border: ultima ? null : const Border(bottom: BorderSide(color: AppColors.borde)),
+        border: ultima
+            ? null
+            : Border(bottom: BorderSide(color: AppColors.of(context).borde)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -97,7 +104,11 @@ class InfoRow extends StatelessWidget {
         children: [
           Text(
             label,
-            style: AppText.poppins(14.08, weight: FontWeight.w500, color: AppColors.texto2),
+            style: AppText.poppins(
+              14.08,
+              weight: FontWeight.w500,
+              color: AppColors.of(context).texto2,
+            ),
           ),
           const SizedBox(width: 16),
           Flexible(
@@ -105,14 +116,18 @@ class InfoRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (iconoValor != null) ...[
-                  Icon(iconoValor, size: 14, color: AppColors.teal),
+                  Icon(iconoValor, size: 14, color: AppColors.of(context).teal),
                   const SizedBox(width: 4),
                 ],
                 Flexible(
                   child: Text(
                     value,
                     textAlign: TextAlign.right,
-                    style: AppText.poppins(14.08, weight: FontWeight.w700, color: AppColors.teal),
+                    style: AppText.poppins(
+                      14.08,
+                      weight: FontWeight.w700,
+                      color: AppColors.of(context).teal,
+                    ),
                   ),
                 ),
               ],
@@ -156,7 +171,9 @@ class BtnDetalle extends StatelessWidget {
     final deshabilitado = onTap == null || cargando;
 
     return HoverBuilder(
-      cursor: deshabilitado ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      cursor: deshabilitado
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
       builder: (context, hover) {
         final h = hover && !deshabilitado;
 
@@ -172,19 +189,26 @@ class BtnDetalle extends StatelessWidget {
         // Cada estilo resuelve sus colores y sombra; `h` indica hover activo.
         switch (estilo) {
           case EstiloBtn.principal:
-            bg = h ? AppColors.teal2 : AppColors.teal;
-            fg = AppColors.bg;
+            bg = h ? AppColors.of(context).teal2 : AppColors.of(context).teal;
+            fg = AppColors.of(context).bg;
             sombra = [
               BoxShadow(
-                color: AppColors.a(AppColors.teal, h ? 0.3 : 0.2),
+                color: AppColors.a(AppColors.of(context).teal, h ? 0.3 : 0.2),
                 blurRadius: h ? 20 : 12,
                 offset: Offset(0, h ? 8 : 4),
               ),
             ];
           case EstiloBtn.secundario:
-            bg = h ? AppColors.a(AppColors.teal, 0.05) : Colors.transparent;
-            fg = h ? AppColors.teal : AppColors.texto;
-            borde = Border.all(color: h ? AppColors.teal : AppColors.borde, width: 2);
+            bg = h
+                ? AppColors.a(AppColors.of(context).teal, 0.05)
+                : Colors.transparent;
+            fg = h ? AppColors.of(context).teal : AppColors.of(context).texto;
+            borde = Border.all(
+              color: h
+                  ? AppColors.of(context).teal
+                  : AppColors.of(context).borde,
+              width: 2,
+            );
             sombra = const [];
             peso = FontWeight.w600;
           case EstiloBtn.whatsapp:
@@ -230,7 +254,7 @@ class BtnDetalle extends StatelessWidget {
             peso = FontWeight.w600;
             sombra = [
               BoxShadow(
-                color: AppColors.a(AppColors.teal, h ? 0.4 : 0.3),
+                color: AppColors.a(AppColors.of(context).teal, h ? 0.4 : 0.3),
                 blurRadius: h ? 20 : 15,
                 offset: Offset(0, h ? 6 : 4),
               ),

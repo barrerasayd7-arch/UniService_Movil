@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_colors.dart';
 import '../../core/app_text.dart';
+import '../../widgets/boton_tema.dart';
 import '../../widgets/app_buttons.dart' show HoverBuilder;
 
 /// Entrada de navegación pública: texto visible y ancla de sección.
@@ -27,7 +28,7 @@ const enlacesNav = [
 ];
 
 /// `.navbar-custom` (BarraNavegacionInvitado.jsx).
-/// En pantallas < 768px muestra el botón hamburguesa; el menú desplegable
+/// En pantallas medianas y pequeñas muestra la hamburguesa; el menú desplegable
 /// lo dibuja [MenuMovilInvitado] desde la pantalla principal.
 class NavbarInvitado extends StatelessWidget {
   final bool movil;
@@ -57,8 +58,10 @@ class NavbarInvitado extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xF2070D16), // rgba(7,13,22,.95)
-            border: const Border(bottom: BorderSide(color: AppColors.borde)),
+            color: AppColors.of(context).bg.withAlpha(242), // rgba(7,13,22,.95)
+            border: Border(
+              bottom: BorderSide(color: AppColors.of(context).borde),
+            ),
           ),
           child: Center(
             child: ConstrainedBox(
@@ -80,7 +83,7 @@ class NavbarInvitado extends StatelessWidget {
                                 style: AppText.poppins(
                                   24,
                                   weight: FontWeight.w700,
-                                  color: AppColors.teal,
+                                  color: AppColors.of(context).teal,
                                   spacing: 0.5,
                                 ),
                               ),
@@ -89,7 +92,7 @@ class NavbarInvitado extends StatelessWidget {
                                 style: AppText.poppins(
                                   24,
                                   weight: FontWeight.w700,
-                                  color: AppColors.amarillo,
+                                  color: AppColors.of(context).amarillo,
                                   spacing: 0.5,
                                 ),
                               ),
@@ -100,10 +103,20 @@ class NavbarInvitado extends StatelessWidget {
                     ),
                     // Hamburguesa en móvil; enlaces + login en escritorio.
                     if (movil)
-                      _Hamburguesa(activo: menuAbierto, onTap: onToggleMenu)
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const BotonTema(),
+                          _Hamburguesa(
+                            activo: menuAbierto,
+                            onTap: onToggleMenu,
+                          ),
+                        ],
+                      )
                     else
                       Row(
                         children: [
+                          const BotonTema(),
                           for (final e in enlacesNav)
                             Padding(
                               padding: const EdgeInsets.only(left: 4),
@@ -154,14 +167,16 @@ class _NavLink extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: destacado
-                ? (hover ? AppColors.teal : AppColors.a(AppColors.teal, 0.15))
-                : (hover ? AppColors.tealDim : Colors.transparent),
+                ? (hover
+                      ? AppColors.of(context).teal
+                      : AppColors.a(AppColors.of(context).teal, 0.15))
+                : (hover ? AppColors.of(context).tealDim : Colors.transparent),
             borderRadius: BorderRadius.circular(8),
             border: destacado
                 ? Border.all(
                     color: hover
-                        ? AppColors.teal
-                        : AppColors.a(AppColors.teal, 0.35),
+                        ? AppColors.of(context).teal
+                        : AppColors.a(AppColors.of(context).teal, 0.35),
                   )
                 : Border.all(color: Colors.transparent),
           ),
@@ -171,8 +186,12 @@ class _NavLink extends StatelessWidget {
               13.12,
               weight: destacado ? FontWeight.w600 : FontWeight.w500,
               color: destacado
-                  ? (hover ? AppColors.bg : AppColors.teal)
-                  : (hover ? AppColors.texto : AppColors.texto2),
+                  ? (hover
+                        ? AppColors.of(context).bg
+                        : AppColors.of(context).teal)
+                  : (hover
+                        ? AppColors.of(context).texto
+                        : AppColors.of(context).texto2),
             ),
           ),
         ),
@@ -196,7 +215,7 @@ class _Hamburguesa extends StatelessWidget {
         height: 2,
         transformAlignment: Alignment.center,
         transform: Matrix4.translationValues(0, dy, 0)..rotateZ(giro),
-        color: AppColors.texto.withAlpha((opacidad * 255).round()),
+        color: AppColors.of(context).texto.withAlpha((opacidad * 255).round()),
       );
     }
 
@@ -243,11 +262,15 @@ class MenuMovilInvitado extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: destacado
-                  ? AppColors.a(AppColors.teal, 0.15)
-                  : (hover ? AppColors.tealDim : Colors.transparent),
+                  ? AppColors.a(AppColors.of(context).teal, 0.15)
+                  : (hover
+                        ? AppColors.of(context).tealDim
+                        : Colors.transparent),
               borderRadius: BorderRadius.circular(8),
               border: destacado
-                  ? Border.all(color: AppColors.a(AppColors.teal, 0.35))
+                  ? Border.all(
+                      color: AppColors.a(AppColors.of(context).teal, 0.35),
+                    )
                   : null,
             ),
             child: Text(
@@ -255,7 +278,9 @@ class MenuMovilInvitado extends StatelessWidget {
               style: AppText.poppins(
                 13.12,
                 weight: destacado ? FontWeight.w600 : FontWeight.w500,
-                color: destacado ? AppColors.teal : AppColors.texto2,
+                color: destacado
+                    ? AppColors.of(context).teal
+                    : AppColors.of(context).texto2,
               ),
             ),
           ),
@@ -267,9 +292,9 @@ class MenuMovilInvitado extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 192),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.bg,
+        color: AppColors.of(context).bg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borde),
+        border: Border.all(color: AppColors.of(context).borde),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(77),

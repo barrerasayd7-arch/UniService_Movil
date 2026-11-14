@@ -141,7 +141,7 @@ class _DetailScreenState extends State<DetailScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(texto),
-          backgroundColor: AppColors.card,
+          backgroundColor: AppColors.of(context).card,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -210,7 +210,7 @@ class _DetailScreenState extends State<DetailScreen> {
     final movilNav = ancho <= 900;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       // SafeArea: la barra superior no queda bajo la hora/batería del celular.
       body: SafeArea(
         bottom: false,
@@ -229,8 +229,8 @@ class _DetailScreenState extends State<DetailScreen> {
                 ),
                 Expanded(
                   child: RefreshIndicator(
-                    color: AppColors.teal,
-                    backgroundColor: AppColors.card,
+                    color: AppColors.of(context).teal,
+                    backgroundColor: AppColors.of(context).card,
                     onRefresh: _cargar,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
@@ -339,7 +339,7 @@ class _DetailScreenState extends State<DetailScreen> {
             padding: const EdgeInsets.only(top: 12),
             child: Text(
               'Inicia sesión para ver la ubicación.',
-              style: AppText.poppins(13.5, color: AppColors.texto2),
+              style: AppText.poppins(13.5, color: AppColors.of(context).texto2),
             ),
           ),
         const SizedBox(height: 16),
@@ -361,7 +361,7 @@ class _DetailScreenState extends State<DetailScreen> {
                       TextSpan(
                         style: AppText.poppins(
                           14.4,
-                          color: AppColors.texto2,
+                          color: AppColors.of(context).texto2,
                           height: 1.6,
                         ),
                         children: d.numResenas == 0
@@ -389,9 +389,9 @@ class _DetailScreenState extends State<DetailScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.card,
+                  color: AppColors.of(context).card,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borde),
+                  border: Border.all(color: AppColors.of(context).borde),
                 ),
                 child: Text(
                   s.descripcion.isEmpty
@@ -457,7 +457,10 @@ class _DetailScreenState extends State<DetailScreen> {
                     child: Text(
                       'Aún no hay reseñas para este servicio.',
                       textAlign: TextAlign.center,
-                      style: AppText.poppins(14, color: AppColors.texto2),
+                      style: AppText.poppins(
+                        14,
+                        color: AppColors.of(context).texto2,
+                      ),
                     ),
                   ),
                 )
@@ -599,10 +602,10 @@ class _DetailScreenState extends State<DetailScreen> {
       child: Center(
         child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.search_off_rounded,
               size: 48,
-              color: AppColors.texto2,
+              color: AppColors.of(context).texto2,
             ),
             const SizedBox(height: 12),
             Text(
@@ -614,7 +617,7 @@ class _DetailScreenState extends State<DetailScreen> {
             Text(
               'El servicio que buscas no existe, fue retirado o está en revisión.',
               textAlign: TextAlign.center,
-              style: AppText.poppins(14.4, color: AppColors.texto2),
+              style: AppText.poppins(14.4, color: AppColors.of(context).texto2),
             ),
             const SizedBox(height: 24),
             BtnVerde(label: 'Volver al inicio', onTap: () => _irA('inicio')),
@@ -630,10 +633,10 @@ class _DetailScreenState extends State<DetailScreen> {
       child: Center(
         child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_rounded,
               size: 48,
-              color: AppColors.texto2,
+              color: AppColors.of(context).texto2,
             ),
             const SizedBox(height: 12),
             Text(
@@ -645,7 +648,7 @@ class _DetailScreenState extends State<DetailScreen> {
             Text(
               _error ?? '',
               textAlign: TextAlign.center,
-              style: AppText.poppins(14.4, color: AppColors.texto2),
+              style: AppText.poppins(14.4, color: AppColors.of(context).texto2),
             ),
             const SizedBox(height: 24),
             BtnVerde(label: 'Reintentar', onTap: _cargar),
@@ -666,7 +669,7 @@ class _DetailScreenState extends State<DetailScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                const Divider(color: AppColors.borde, height: 1),
+                Divider(color: AppColors.of(context).borde, height: 1),
                 const SizedBox(height: 16),
                 Wrap(
                   alignment: WrapAlignment.center,
@@ -676,9 +679,16 @@ class _DetailScreenState extends State<DetailScreen> {
                     Text(
                       '© 2026 UniService — Hecho por y para estudiantes',
                       textAlign: TextAlign.center,
-                      style: AppText.poppins(13, color: AppColors.texto3),
+                      style: AppText.poppins(
+                        13,
+                        color: AppColors.of(context).texto3,
+                      ),
                     ),
-                    const Icon(Icons.school, size: 15, color: AppColors.texto3),
+                    Icon(
+                      Icons.school,
+                      size: 15,
+                      color: AppColors.of(context).texto3,
+                    ),
                   ],
                 ),
               ],
@@ -708,7 +718,8 @@ class _BannerEstado extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (etiqueta, color) = estadoServicio(estado);
+    final (etiqueta, colorOriginal) = estadoServicio(estado);
+    final color = AppColors.of(context).legible(colorOriginal);
     final texto = switch (estado) {
       'pendiente' =>
         'Un administrador lo revisará pronto. Mientras tanto sólo tú puedes verlo.',
@@ -751,7 +762,7 @@ class _BannerEstado extends StatelessWidget {
                   texto,
                   style: AppText.poppins(
                     13.5,
-                    color: AppColors.texto2,
+                    color: AppColors.of(context).texto2,
                     height: 1.45,
                   ),
                 ),
@@ -804,14 +815,16 @@ class _InvitaSesion extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppColors.of(context).card,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.a(AppColors.teal, 0.35)),
+        border: Border.all(
+          color: AppColors.a(AppColors.of(context).teal, 0.35),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.lock_outline, color: AppColors.teal, size: 28),
+          Icon(Icons.lock_outline, color: AppColors.of(context).teal, size: 28),
           const SizedBox(height: 10),
           Text(
             '¿Te interesa este servicio?',
@@ -822,7 +835,11 @@ class _InvitaSesion extends StatelessWidget {
           Text(
             'Inicia sesión con tu correo institucional para ver el contacto y enviar una solicitud.',
             textAlign: TextAlign.center,
-            style: AppText.poppins(13.5, color: AppColors.texto2, height: 1.5),
+            style: AppText.poppins(
+              13.5,
+              color: AppColors.of(context).texto2,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 16),
           BtnDetalle(
@@ -850,9 +867,13 @@ class _ResenaCard extends StatelessWidget {
         duration: const Duration(milliseconds: 250),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.bg2,
+          color: AppColors.of(context).bg2,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: hover ? AppColors.borde2 : AppColors.borde),
+          border: Border.all(
+            color: hover
+                ? AppColors.of(context).borde2
+                : AppColors.of(context).borde,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -863,12 +884,15 @@ class _ResenaCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [AppColors.teal, AppColors.teal2],
+                      colors: [
+                        AppColors.of(context).teal,
+                        AppColors.of(context).teal2,
+                      ],
                     ),
                   ),
                   child: Text(
@@ -876,7 +900,7 @@ class _ResenaCard extends StatelessWidget {
                     style: AppText.poppins(
                       13.6,
                       weight: FontWeight.w700,
-                      color: AppColors.bg,
+                      color: AppColors.of(context).bg,
                     ),
                   ),
                 ),
@@ -894,7 +918,10 @@ class _ResenaCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '${formatearFecha(resena.fecha)}${resena.editada ? ' · editada' : ''}',
-                        style: AppText.poppins(12.5, color: AppColors.texto3),
+                        style: AppText.poppins(
+                          12.5,
+                          color: AppColors.of(context).texto3,
+                        ),
                       ),
                     ],
                   ),
@@ -909,7 +936,7 @@ class _ResenaCard extends StatelessWidget {
                 resena.comentario,
                 style: AppText.poppins(
                   14.08,
-                  color: AppColors.texto2,
+                  color: AppColors.of(context).texto2,
                   height: 1.6,
                 ),
               ),
@@ -943,14 +970,18 @@ class _BtnReportar extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.flag, size: 14, color: Color(0xFFFF6B6B)),
+              Icon(
+                Icons.flag,
+                size: 14,
+                color: AppColors.of(context).errorTexto,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Reportar',
                 style: AppText.poppins(
                   13.1,
                   weight: FontWeight.w600,
-                  color: const Color(0xFFFF6B6B),
+                  color: AppColors.of(context).errorTexto,
                 ),
               ),
             ],

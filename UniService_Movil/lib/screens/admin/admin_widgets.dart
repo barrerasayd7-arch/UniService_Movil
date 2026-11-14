@@ -42,9 +42,11 @@ class _AvisoAdmin extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 360),
               padding: const EdgeInsets.fromLTRB(24, 28, 24, 14),
               decoration: BoxDecoration(
-                color: AppColors.card,
+                color: AppColors.of(context).card,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.a(AppColors.admin, 0.35)),
+                border: Border.all(
+                  color: AppColors.a(AppColors.of(context).admin, 0.35),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -64,22 +66,22 @@ class _AvisoAdmin extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: AppText.poppins(
                       14.5,
-                      color: AppColors.texto2,
+                      color: AppColors.of(context).texto2,
                       height: 1.5,
                     ),
                   ),
                   const SizedBox(height: 22),
                   AuthPrimaryButton(
                     label: 'Continuar al panel',
-                    color: AppColors.admin,
-                    colorHover: AppColors.adminHover,
+                    color: AppColors.of(context).admin,
+                    colorHover: AppColors.of(context).adminHover,
                     onTap: () => Navigator.of(context).pop(true),
                   ),
                   const SizedBox(height: 6),
                   Center(
                     child: AuthTextButton(
                       label: 'Seguir como usuario',
-                      color: AppColors.texto2,
+                      color: AppColors.of(context).texto2,
                       onTap: () => Navigator.of(context).pop(false),
                     ),
                   ),
@@ -105,13 +107,15 @@ class _IconoAdmin extends StatelessWidget {
         width: tamano,
         height: tamano,
         decoration: BoxDecoration(
-          color: AppColors.a(AppColors.admin, 0.12),
+          color: AppColors.a(AppColors.of(context).admin, 0.12),
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.a(AppColors.admin, 0.3)),
+          border: Border.all(
+            color: AppColors.a(AppColors.of(context).admin, 0.3),
+          ),
         ),
         child: Icon(
           Icons.admin_panel_settings_outlined,
-          color: AppColors.admin,
+          color: AppColors.of(context).admin,
           size: tamano * 0.5,
         ),
       ),
@@ -130,17 +134,19 @@ class InsigniaAdmin extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: AppColors.a(AppColors.admin, 0.10),
+          color: AppColors.a(AppColors.of(context).admin, 0.10),
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.a(AppColors.admin, 0.35)),
+          border: Border.all(
+            color: AppColors.a(AppColors.of(context).admin, 0.35),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.admin_panel_settings_outlined,
               size: 16,
-              color: AppColors.admin,
+              color: AppColors.of(context).admin,
             ),
             const SizedBox(width: 6),
             Text(
@@ -148,7 +154,7 @@ class InsigniaAdmin extends StatelessWidget {
               style: AppText.poppins(
                 12.5,
                 weight: FontWeight.w600,
-                color: AppColors.admin,
+                color: AppColors.of(context).admin,
                 spacing: 0.3,
               ),
             ),
@@ -181,25 +187,31 @@ Future<bool> confirmarAdmin(
     context: context,
     barrierColor: const Color(0xB3000000),
     builder: (ctx) => AlertDialog(
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: AppColors.a(AppColors.admin, 0.35)),
+        side: BorderSide(color: AppColors.a(AppColors.of(context).admin, 0.35)),
       ),
       title: Text(titulo, style: AppText.serif(23, height: 1.15)),
       content: Text(
         mensaje,
-        style: AppText.poppins(14.5, color: AppColors.texto2, height: 1.5),
+        style: AppText.poppins(
+          14.5,
+          color: AppColors.of(context).texto2,
+          height: 1.5,
+        ),
       ),
       actions: [
         AuthTextButton(
           label: 'Cancelar',
-          color: AppColors.texto2,
+          color: AppColors.of(context).texto2,
           onTap: () => Navigator.of(ctx).pop(false),
         ),
         AuthTextButton(
           label: confirmar,
-          color: peligro ? AppColors.errorTexto : AppColors.admin,
+          color: peligro
+              ? AppColors.of(context).errorTexto
+              : AppColors.of(context).admin,
           onTap: () => Navigator.of(ctx).pop(true),
         ),
       ],
@@ -262,10 +274,10 @@ class _DialogoMotivoState extends State<_DialogoMotivo> {
       borderSide: BorderSide(color: c, width: w),
     );
     return AlertDialog(
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(18),
-        side: BorderSide(color: AppColors.a(AppColors.admin, 0.35)),
+        side: BorderSide(color: AppColors.a(AppColors.of(context).admin, 0.35)),
       ),
       title: Text(widget.titulo, style: AppText.serif(23, height: 1.15)),
       content: SingleChildScrollView(
@@ -277,7 +289,7 @@ class _DialogoMotivoState extends State<_DialogoMotivo> {
               widget.mensaje,
               style: AppText.poppins(
                 14.5,
-                color: AppColors.texto2,
+                color: AppColors.of(context).texto2,
                 height: 1.5,
               ),
             ),
@@ -287,16 +299,22 @@ class _DialogoMotivoState extends State<_DialogoMotivo> {
               minLines: 3,
               maxLines: 5,
               maxLength: 500,
-              cursorColor: AppColors.admin,
+              cursorColor: AppColors.of(context).admin,
               style: AppText.poppins(14.5, height: 1.5),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: AppColors.bg2,
+                fillColor: AppColors.of(context).bg2,
                 hintText: widget.hint,
-                hintStyle: AppText.poppins(14.5, color: AppColors.placeholder),
-                counterStyle: AppText.poppins(11.5, color: AppColors.texto3),
-                enabledBorder: borde(AppColors.bordeCampo),
-                focusedBorder: borde(AppColors.admin, 1.6),
+                hintStyle: AppText.poppins(
+                  14.5,
+                  color: AppColors.of(context).placeholder,
+                ),
+                counterStyle: AppText.poppins(
+                  11.5,
+                  color: AppColors.of(context).texto3,
+                ),
+                enabledBorder: borde(AppColors.of(context).bordeCampo),
+                focusedBorder: borde(AppColors.of(context).admin, 1.6),
               ),
             ),
           ],
@@ -305,12 +323,12 @@ class _DialogoMotivoState extends State<_DialogoMotivo> {
       actions: [
         AuthTextButton(
           label: 'Cancelar',
-          color: AppColors.texto2,
+          color: AppColors.of(context).texto2,
           onTap: () => Navigator.of(context).pop(),
         ),
         AuthTextButton(
           label: widget.confirmar,
-          color: AppColors.admin,
+          color: AppColors.of(context).admin,
           onTap: () => Navigator.of(context).pop(_c.text.trim()),
         ),
       ],

@@ -153,7 +153,7 @@ class _PublicarScreenState extends State<PublicarScreen> {
     final origen = await showModalBottomSheet<ImageSource>(
       context: context,
       showDragHandle: true,
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -241,7 +241,7 @@ class _PublicarScreenState extends State<PublicarScreen> {
     final accion = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.of(context).card,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -253,13 +253,13 @@ class _PublicarScreenState extends State<PublicarScreen> {
                 onTap: () => Navigator.of(ctx).pop('portada'),
               ),
             ListTile(
-              leading: const Icon(
+              leading: Icon(
                 Icons.delete_outline,
-                color: AppColors.errorTexto,
+                color: AppColors.of(context).errorTexto,
               ),
-              title: const Text(
+              title: Text(
                 'Quitar foto',
-                style: TextStyle(color: AppColors.errorTexto),
+                style: TextStyle(color: AppColors.of(context).errorTexto),
               ),
               onTap: () => Navigator.of(ctx).pop('quitar'),
             ),
@@ -369,7 +369,9 @@ class _PublicarScreenState extends State<PublicarScreen> {
     final nuevas = _fotos.where((f) => f.esNueva).toList();
     if (nuevas.isNotEmpty) {
       _setPaso(
-        nuevas.length == 1 ? 'Subiendo la foto…' : 'Subiendo ${nuevas.length} fotos…',
+        nuevas.length == 1
+            ? 'Subiendo la foto…'
+            : 'Subiendo ${nuevas.length} fotos…',
       );
       await _repo.subirImagenes(id, [
         for (final f in nuevas) (bytes: f.bytes!, nombre: f.nombre),
@@ -405,11 +407,11 @@ class _PublicarScreenState extends State<PublicarScreen> {
     final salir = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.card,
+        backgroundColor: AppColors.of(context).card,
         title: Text('¿Descartar los cambios?', style: AppText.serif(22)),
         content: Text(
           'Lo que escribiste no se guardará.',
-          style: AppText.poppins(14, color: AppColors.texto2),
+          style: AppText.poppins(14, color: AppColors.of(context).texto2),
         ),
         actions: [
           TextButton(
@@ -418,7 +420,9 @@ class _PublicarScreenState extends State<PublicarScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.errorTexto),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.of(context).errorTexto,
+            ),
             child: const Text('Descartar'),
           ),
         ],
@@ -440,22 +444,24 @@ class _PublicarScreenState extends State<PublicarScreen> {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         appBar: AppBar(
-          backgroundColor: AppColors.bg,
+          backgroundColor: AppColors.of(context).bg,
           surfaceTintColor: Colors.transparent,
           title: Text(
             _editando ? 'Editar servicio' : 'Publicar servicio',
             style: AppText.serif(22),
           ),
-          bottom: const PreferredSize(
+          bottom: PreferredSize(
             preferredSize: Size.fromHeight(1),
-            child: Divider(height: 1, color: AppColors.borde),
+            child: Divider(height: 1, color: AppColors.of(context).borde),
           ),
         ),
         body: _cargando
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.teal),
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.of(context).teal,
+                ),
               )
             : _errorCarga != null
             ? _ErrorCarga(mensaje: _errorCarga!, onReintentar: _cargar)
@@ -485,7 +491,10 @@ class _PublicarScreenState extends State<PublicarScreen> {
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
             children: [
               _AvisoRevision(editando: _editando),
-              const _Etiqueta('Fotos', ayuda: 'Hasta 5. La primera es la portada.'),
+              const _Etiqueta(
+                'Fotos',
+                ayuda: 'Hasta 5. La primera es la portada.',
+              ),
               _GaleriaFotos(
                 fotos: _fotos,
                 onAgregar: _fotos.length < _maxFotos ? _agregarFotos : null,
@@ -519,13 +528,17 @@ class _PublicarScreenState extends State<PublicarScreen> {
                   padding: const EdgeInsets.only(top: 6, left: 12),
                   child: Text(
                     'Elige una categoría',
-                    style: AppText.poppins(12, color: AppColors.errorTexto),
+                    style: AppText.poppins(
+                      12,
+                      color: AppColors.of(context).errorTexto,
+                    ),
                   ),
                 ),
               const SizedBox(height: 24),
               const _Etiqueta(
                 'Descripción',
-                ayuda: 'Qué incluye, cómo trabajas y qué necesitas del cliente.',
+                ayuda:
+                    'Qué incluye, cómo trabajas y qué necesitas del cliente.',
               ),
               TextFormField(
                 controller: _descripcion,
@@ -551,7 +564,10 @@ class _PublicarScreenState extends State<PublicarScreen> {
                 style: AppText.poppins(15),
                 decoration: _deco('Ej: 25000').copyWith(
                   prefixText: '\$ ',
-                  prefixStyle: AppText.poppins(15, color: AppColors.texto2),
+                  prefixStyle: AppText.poppins(
+                    15,
+                    color: AppColors.of(context).texto2,
+                  ),
                 ),
                 validator: (v) {
                   final n = int.tryParse(v ?? '') ?? 0;
@@ -632,7 +648,8 @@ class _PublicarScreenState extends State<PublicarScreen> {
                 const SizedBox(height: 12),
                 const _Etiqueta(
                   'Dirección (opcional)',
-                  ayuda: 'Barrio o dirección aproximada. Sólo la ven usuarios con sesión.',
+                  ayuda:
+                      'Barrio o dirección aproximada. Sólo la ven usuarios con sesión.',
                 ),
                 TextFormField(
                   controller: _direccion,
@@ -659,27 +676,30 @@ class _PublicarScreenState extends State<PublicarScreen> {
 
   InputDecoration _deco(String hint) => InputDecoration(
     filled: true,
-    fillColor: AppColors.card,
+    fillColor: AppColors.of(context).card,
     hintText: hint,
-    hintStyle: AppText.poppins(15, color: AppColors.placeholder),
-    counterStyle: AppText.poppins(11.5, color: AppColors.texto3),
-    errorStyle: AppText.poppins(12, color: AppColors.errorTexto),
+    hintStyle: AppText.poppins(15, color: AppColors.of(context).placeholder),
+    counterStyle: AppText.poppins(11.5, color: AppColors.of(context).texto3),
+    errorStyle: AppText.poppins(12, color: AppColors.of(context).errorTexto),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.bordeCampo),
+      borderSide: BorderSide(color: AppColors.of(context).bordeCampo),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.teal, width: 1.6),
+      borderSide: BorderSide(color: AppColors.of(context).teal, width: 1.6),
     ),
     errorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.errorTexto),
+      borderSide: BorderSide(color: AppColors.of(context).errorTexto),
     ),
     focusedErrorBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: AppColors.errorTexto, width: 1.6),
+      borderSide: BorderSide(
+        color: AppColors.of(context).errorTexto,
+        width: 1.6,
+      ),
     ),
   );
 }
@@ -695,21 +715,29 @@ class _AvisoRevision extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 24),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.a(AppColors.teal, 0.08),
+        color: AppColors.a(AppColors.of(context).teal, 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.a(AppColors.teal, 0.3)),
+        border: Border.all(color: AppColors.a(AppColors.of(context).teal, 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.verified_outlined, color: AppColors.teal, size: 20),
+          Icon(
+            Icons.verified_outlined,
+            color: AppColors.of(context).teal,
+            size: 20,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               editando
                   ? 'Al guardar, el servicio vuelve a revisión y deja de mostrarse hasta que un administrador lo apruebe.'
                   : 'Un administrador revisa cada servicio antes de publicarlo. Suele tardar menos de un día.',
-              style: AppText.poppins(13, color: AppColors.texto2, height: 1.45),
+              style: AppText.poppins(
+                13,
+                color: AppColors.of(context).texto2,
+                height: 1.45,
+              ),
             ),
           ),
         ],
@@ -737,7 +765,10 @@ class _Etiqueta extends StatelessWidget {
               padding: const EdgeInsets.only(top: 2),
               child: Text(
                 ayuda!,
-                style: AppText.poppins(12.5, color: AppColors.texto2),
+                style: AppText.poppins(
+                  12.5,
+                  color: AppColors.of(context).texto2,
+                ),
               ),
             ),
         ],
@@ -773,21 +804,27 @@ class _Opciones<T> extends StatelessWidget {
                 : Icon(
                     icono,
                     size: 17,
-                    color: v == valor ? AppColors.bg : AppColors.texto2,
+                    color: v == valor
+                        ? AppColors.of(context).bg
+                        : AppColors.of(context).texto2,
                   ),
             label: Text(texto),
             labelStyle: AppText.poppins(
               13.5,
               weight: FontWeight.w600,
-              color: v == valor ? AppColors.bg : AppColors.texto2,
+              color: v == valor
+                  ? AppColors.of(context).bg
+                  : AppColors.of(context).texto2,
             ),
             materialTapTargetSize: MaterialTapTargetSize.padded,
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-            backgroundColor: AppColors.card,
-            selectedColor: AppColors.teal,
+            backgroundColor: AppColors.of(context).card,
+            selectedColor: AppColors.of(context).teal,
             shape: StadiumBorder(
               side: BorderSide(
-                color: v == valor ? AppColors.teal : AppColors.borde2,
+                color: v == valor
+                    ? AppColors.of(context).teal
+                    : AppColors.of(context).borde2,
               ),
             ),
           ),
@@ -823,7 +860,9 @@ class _GaleriaFotos extends StatelessWidget {
               padding: const EdgeInsets.only(right: 10),
               child: Semantics(
                 button: true,
-                label: i == 0 ? 'Foto de portada. Opciones' : 'Foto ${i + 1}. Opciones',
+                label: i == 0
+                    ? 'Foto de portada. Opciones'
+                    : 'Foto ${i + 1}. Opciones',
                 child: GestureDetector(
                   onTap: () => onTapFoto(i),
                   child: ClipRRect(
@@ -844,11 +883,11 @@ class _GaleriaFotos extends StatelessWidget {
                                   fotos[i].url!,
                                   fit: BoxFit.cover,
                                   cacheWidth: cache,
-                                  errorBuilder: (_, _, _) => const ColoredBox(
-                                    color: AppColors.bg3,
+                                  errorBuilder: (_, _, _) => ColoredBox(
+                                    color: AppColors.of(context).bg3,
                                     child: Icon(
                                       Icons.broken_image_outlined,
-                                      color: AppColors.texto3,
+                                      color: AppColors.of(context).texto3,
                                     ),
                                   ),
                                 ),
@@ -862,7 +901,9 @@ class _GaleriaFotos extends StatelessWidget {
                                   vertical: 3,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xE6070D16),
+                                  color: AppColors.of(
+                                    context,
+                                  ).bg.withAlpha(230),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -874,16 +915,18 @@ class _GaleriaFotos extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          const Positioned(
+                          Positioned(
                             right: 6,
                             top: 6,
                             child: CircleAvatar(
                               radius: 13,
-                              backgroundColor: Color(0xCC070D16),
+                              backgroundColor: AppColors.of(
+                                context,
+                              ).bg.withAlpha(204),
                               child: Icon(
                                 Icons.more_horiz,
                                 size: 16,
-                                color: AppColors.texto,
+                                color: AppColors.of(context).texto,
                               ),
                             ),
                           ),
@@ -905,22 +948,25 @@ class _GaleriaFotos extends StatelessWidget {
                   width: _lado,
                   height: _lado,
                   decoration: BoxDecoration(
-                    color: AppColors.card,
+                    color: AppColors.of(context).card,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.bordeCampo),
+                    border: Border.all(color: AppColors.of(context).bordeCampo),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.add_photo_alternate_outlined,
-                        color: AppColors.teal,
+                        color: AppColors.of(context).teal,
                         size: 28,
                       ),
                       const SizedBox(height: 6),
                       Text(
                         '${fotos.length}/$_maxFotos',
-                        style: AppText.poppins(12.5, color: AppColors.texto2),
+                        style: AppText.poppins(
+                          12.5,
+                          color: AppColors.of(context).texto2,
+                        ),
                       ),
                     ],
                   ),
@@ -949,9 +995,9 @@ class _BarraGuardar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
-        border: Border(top: BorderSide(color: AppColors.borde)),
+      decoration: BoxDecoration(
+        color: AppColors.of(context).bg,
+        border: Border(top: BorderSide(color: AppColors.of(context).borde)),
       ),
       child: SafeArea(
         top: false,
@@ -964,9 +1010,12 @@ class _BarraGuardar extends StatelessWidget {
               child: FilledButton(
                 onPressed: guardando ? null : onTap,
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.teal,
-                  foregroundColor: AppColors.bg,
-                  disabledBackgroundColor: AppColors.a(AppColors.teal, 0.5),
+                  backgroundColor: AppColors.of(context).teal,
+                  foregroundColor: AppColors.of(context).bg,
+                  disabledBackgroundColor: AppColors.a(
+                    AppColors.of(context).teal,
+                    0.5,
+                  ),
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -976,12 +1025,12 @@ class _BarraGuardar extends StatelessWidget {
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(
+                          SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.bg,
+                              color: AppColors.of(context).bg,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -990,7 +1039,7 @@ class _BarraGuardar extends StatelessWidget {
                             style: AppText.poppins(
                               15,
                               weight: FontWeight.w700,
-                              color: AppColors.bg,
+                              color: AppColors.of(context).bg,
                             ),
                           ),
                         ],
@@ -1000,7 +1049,7 @@ class _BarraGuardar extends StatelessWidget {
                         style: AppText.poppins(
                           15.5,
                           weight: FontWeight.w700,
-                          color: AppColors.bg,
+                          color: AppColors.of(context).bg,
                         ),
                       ),
               ),
@@ -1026,16 +1075,16 @@ class _ErrorCarga extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_rounded,
               size: 44,
-              color: AppColors.texto2,
+              color: AppColors.of(context).texto2,
             ),
             const SizedBox(height: 12),
             Text(
               mensaje,
               textAlign: TextAlign.center,
-              style: AppText.poppins(14.5, color: AppColors.texto2),
+              style: AppText.poppins(14.5, color: AppColors.of(context).texto2),
             ),
             const SizedBox(height: 16),
             OutlinedButton(

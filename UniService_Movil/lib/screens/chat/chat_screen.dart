@@ -170,9 +170,9 @@ class _ChatScreenState extends State<ChatScreen>
     final control = _control;
     final disponible = _contacto.disponible && (control?.disponible ?? true);
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         surfaceTintColor: Colors.transparent,
         titleSpacing: 0,
         title: InkWell(
@@ -204,7 +204,10 @@ class _ChatScreenState extends State<ChatScreen>
                             : conectado
                             ? 'Chat conectado'
                             : 'Reconectando…',
-                        style: AppText.poppins(11, color: AppColors.texto2),
+                        style: AppText.poppins(
+                          11,
+                          color: AppColors.of(context).texto2,
+                        ),
                       ),
                     ),
                   ],
@@ -251,7 +254,10 @@ class _ChatScreenState extends State<ChatScreen>
                     padding: const EdgeInsets.all(16),
                     child: Text(
                       'Esta cuenta no está disponible. Puedes consultar el historial.',
-                      style: AppText.poppins(13, color: AppColors.texto2),
+                      style: AppText.poppins(
+                        13,
+                        color: AppColors.of(context).texto2,
+                      ),
                     ),
                   )
                 else
@@ -270,10 +276,10 @@ class _ChatScreenState extends State<ChatScreen>
       return Center(
         child: _errorInicio == null
             ? const CircularProgressIndicator()
-            : const Icon(
+            : Icon(
                 Icons.chat_bubble_outline,
                 size: 48,
-                color: AppColors.texto2,
+                color: AppColors.of(context).texto2,
               ),
       );
     }
@@ -292,10 +298,10 @@ class _ChatScreenState extends State<ChatScreen>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.waving_hand_outlined,
                 size: 48,
-                color: AppColors.teal,
+                color: AppColors.of(context).teal,
               ),
               const SizedBox(height: 16),
               Text(
@@ -307,7 +313,7 @@ class _ChatScreenState extends State<ChatScreen>
               Text(
                 'Acuerden aquí los detalles del servicio.',
                 textAlign: TextAlign.center,
-                style: AppText.poppins(14, color: AppColors.texto2),
+                style: AppText.poppins(14, color: AppColors.of(context).texto2),
               ),
             ],
           ),
@@ -354,7 +360,10 @@ class _ChatScreenState extends State<ChatScreen>
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 child: Text(
                   '${fecha.day}/${fecha.month}/${fecha.year}',
-                  style: AppText.poppins(11, color: AppColors.texto2),
+                  style: AppText.poppins(
+                    11,
+                    color: AppColors.of(context).texto2,
+                  ),
                 ),
               ),
             BurbujaMensaje(mensaje: m, esMio: m.idRemitente == c.miId),
@@ -369,9 +378,9 @@ class _ChatScreenState extends State<ChatScreen>
     final habilitado = c?.iniciado == true && c?.enviando == false;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-      decoration: const BoxDecoration(
-        color: AppColors.bg2,
-        border: Border(top: BorderSide(color: AppColors.borde)),
+      decoration: BoxDecoration(
+        color: AppColors.of(context).bg2,
+        border: Border(top: BorderSide(color: AppColors.of(context).borde)),
       ),
       child: CallbackShortcuts(
         bindings: {
@@ -398,14 +407,14 @@ class _ChatScreenState extends State<ChatScreen>
                 decoration: InputDecoration(
                   hintText: 'Escribe un mensaje…',
                   filled: true,
-                  fillColor: AppColors.card,
+                  fillColor: AppColors.of(context).card,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 12,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(18),
-                    borderSide: const BorderSide(color: AppColors.borde),
+                    borderSide: BorderSide(color: AppColors.of(context).borde),
                   ),
                 ),
               ),
@@ -420,8 +429,8 @@ class _ChatScreenState extends State<ChatScreen>
                     ? _enviar
                     : null,
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.teal,
-                  foregroundColor: AppColors.bg,
+                  backgroundColor: AppColors.of(context).teal,
+                  foregroundColor: AppColors.of(context).bg,
                   minimumSize: const Size(48, 48),
                 ),
                 icon: c?.enviando == true

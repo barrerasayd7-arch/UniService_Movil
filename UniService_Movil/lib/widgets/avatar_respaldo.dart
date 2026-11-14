@@ -14,12 +14,12 @@ Widget avatarRespaldo(BuildContext context, Object error, StackTrace? stack) {
       // 44 px es el tamaño típico de avatar en listas; el ícono escala al 60 %.
       final lado = box.maxWidth.isFinite ? box.maxWidth : 44.0;
       return ColoredBox(
-        color: AppColors.bg3,
+        color: AppColors.of(context).bg3,
         child: Center(
           child: Icon(
             Icons.person_rounded,
             size: lado * 0.6,
-            color: AppColors.texto2,
+            color: AppColors.of(context).texto2,
           ),
         ),
       );

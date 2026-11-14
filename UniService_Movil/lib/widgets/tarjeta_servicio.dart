@@ -8,6 +8,7 @@ import '../core/app_colors.dart';
 import '../core/app_text.dart';
 import '../core/categorias.dart';
 import '../models/servicio.dart';
+import 'tarjeta_interactiva.dart';
 
 /// Tarjeta de servicio: portada 16:9 (categoría y precio encima), título,
 /// descripción, quién lo ofrece y calificación.
@@ -58,114 +59,96 @@ class TarjetaServicio extends StatelessWidget {
         ? 'sin reseñas'
         : '${formatearDecimal(s.estrellas)} estrellas, ${s.numResenas} reseñas';
 
-    return Semantics(
-      button: true,
+    return TarjetaInteractiva(
+      onTap: onTap,
       label:
           '${s.titulo}. ${etiquetaCategoria(s.categoria)}. Por ${s.proveedor}. '
           '$calificacion. ${formatearPrecio(s.precio)} por ${s.unidadPrecio}.',
-      excludeSemantics: true,
-      child: Material(
-        color: AppColors.card,
-        clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: AppColors.borde),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          splashColor: AppColors.a(AppColors.teal, 0.12),
-          highlightColor: AppColors.a(AppColors.teal, 0.06),
-          hoverColor: AppColors.a(AppColors.texto, 0.03),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    _Portada(servicio: s),
-                    Positioned(
-                      top: 10,
-                      left: 10,
-                      child: _EtiquetaCategoria(categoria: s.categoria),
-                    ),
-                    Positioned(
-                      bottom: 10,
-                      right: 10,
-                      child: _Precio(
-                        valor: s.precio,
-                        unidad: s.unidadPrecio,
-                      ),
-                    ),
-                  ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                _Portada(servicio: s),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: _EtiquetaCategoria(categoria: s.categoria),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(_pad),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: alturaUniforme ? _altoTitulo(ts) : null,
-                      child: Text(
-                        s.titulo.isEmpty ? 'Sin título' : s.titulo,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.poppins(
-                          _titulo,
-                          weight: FontWeight.w600,
-                          height: _tituloAlto,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    SizedBox(
-                      height: alturaUniforme ? _altoDesc(ts) : null,
-                      child: Text(
-                        s.descripcion,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.poppins(
-                          _desc,
-                          color: AppColors.texto2,
-                          height: _descAlto,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: _autor,
-                      child: Row(
-                        children: [
-                          _Avatar(nombre: s.proveedor, url: s.avatarProveedor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              s.proveedor.isEmpty ? 'Estudiante' : s.proveedor,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.poppins(
-                                13,
-                                weight: FontWeight.w500,
-                                color: AppColors.texto,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _Calificacion(
-                            promedio: s.estrellas,
-                            resenas: s.numResenas,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                Positioned(
+                  bottom: 10,
+                  right: 10,
+                  child: _Precio(valor: s.precio, unidad: s.unidadPrecio),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.all(_pad),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: alturaUniforme ? _altoTitulo(ts) : null,
+                  child: Text(
+                    s.titulo.isEmpty ? 'Sin título' : s.titulo,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.poppins(
+                      _titulo,
+                      weight: FontWeight.w600,
+                      height: _tituloAlto,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  height: alturaUniforme ? _altoDesc(ts) : null,
+                  child: Text(
+                    s.descripcion,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.poppins(
+                      _desc,
+                      color: AppColors.of(context).texto2,
+                      height: _descAlto,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: _autor,
+                  child: Row(
+                    children: [
+                      _Avatar(nombre: s.proveedor, url: s.avatarProveedor),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          s.proveedor.isEmpty ? 'Estudiante' : s.proveedor,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.poppins(
+                            13,
+                            weight: FontWeight.w500,
+                            color: AppColors.of(context).texto,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _Calificacion(
+                        promedio: s.estrellas,
+                        resenas: s.numResenas,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -228,13 +211,15 @@ class _PortadaCategoria extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = coloresCategoria[categoria]?.color ?? AppColors.teal;
+    final color = AppColors.of(
+      context,
+    ).legible(coloresCategoria[categoria]?.color ?? AppColors.of(context).teal);
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.a(color, 0.22), AppColors.bg3],
+          colors: [AppColors.a(color, 0.22), AppColors.of(context).bg3],
         ),
       ),
       child: Center(
@@ -255,11 +240,13 @@ class _EtiquetaCategoria extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = coloresCategoria[categoria]?.color ?? AppColors.texto2;
+    final color = AppColors.of(context).legible(
+      coloresCategoria[categoria]?.color ?? AppColors.of(context).texto2,
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xD9070D16),
+        color: AppColors.of(context).bg.withAlpha(217),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -292,7 +279,7 @@ class _Precio extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xE6070D16),
+        color: AppColors.of(context).bg.withAlpha(230),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Text.rich(
@@ -304,7 +291,7 @@ class _Precio extends StatelessWidget {
             ),
             TextSpan(
               text: ' /$unidad',
-              style: AppText.poppins(12, color: AppColors.texto2),
+              style: AppText.poppins(12, color: AppColors.of(context).texto2),
             ),
           ],
         ),
@@ -337,7 +324,7 @@ class _Avatar extends StatelessWidget {
       style: AppText.poppins(
         11,
         weight: FontWeight.w700,
-        color: AppColors.teal2,
+        color: AppColors.of(context).teal2,
       ),
     );
     return Container(
@@ -347,7 +334,7 @@ class _Avatar extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.a(AppColors.teal, 0.18),
+        color: AppColors.a(AppColors.of(context).teal, 0.18),
       ),
       child: url == null || url!.isEmpty
           ? iniciales
@@ -376,14 +363,18 @@ class _Calificacion extends StatelessWidget {
         style: AppText.poppins(
           12.5,
           weight: FontWeight.w600,
-          color: AppColors.teal2,
+          color: AppColors.of(context).teal2,
         ),
       );
     }
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.star_rounded, size: 17, color: AppColors.estrella),
+        Icon(
+          Icons.star_rounded,
+          size: 17,
+          color: AppColors.of(context).estrella,
+        ),
         const SizedBox(width: 3),
         Text(
           formatearDecimal(promedio),
@@ -392,7 +383,7 @@ class _Calificacion extends StatelessWidget {
         const SizedBox(width: 3),
         Text(
           '($resenas)',
-          style: AppText.poppins(12.5, color: AppColors.texto2),
+          style: AppText.poppins(12.5, color: AppColors.of(context).texto2),
         ),
       ],
     );

@@ -45,7 +45,7 @@ class TarjetaPublicar extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: AppText.poppins(
                     15,
-                    color: AppColors.texto2,
+                    color: AppColors.of(context).texto2,
                     height: 1.6,
                   ),
                 ),
@@ -82,9 +82,12 @@ class _Feature extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icono, size: 16, color: AppColors.teal),
+        Icon(icono, size: 16, color: AppColors.of(context).teal),
         const SizedBox(width: 8),
-        Text(texto, style: AppText.poppins(13.1, color: AppColors.texto2)),
+        Text(
+          texto,
+          style: AppText.poppins(13.1, color: AppColors.of(context).texto2),
+        ),
       ],
     );
   }
@@ -110,13 +113,17 @@ class _PublicarCard extends StatelessWidget {
           transform: Matrix4.translationValues(0, hover ? -4 : 0, 0),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: AppColors.of(context).card,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: hover ? AppColors.teal : AppColors.borde),
+            border: Border.all(
+              color: hover
+                  ? AppColors.of(context).teal
+                  : AppColors.of(context).borde,
+            ),
             boxShadow: hover
                 ? [
                     BoxShadow(
-                      color: AppColors.a(AppColors.teal, 0.15),
+                      color: AppColors.a(AppColors.of(context).teal, 0.15),
                       blurRadius: 48,
                       offset: const Offset(0, 16),
                     ),
@@ -142,7 +149,7 @@ class _PublicarCard extends StatelessWidget {
                             shape: BoxShape.circle,
                             gradient: RadialGradient(
                               colors: [
-                                AppColors.a(AppColors.teal, 0.08),
+                                AppColors.a(AppColors.of(context).teal, 0.08),
                                 Colors.transparent,
                               ],
                               stops: const [0, 0.7],
@@ -151,7 +158,9 @@ class _PublicarCard extends StatelessWidget {
                         ),
                       ),
                       Positioned.fill(
-                        child: CustomPaint(painter: _PuntosPainter()),
+                        child: CustomPaint(
+                          painter: _PuntosPainter(AppColors.of(context)),
+                        ),
                       ),
                     ],
                   ),
@@ -175,23 +184,29 @@ class _PublicarCard extends StatelessWidget {
                           height: icono,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(16),
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
-                              colors: [AppColors.teal, AppColors.teal2],
+                              colors: [
+                                AppColors.of(context).teal,
+                                AppColors.of(context).teal2,
+                              ],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.a(AppColors.teal, 0.3),
+                                color: AppColors.a(
+                                  AppColors.of(context).teal,
+                                  0.3,
+                                ),
                                 blurRadius: 24,
                                 offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.add,
                             size: 26,
-                            color: AppColors.bg,
+                            color: AppColors.of(context).bg,
                           ),
                         ),
                       ),
@@ -213,7 +228,7 @@ class _PublicarCard extends StatelessWidget {
                             'Define título, categoría, precio y detalles de tu servicio',
                             style: AppText.poppins(
                               13.6,
-                              color: AppColors.texto2,
+                              color: AppColors.of(context).texto2,
                               height: 1.4,
                             ),
                           ),
@@ -229,13 +244,15 @@ class _PublicarCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: hover
-                            ? AppColors.teal
-                            : AppColors.a(AppColors.teal, 0.10),
+                            ? AppColors.of(context).teal
+                            : AppColors.a(AppColors.of(context).teal, 0.10),
                       ),
                       child: Icon(
                         Icons.arrow_forward,
                         size: 18,
-                        color: hover ? AppColors.bg : AppColors.teal,
+                        color: hover
+                            ? AppColors.of(context).bg
+                            : AppColors.of(context).teal,
                       ),
                     ),
                   ],
@@ -251,9 +268,12 @@ class _PublicarCard extends StatelessWidget {
 
 /// Pinta la cuadrícula de puntos que sólo se ve en hover.
 class _PuntosPainter extends CustomPainter {
+  final AppPalette paleta;
+
+  _PuntosPainter(this.paleta);
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint()..color = AppColors.a(AppColors.teal, 0.05);
+    final p = Paint()..color = AppColors.a(paleta.teal, 0.05);
     for (double x = 0; x < size.width; x += 20) {
       for (double y = 0; y < size.height; y += 20) {
         canvas.drawCircle(Offset(x, y), 1, p);
@@ -262,5 +282,6 @@ class _PuntosPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _PuntosPainter old) =>
+      old.paleta.oscuro != paleta.oscuro;
 }

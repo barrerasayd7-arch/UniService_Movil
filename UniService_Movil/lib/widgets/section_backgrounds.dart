@@ -32,12 +32,18 @@ class SeccionFondo extends StatelessWidget {
       width: double.infinity,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: oscura ? null : AppColors.bg,
+        color: oscura ? null : AppColors.of(context).bg,
         gradient: oscura
-            ? const LinearGradient(
+            ? LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.bg2, Color(0xFF0D1F33), AppColors.bg2],
+                colors: [
+                  AppColors.of(context).bg2,
+                  AppColors.of(
+                    context,
+                  ).elegir(const Color(0xFF0D1F33), const Color(0xFFE8ECF3)),
+                  AppColors.of(context).bg2,
+                ],
               )
             : null,
       ),
@@ -49,7 +55,7 @@ class SeccionFondo extends StatelessWidget {
               right: -120,
               child: _Resplandor(
                 size: 440,
-                color: AppColors.a(AppColors.teal, 0.15),
+                color: AppColors.a(AppColors.of(context).teal, 0.15),
               ),
             ),
             Positioned(
@@ -57,14 +63,14 @@ class SeccionFondo extends StatelessWidget {
               left: -80,
               child: _Resplandor(
                 size: 340,
-                color: AppColors.a(AppColors.violeta, 0.10),
+                color: AppColors.a(AppColors.of(context).violeta, 0.10),
               ),
             ),
           ],
           if (fondo != FondoSeccion.ninguno)
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(painter: _painterPara(fondo)),
+                child: CustomPaint(painter: _painterPara(context, fondo)),
               ),
             ),
           Padding(
@@ -76,16 +82,16 @@ class SeccionFondo extends StatelessWidget {
     );
   }
 
-  CustomPainter _painterPara(FondoSeccion f) {
+  CustomPainter _painterPara(BuildContext context, FondoSeccion f) {
     switch (f) {
       case FondoSeccion.grilla:
-        return _GridLinesPainter();
+        return _GridLinesPainter(AppColors.of(context));
       case FondoSeccion.circuito:
-        return _CircuitPainter();
+        return _CircuitPainter(AppColors.of(context));
       case FondoSeccion.estrellas:
-        return _StarsPainter();
+        return _StarsPainter(AppColors.of(context));
       case FondoSeccion.ninguno:
-        return _GridLinesPainter();
+        return _GridLinesPainter(AppColors.of(context));
     }
   }
 }
@@ -114,10 +120,13 @@ class _Resplandor extends StatelessWidget {
 
 // Grilla tenue de 60 px, usada como textura base de las secciones claras.
 class _GridLinesPainter extends CustomPainter {
+  final AppPalette paleta;
+  _GridLinesPainter(this.paleta);
+
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()
-      ..color = AppColors.a(AppColors.teal, 0.05)
+      ..color = AppColors.a(paleta.teal, 0.05)
       ..strokeWidth = 1;
     const step = 60.0;
     for (double x = 0; x <= size.width; x += step) {
@@ -129,21 +138,25 @@ class _GridLinesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _GridLinesPainter old) =>
+      old.paleta.oscuro != paleta.oscuro;
 }
 
 // Trazos ortogonales con nodos, tipo placa de circuito; usa una semilla fija
 // para que el patrón no cambie entre repintados.
 class _CircuitPainter extends CustomPainter {
+  final AppPalette paleta;
+  _CircuitPainter(this.paleta);
+
   @override
   void paint(Canvas canvas, Size size) {
     final rnd = math.Random(11);
     const step = 60.0;
     final linea = Paint()
-      ..color = AppColors.a(AppColors.teal, 0.08)
+      ..color = AppColors.a(paleta.teal, 0.08)
       ..strokeWidth = 1
       ..style = PaintingStyle.stroke;
-    final nodo = Paint()..color = AppColors.a(AppColors.teal, 0.14);
+    final nodo = Paint()..color = AppColors.a(paleta.teal, 0.14);
 
     final cols = (size.width / step).floor().clamp(1, 1000).toInt();
     final rows = (size.height / step).floor().clamp(1, 1000).toInt();
@@ -171,17 +184,21 @@ class _CircuitPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CircuitPainter old) =>
+      old.paleta.oscuro != paleta.oscuro;
 }
 
 // Puntos blancos de tamaño y opacidad variables, como un cielo estrellado.
 class _StarsPainter extends CustomPainter {
+  final AppPalette paleta;
+  _StarsPainter(this.paleta);
+
   @override
   void paint(Canvas canvas, Size size) {
     final rnd = math.Random(5);
     for (var i = 0; i < 80; i++) {
       final p = Paint()
-        ..color = Colors.white.withAlpha(
+        ..color = paleta.texto.withAlpha(
           ((0.08 + rnd.nextDouble() * 0.35) * 255).round(),
         );
       canvas.drawCircle(
@@ -193,5 +210,6 @@ class _StarsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _StarsPainter old) =>
+      old.paleta.oscuro != paleta.oscuro;
 }

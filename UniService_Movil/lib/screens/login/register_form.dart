@@ -187,7 +187,11 @@ class _RegisterFormState extends State<RegisterForm> {
       padding: const EdgeInsets.only(left: 2, bottom: 16),
       child: Text(
         'Te enviaremos un código de 6 dígitos para confirmar que es tuyo.',
-        style: AppText.poppins(13, color: AppColors.texto2, height: 1.45),
+        style: AppText.poppins(
+          13,
+          color: AppColors.of(context).texto2,
+          height: 1.45,
+        ),
       ),
     ),
     AuthAviso(mensaje: _aviso),
@@ -219,23 +223,25 @@ class _RegisterFormState extends State<RegisterForm> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.only(left: 12),
       decoration: BoxDecoration(
-        color: AppColors.a(AppColors.verificado, 0.08),
-        border: Border.all(color: AppColors.a(AppColors.verificado, 0.35)),
+        color: AppColors.a(AppColors.of(context).verificado, 0.08),
+        border: Border.all(
+          color: AppColors.a(AppColors.of(context).verificado, 0.35),
+        ),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.verified_outlined,
             size: 18,
-            color: AppColors.verificado,
+            color: AppColors.of(context).verificado,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               normalizarCorreo(_correo.text),
               overflow: TextOverflow.ellipsis,
-              style: AppText.poppins(14, color: AppColors.texto),
+              style: AppText.poppins(14, color: AppColors.of(context).texto),
             ),
           ),
           AuthTextButton(
@@ -337,7 +343,7 @@ class _TerminosState extends State<_Terminos> {
     final enlace = AppText.poppins(
       13,
       weight: FontWeight.w600,
-      color: AppColors.teal,
+      color: AppColors.of(context).teal,
       height: 1.45,
     );
     return Padding(
@@ -356,9 +362,12 @@ class _TerminosState extends State<_Terminos> {
                 child: Checkbox(
                   value: widget.valor,
                   onChanged: (v) => widget.onChanged(v ?? false),
-                  activeColor: AppColors.teal,
-                  checkColor: AppColors.bg,
-                  side: const BorderSide(color: AppColors.texto2, width: 1.5),
+                  activeColor: AppColors.of(context).teal,
+                  checkColor: AppColors.of(context).bg,
+                  side: BorderSide(
+                    color: AppColors.of(context).texto2,
+                    width: 1.5,
+                  ),
                   visualDensity: VisualDensity.compact,
                 ),
               ),
@@ -368,7 +377,7 @@ class _TerminosState extends State<_Terminos> {
                   TextSpan(
                     style: AppText.poppins(
                       13,
-                      color: AppColors.texto2,
+                      color: AppColors.of(context).texto2,
                       height: 1.45,
                     ),
                     children: [

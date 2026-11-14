@@ -176,7 +176,7 @@ class _TarjetaUsuario extends StatelessWidget {
     final reportes =
         '${u.reportesRecibidos} ${u.reportesRecibidos == 1 ? 'reporte recibido' : 'reportes recibidos'}';
     return TarjetaAdmin(
-      acento: u.activa ? null : AppColors.errorTexto,
+      acento: u.activa ? null : AppColors.of(context).errorTexto,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -188,15 +188,17 @@ class _TarjetaUsuario extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.a(AppColors.admin, 0.12),
-                  border: Border.all(color: AppColors.a(AppColors.admin, 0.3)),
+                  color: AppColors.a(AppColors.of(context).admin, 0.12),
+                  border: Border.all(
+                    color: AppColors.a(AppColors.of(context).admin, 0.3),
+                  ),
                 ),
                 child: Text(
                   iniciales(u.nombre),
                   style: AppText.poppins(
                     14,
                     weight: FontWeight.w700,
-                    color: AppColors.admin,
+                    color: AppColors.of(context).admin,
                   ),
                 ),
               ),
@@ -216,7 +218,10 @@ class _TarjetaUsuario extends StatelessWidget {
                       u.correo,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.poppins(13, color: AppColors.texto2),
+                      style: AppText.poppins(
+                        13,
+                        color: AppColors.of(context).texto2,
+                      ),
                     ),
                   ],
                 ),
@@ -229,20 +234,26 @@ class _TarjetaUsuario extends StatelessWidget {
             runSpacing: 6,
             children: [
               if (u.esAdmin)
-                const PildoraEstado(
+                PildoraEstado(
                   texto: 'Administrador',
-                  color: AppColors.admin,
+                  color: AppColors.of(context).admin,
                 ),
               PildoraEstado(
                 texto: u.activa ? 'Activa' : 'Suspendida',
-                color: u.activa ? AppColors.verificado : AppColors.errorTexto,
+                color: u.activa
+                    ? AppColors.of(context).verificado
+                    : AppColors.of(context).errorTexto,
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
             '$servicios · $reportes · Registro: ${formatearFecha(u.fechaRegistro)}',
-            style: AppText.poppins(12.5, color: AppColors.texto2, height: 1.4),
+            style: AppText.poppins(
+              12.5,
+              color: AppColors.of(context).texto2,
+              height: 1.4,
+            ),
           ),
           if (!u.activa && (u.motivoSuspension?.isNotEmpty ?? false)) ...[
             const SizedBox(height: 8),
@@ -259,14 +270,14 @@ class _TarjetaUsuario extends StatelessWidget {
                   ? BotonAdmin(
                       label: 'Suspender',
                       icono: Icons.block_rounded,
-                      color: AppColors.amarillo,
+                      color: AppColors.of(context).amarillo,
                       cargando: ocupado,
                       onTap: onSuspender,
                     )
                   : BotonAdmin(
                       label: 'Reactivar',
                       icono: Icons.check_circle_outline,
-                      color: AppColors.verificado,
+                      color: AppColors.of(context).verificado,
                       cargando: ocupado,
                       onTap: onReactivar,
                     ),

@@ -31,7 +31,7 @@ void avisoAdmin(BuildContext context, String texto) {
     ..showSnackBar(
       SnackBar(
         content: Text(texto, style: AppText.poppins(14)),
-        backgroundColor: AppColors.card,
+        backgroundColor: AppColors.of(context).card,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -71,10 +71,10 @@ void verImagenAdmin(BuildContext context, String url) {
               child: Image.network(
                 url,
                 fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const Icon(
+                errorBuilder: (_, _, _) => Icon(
                   Icons.broken_image_outlined,
                   size: 48,
-                  color: AppColors.texto3,
+                  color: AppColors.of(context).texto3,
                 ),
               ),
             ),
@@ -85,7 +85,10 @@ void verImagenAdmin(BuildContext context, String url) {
             child: IconButton(
               tooltip: 'Cerrar',
               onPressed: () => Navigator.of(ctx).pop(),
-              icon: const Icon(Icons.close_rounded, color: AppColors.texto),
+              icon: Icon(
+                Icons.close_rounded,
+                color: AppColors.of(context).texto,
+              ),
             ),
           ),
         ],
@@ -111,17 +114,17 @@ class AdminScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       drawer: AdminDrawer(actual: actual),
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: AppColors.texto,
+        foregroundColor: AppColors.of(context).texto,
         title: Text(titulo, style: AppText.serif(22)),
-        bottom: const PreferredSize(
+        bottom: PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.borde),
+          child: Divider(height: 1, color: AppColors.of(context).borde),
         ),
       ),
       body: SafeArea(top: false, child: body),
@@ -151,12 +154,16 @@ class MensajeAdmin extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icono, size: 40, color: AppColors.texto2),
+            Icon(icono, size: 40, color: AppColors.of(context).texto2),
             const SizedBox(height: 14),
             Text(
               mensaje,
               textAlign: TextAlign.center,
-              style: AppText.poppins(15, color: AppColors.texto2, height: 1.5),
+              style: AppText.poppins(
+                15,
+                color: AppColors.of(context).texto2,
+                height: 1.5,
+              ),
             ),
             if (accion != null) ...[
               const SizedBox(height: 18),
@@ -164,8 +171,8 @@ class MensajeAdmin extends StatelessWidget {
                 width: 200,
                 child: AuthPrimaryButton(
                   label: accion!,
-                  color: AppColors.admin,
-                  colorHover: AppColors.adminHover,
+                  color: AppColors.of(context).admin,
+                  colorHover: AppColors.of(context).adminHover,
                   onTap: onAccion,
                 ),
               ),
@@ -245,36 +252,39 @@ class _Buscador extends StatelessWidget {
         controller: controller,
         onChanged: onChanged,
         textInputAction: TextInputAction.search,
-        cursorColor: AppColors.admin,
+        cursorColor: AppColors.of(context).admin,
         style: AppText.poppins(15),
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: AppColors.bg2,
+          fillColor: AppColors.of(context).bg2,
           hintText: hint,
-          hintStyle: AppText.poppins(15, color: AppColors.placeholder),
+          hintStyle: AppText.poppins(
+            15,
+            color: AppColors.of(context).placeholder,
+          ),
           contentPadding: const EdgeInsets.symmetric(vertical: 14),
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
             size: 20,
-            color: AppColors.placeholder,
+            color: AppColors.of(context).placeholder,
           ),
           suffixIcon: v.text.isEmpty
               ? null
               : IconButton(
                   tooltip: 'Borrar búsqueda',
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.close_rounded,
                     size: 20,
-                    color: AppColors.placeholder,
+                    color: AppColors.of(context).placeholder,
                   ),
                   onPressed: () {
                     controller.clear();
                     onChanged('');
                   },
                 ),
-          enabledBorder: borde(AppColors.bordeCampo),
-          focusedBorder: borde(AppColors.admin, 1.6),
+          enabledBorder: borde(AppColors.of(context).bordeCampo),
+          focusedBorder: borde(AppColors.of(context).admin, 1.6),
         ),
       ),
     );
@@ -307,14 +317,18 @@ class FiltroChips<T> extends StatelessWidget {
           labelStyle: AppText.poppins(
             13.5,
             weight: FontWeight.w600,
-            color: v == valor ? AppColors.bg : AppColors.texto2,
+            color: v == valor
+                ? AppColors.of(context).bg
+                : AppColors.of(context).texto2,
           ),
           materialTapTargetSize: MaterialTapTargetSize.padded,
-          backgroundColor: AppColors.card,
-          selectedColor: AppColors.admin,
+          backgroundColor: AppColors.of(context).card,
+          selectedColor: AppColors.of(context).admin,
           shape: StadiumBorder(
             side: BorderSide(
-              color: v == valor ? AppColors.admin : AppColors.borde2,
+              color: v == valor
+                  ? AppColors.of(context).admin
+                  : AppColors.of(context).borde2,
             ),
           ),
         ),
@@ -345,11 +359,11 @@ class TarjetaAdmin extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: AppColors.card,
+        color: AppColors.of(context).card,
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: AppColors.borde),
+          side: BorderSide(color: AppColors.of(context).borde),
         ),
         child: InkWell(
           onTap: onTap,
@@ -372,7 +386,7 @@ class TarjetaAdmin extends StatelessWidget {
 class BotonAdmin extends StatelessWidget {
   final String label;
   final IconData? icono;
-  final Color color;
+  final Color? color;
   final VoidCallback? onTap;
   final bool relleno;
   final bool cargando;
@@ -382,7 +396,7 @@ class BotonAdmin extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.icono,
-    this.color = AppColors.admin,
+    this.color,
     this.relleno = false,
     this.cargando = false,
     this.expandido = false,
@@ -391,6 +405,7 @@ class BotonAdmin extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activo = onTap != null && !cargando;
+    final color = this.color ?? AppColors.of(context).admin;
     return Semantics(
       button: true,
       enabled: activo,
@@ -470,7 +485,7 @@ class FilaDatoAdmin extends StatelessWidget {
             width: 108,
             child: Text(
               label,
-              style: AppText.poppins(13.5, color: AppColors.texto2),
+              style: AppText.poppins(13.5, color: AppColors.of(context).texto2),
             ),
           ),
           Expanded(
@@ -610,13 +625,13 @@ class ListaAdminState<T> extends State<ListaAdmin<T>> {
   @override
   Widget build(BuildContext context) {
     if (_cargando && _items.isEmpty) {
-      return const Center(
+      return Center(
         child: SizedBox(
           width: 28,
           height: 28,
           child: CircularProgressIndicator(
             strokeWidth: 2.4,
-            color: AppColors.admin,
+            color: AppColors.of(context).admin,
             semanticsLabel: 'Cargando',
           ),
         ),
@@ -631,8 +646,8 @@ class ListaAdminState<T> extends State<ListaAdmin<T>> {
       );
     }
     return RefreshIndicator(
-      color: AppColors.admin,
-      backgroundColor: AppColors.card,
+      color: AppColors.of(context).admin,
+      backgroundColor: AppColors.of(context).card,
       onRefresh: () => recargar(silencioso: true),
       child: _items.isEmpty
           ? ListView(
@@ -661,18 +676,18 @@ class ListaAdminState<T> extends State<ListaAdmin<T>> {
                       child: _errorMas
                           ? AuthTextButton(
                               label: 'No se pudo cargar más. Reintentar',
-                              color: AppColors.admin,
+                              color: AppColors.of(context).admin,
                               onTap: () {
                                 setState(() => _errorMas = false);
                                 _cargarMas();
                               },
                             )
-                          : const SizedBox(
+                          : SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.2,
-                                color: AppColors.admin,
+                                color: AppColors.of(context).admin,
                               ),
                             ),
                     ),

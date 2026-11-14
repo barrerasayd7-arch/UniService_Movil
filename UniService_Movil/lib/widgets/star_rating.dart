@@ -11,14 +11,14 @@ import '../core/app_colors.dart';
 class StarRating extends StatelessWidget {
   final double rating;
   final double size;
-  final Color color;
+  final Color? color;
   final double gap;
 
   const StarRating({
     super.key,
     this.rating = 0,
     this.size = 18,
-    this.color = AppColors.estrella,
+    this.color,
     this.gap = 2,
   });
 
@@ -35,7 +35,10 @@ class StarRating extends StatelessWidget {
             padding: EdgeInsets.only(right: i < 4 ? gap : 0),
             child: CustomPaint(
               size: Size(size, size),
-              painter: _StarPainter(fill, color),
+              painter: _StarPainter(
+                fill,
+                color ?? AppColors.of(context).estrella,
+              ),
             ),
           );
         }),

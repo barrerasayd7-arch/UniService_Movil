@@ -81,12 +81,12 @@ class _AuthLateralState extends State<AuthLateral>
   static const int _ciclo = 3600;
   late final AnimationController _c;
 
-  static const _teal = AppColors.teal;
-  static const _oro = AppColors.amarillo;
+  Color get _teal => AppColors.of(context).teal;
+  Color get _oro => AppColors.of(context).amarillo;
 
   // --- Datos de la animación ---
 
-  static final List<_FI> _iconos = [
+  List<_FI> get _iconos => [
     _FI(Icons.menu_book_outlined, 14, 0, _teal, top: 5, left: 8),
     _FI(Icons.code, 17, 1.5, _oro, top: 14, right: 12),
     _FI(Icons.edit_outlined, 19, 0.8, _teal.withAlpha(179), top: 38, left: 3),
@@ -114,13 +114,13 @@ class _AuthLateralState extends State<AuthLateral>
     _FI(Icons.star_border, 22, 1.8, _oro, bottom: 10, left: 38, size: 16),
   ];
 
-  static final List<_Orbe> _orbes = [
+  List<_Orbe> get _orbes => [
     _Orbe(140, 12, 0, _teal.withAlpha(128), top: -20, left: -30),
     _Orbe(180, 15, 2, _oro.withAlpha(77), bottom: -40, right: -40),
     _Orbe(120, 18, 4, _teal.withAlpha(77), topPct: 40, leftPct: 20),
   ];
 
-  static final List<_Destello> _destellos = [
+  List<_Destello> get _destellos => [
     _Destello(_teal, 0, top: 8, left: 45),
     _Destello(_oro, 0.5, top: 28, right: 20),
     _Destello(Colors.white, 1, top: 65, left: 12),
@@ -250,16 +250,24 @@ class _AuthLateralState extends State<AuthLateral>
 
     return Container(
       clipBehavior: Clip.hardEdge,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment(-0.34, -0.94),
           end: Alignment(0.34, 0.94),
           stops: [0, 0.3, 0.55, 1],
           colors: [
-            Color(0xFF0A1E35),
-            Color(0xFF0C2F4A),
-            Color(0xFF0A3D5C),
-            Color(0xFF0D2E4A),
+            AppColors.of(
+              context,
+            ).elegir(const Color(0xFF0A1E35), const Color(0xFFF0F4F9)),
+            AppColors.of(
+              context,
+            ).elegir(const Color(0xFF0C2F4A), const Color(0xFFE2EFF4)),
+            AppColors.of(
+              context,
+            ).elegir(const Color(0xFF0A3D5C), const Color(0xFFD4EAEF)),
+            AppColors.of(
+              context,
+            ).elegir(const Color(0xFF0D2E4A), const Color(0xFFE8F0F6)),
           ],
         ),
       ),
@@ -341,7 +349,7 @@ class _AuthLateralState extends State<AuthLateral>
                           'Servicios entre estudiantes',
                           style: AppText.poppins(
                             13,
-                            color: Colors.white.withAlpha(170),
+                            color: AppColors.of(context).texto2,
                           ),
                         ),
                       ],
@@ -367,7 +375,7 @@ class _AuthLateralState extends State<AuthLateral>
                       textAlign: TextAlign.center,
                       style: AppText.poppins(
                         13.12,
-                        color: Colors.white.withAlpha(140),
+                        color: AppColors.of(context).texto2,
                         height: 1.65,
                       ),
                     ),
@@ -398,7 +406,7 @@ class _Marca extends StatelessWidget {
             style: AppText.poppins(
               size,
               weight: FontWeight.w700,
-              color: AppColors.teal,
+              color: AppColors.of(context).teal,
               height: 1.25,
             ),
           ),
@@ -407,7 +415,7 @@ class _Marca extends StatelessWidget {
             style: AppText.poppins(
               size,
               weight: FontWeight.w700,
-              color: AppColors.amarillo,
+              color: AppColors.of(context).amarillo,
               height: 1.25,
             ),
           ),
@@ -430,10 +438,16 @@ class _LogoCircular extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.a(AppColors.teal, 0.12),
-        border: Border.all(color: AppColors.a(AppColors.teal, 0.35), width: 2),
+        color: AppColors.a(AppColors.of(context).teal, 0.12),
+        border: Border.all(
+          color: AppColors.a(AppColors.of(context).teal, 0.35),
+          width: 2,
+        ),
         boxShadow: [
-          BoxShadow(color: AppColors.a(AppColors.teal, 0.08), blurRadius: 30),
+          BoxShadow(
+            color: AppColors.a(AppColors.of(context).teal, 0.08),
+            blurRadius: 30,
+          ),
         ],
       ),
       child: Image.asset(
@@ -473,9 +487,15 @@ class _ChipsCategorias extends StatelessWidget {
               transform: Matrix4.translationValues(0, hover ? -2 : 0, 0),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
               decoration: BoxDecoration(
-                color: AppColors.a(AppColors.teal, hover ? 0.16 : 0.08),
+                color: AppColors.a(
+                  AppColors.of(context).teal,
+                  hover ? 0.16 : 0.08,
+                ),
                 border: Border.all(
-                  color: AppColors.a(AppColors.teal, hover ? 0.35 : 0.18),
+                  color: AppColors.a(
+                    AppColors.of(context).teal,
+                    hover ? 0.35 : 0.18,
+                  ),
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -485,7 +505,10 @@ class _ChipsCategorias extends StatelessWidget {
                   Icon(
                     icono,
                     size: 12,
-                    color: AppColors.a(AppColors.teal, hover ? 1 : 0.75),
+                    color: AppColors.a(
+                      AppColors.of(context).teal,
+                      hover ? 1 : 0.75,
+                    ),
                   ),
                   const SizedBox(width: 5),
                   Text(
@@ -493,7 +516,10 @@ class _ChipsCategorias extends StatelessWidget {
                     style: AppText.poppins(
                       11.52,
                       weight: FontWeight.w500,
-                      color: AppColors.a(AppColors.teal, hover ? 1 : 0.75),
+                      color: AppColors.a(
+                        AppColors.of(context).teal,
+                        hover ? 1 : 0.75,
+                      ),
                     ),
                   ),
                 ],

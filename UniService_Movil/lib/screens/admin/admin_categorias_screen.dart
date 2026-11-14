@@ -57,8 +57,8 @@ class _AdminCategoriasScreenState extends State<AdminCategoriasScreen> {
       actual: 'categorias',
       titulo: 'Categorías',
       body: RefreshIndicator(
-        color: AppColors.admin,
-        backgroundColor: AppColors.card,
+        color: AppColors.of(context).admin,
+        backgroundColor: AppColors.of(context).card,
         onRefresh: _cargar,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -77,7 +77,7 @@ class _AdminCategoriasScreenState extends State<AdminCategoriasScreen> {
                         style: AppText.poppins(
                           13,
                           weight: FontWeight.w600,
-                          color: AppColors.texto2,
+                          color: AppColors.of(context).texto2,
                           spacing: 0.4,
                         ),
                       ),
@@ -102,8 +102,8 @@ class _AdminCategoriasScreenState extends State<AdminCategoriasScreen> {
           AuthAviso(mensaje: _error),
           AuthPrimaryButton(
             label: 'Reintentar',
-            color: AppColors.admin,
-            colorHover: AppColors.adminHover,
+            color: AppColors.of(context).admin,
+            colorHover: AppColors.of(context).adminHover,
             onTap: _cargar,
           ),
         ],
@@ -150,9 +150,9 @@ class _TarjetaCategoria extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: AppColors.of(context).card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borde),
+          border: Border.all(color: AppColors.of(context).borde),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +167,7 @@ class _TarjetaCategoria extends StatelessWidget {
               child: Icon(
                 iconosPorCategoria[nombre] ?? iconoPorDefecto,
                 size: 20,
-                color: c.color,
+                color: AppColors.of(context).legible(c.color),
               ),
             ),
             const SizedBox(height: 12),
@@ -180,7 +180,7 @@ class _TarjetaCategoria extends StatelessWidget {
                         width: 48,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: AppColors.bg3,
+                          color: AppColors.of(context).bg3,
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
@@ -192,13 +192,13 @@ class _TarjetaCategoria extends StatelessWidget {
               nombre,
               style: AppText.poppins(
                 13.5,
-                color: AppColors.texto2,
+                color: AppColors.of(context).texto2,
                 height: 1.3,
               ),
             ),
             Text(
               'publicados',
-              style: AppText.poppins(12, color: AppColors.texto3),
+              style: AppText.poppins(12, color: AppColors.of(context).texto3),
             ),
           ],
         ),

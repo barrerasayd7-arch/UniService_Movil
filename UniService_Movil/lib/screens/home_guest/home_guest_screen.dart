@@ -59,10 +59,11 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
   @override
   Widget build(BuildContext context) {
     // En tablet y móvil el navbar usa el menú desplegable.
-    final movil = MediaQuery.of(context).size.width <= Breakpoints.tablet;
+    final movil =
+        MediaQuery.of(context).size.width <= Breakpoints.navbarInvitado;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       // SafeArea: la barra superior no queda bajo la hora/batería del celular.
       body: SafeArea(
         bottom: false,
@@ -81,55 +82,57 @@ class _HomeGuestScreenState extends State<HomeGuestScreen> {
                 // El explorador se recarga al tirar hacia abajo, igual que en el home propio.
                 Expanded(
                   child: RefreshIndicator(
-                    color: AppColors.teal,
-                    backgroundColor: AppColors.card,
-                    onRefresh: () async =>
-                        _explorador.currentState?.recargar(),
+                    color: AppColors.of(context).teal,
+                    backgroundColor: AppColors.of(context).card,
+                    onRefresh: () async => _explorador.currentState?.recargar(),
                     child: SingleChildScrollView(
-                    controller: _scroll,
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      children: [
-                        KeyedSubtree(
-                          key: _keys['inicio'],
-                          child: HeroPresentacion(
-                            onExplorar: () => _irA('buscar'),
-                            onPublicar: _login,
-                          ),
-                        ),
-                        KeyedSubtree(
-                          key: _keys['buscar'],
-                          child: ExploradorServicios(
-                            key: _explorador,
-                            onTapServicio: (Servicio s) => Navigator.of(
-                              context,
-                            ).pushNamed('/servicio', arguments: s),
-                            encabezado: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Explora servicios',
-                                  style: AppText.serif(30, height: 1.15),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Mira los detalles; inicia sesión para contactar a quien los ofrece.',
-                                  style: AppText.poppins(
-                                    15,
-                                    color: AppColors.texto2,
-                                  ),
-                                ),
-                              ],
+                      controller: _scroll,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        children: [
+                          KeyedSubtree(
+                            key: _keys['inicio'],
+                            child: HeroPresentacion(
+                              onExplorar: () => _irA('buscar'),
+                              onPublicar: _login,
                             ),
                           ),
-                        ),
-                        KeyedSubtree(
-                          key: _keys['soporte'],
-                          child: FooterInvitado(onAncla: _irA, onLogin: _login),
-                        ),
-                      ],
+                          KeyedSubtree(
+                            key: _keys['buscar'],
+                            child: ExploradorServicios(
+                              key: _explorador,
+                              onTapServicio: (Servicio s) => Navigator.of(
+                                context,
+                              ).pushNamed('/servicio', arguments: s),
+                              encabezado: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Explora servicios',
+                                    style: AppText.serif(30, height: 1.15),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Mira los detalles; inicia sesión para contactar a quien los ofrece.',
+                                    style: AppText.poppins(
+                                      15,
+                                      color: AppColors.of(context).texto2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          KeyedSubtree(
+                            key: _keys['soporte'],
+                            child: FooterInvitado(
+                              onAncla: _irA,
+                              onLogin: _login,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                   ),
                 ),
               ],

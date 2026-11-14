@@ -216,14 +216,17 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           tooltip: 'Volver a la app',
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.texto),
+          icon: Icon(
+            Icons.arrow_back_rounded,
+            color: AppColors.of(context).texto,
+          ),
           onPressed: _volver,
         ),
       ),
@@ -252,7 +255,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
       );
     }
     if (_estado == null) {
-      return const Padding(
+      return Padding(
         padding: EdgeInsets.symmetric(vertical: 80),
         child: Center(
           child: SizedBox(
@@ -260,7 +263,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
             height: 28,
             child: CircularProgressIndicator(
               strokeWidth: 2.4,
-              color: AppColors.admin,
+              color: AppColors.of(context).admin,
               semanticsLabel: 'Cargando',
             ),
           ),
@@ -315,11 +318,19 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
 
   Widget _textoSimple(String texto) => Text(
     texto,
-    style: AppText.poppins(15, color: AppColors.texto2, height: 1.5),
+    style: AppText.poppins(
+      15,
+      color: AppColors.of(context).texto2,
+      height: 1.5,
+    ),
   );
 
   Widget _textoCorreo() {
-    final base = AppText.poppins(15, color: AppColors.texto2, height: 1.5);
+    final base = AppText.poppins(
+      15,
+      color: AppColors.of(context).texto2,
+      height: 1.5,
+    );
     return Text.rich(
       TextSpan(
         style: base,
@@ -332,7 +343,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
           TextSpan(
             text: _estado!.correo,
             style: base.copyWith(
-              color: AppColors.texto,
+              color: AppColors.of(context).texto,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -363,8 +374,8 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
           label: _bloqueado
               ? 'Disponible a las ${horaCorta(_bloqueadoHasta!)}'
               : 'Entrar al panel',
-          color: AppColors.admin,
-          colorHover: AppColors.adminHover,
+          color: AppColors.of(context).admin,
+          colorHover: AppColors.of(context).adminHover,
           cargando: _enviando,
           onTap: _bloqueado || _clave.text.isEmpty ? null : _entrar,
         ),
@@ -372,7 +383,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
         Center(
           child: AuthTextButton(
             label: '¿Olvidaste tu contraseña de administrador?',
-            color: AppColors.admin,
+            color: AppColors.of(context).admin,
             onTap: _enviando ? null : () => _irARestablecer(true),
           ),
         ),
@@ -387,8 +398,8 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
         AuthAviso(mensaje: _aviso),
         AuthPrimaryButton(
           label: 'Enviar código',
-          color: AppColors.admin,
-          colorHover: AppColors.adminHover,
+          color: AppColors.of(context).admin,
+          colorHover: AppColors.of(context).adminHover,
           cargando: _enviando,
           onTap: _enviarCodigo,
         ),
@@ -397,7 +408,7 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
           Center(
             child: AuthTextButton(
               label: 'Ya la recuerdo',
-              color: AppColors.texto2,
+              color: AppColors.of(context).texto2,
               onTap: _enviando ? null : () => _irARestablecer(false),
             ),
           ),
@@ -450,8 +461,8 @@ class _AdminAccesoScreenState extends State<AdminAccesoScreen> {
         AuthAviso(mensaje: _aviso),
         AuthPrimaryButton(
           label: 'Guardar y entrar al panel',
-          color: AppColors.admin,
-          colorHover: AppColors.adminHover,
+          color: AppColors.of(context).admin,
+          colorHover: AppColors.of(context).adminHover,
           cargando: _enviando,
           onTap: _nuevaLista ? _guardar : null,
         ),
@@ -470,9 +481,12 @@ class _Requisito extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icono, color) = switch (cumplido) {
-      true => (Icons.check_circle_rounded, AppColors.verificado),
-      false => (Icons.radio_button_unchecked_rounded, AppColors.placeholder),
-      null => (Icons.info_outline_rounded, AppColors.placeholder),
+      true => (Icons.check_circle_rounded, AppColors.of(context).verificado),
+      false => (
+        Icons.radio_button_unchecked_rounded,
+        AppColors.of(context).placeholder,
+      ),
+      null => (Icons.info_outline_rounded, AppColors.of(context).placeholder),
     };
     return Semantics(
       label: '$texto${cumplido == true ? ', cumplido' : ''}',
@@ -488,7 +502,9 @@ class _Requisito extends StatelessWidget {
                 texto,
                 style: AppText.poppins(
                   13.5,
-                  color: cumplido == true ? AppColors.texto : AppColors.texto2,
+                  color: cumplido == true
+                      ? AppColors.of(context).texto
+                      : AppColors.of(context).texto2,
                 ),
               ),
             ),
@@ -519,18 +535,22 @@ class _Estado extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Icon(icono, size: 36, color: AppColors.texto2),
+          Icon(icono, size: 36, color: AppColors.of(context).texto2),
           const SizedBox(height: 14),
           Text(
             mensaje,
             textAlign: TextAlign.center,
-            style: AppText.poppins(15, color: AppColors.texto, height: 1.5),
+            style: AppText.poppins(
+              15,
+              color: AppColors.of(context).texto,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 22),
           AuthPrimaryButton(
             label: accion,
-            color: AppColors.admin,
-            colorHover: AppColors.adminHover,
+            color: AppColors.of(context).admin,
+            colorHover: AppColors.of(context).adminHover,
             onTap: onAccion,
           ),
         ],

@@ -31,7 +31,9 @@ class FooterInvitado extends StatelessWidget {
             texto,
             style: AppText.poppins(
               13.6,
-              color: hover ? AppColors.teal : AppColors.texto2,
+              color: hover
+                  ? AppColors.of(context).teal
+                  : AppColors.of(context).texto2,
             ),
           ),
         ),
@@ -40,7 +42,7 @@ class FooterInvitado extends StatelessWidget {
   }
 
   // Columna del pie: título y enlaces apilados.
-  Widget _columna(String titulo, List<Widget> links) {
+  Widget _columna(BuildContext context, String titulo, List<Widget> links) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -49,7 +51,7 @@ class FooterInvitado extends StatelessWidget {
           style: AppText.poppins(
             16,
             weight: FontWeight.w700,
-            color: const Color(0xFFE8EDF5),
+            color: AppColors.of(context).texto,
           ),
         ),
         const SizedBox(height: 12),
@@ -75,7 +77,7 @@ class FooterInvitado extends StatelessWidget {
                 style: AppText.poppins(
                   20.8,
                   weight: FontWeight.w800,
-                  color: AppColors.teal,
+                  color: AppColors.of(context).teal,
                 ),
               ),
               TextSpan(
@@ -83,7 +85,7 @@ class FooterInvitado extends StatelessWidget {
                 style: AppText.poppins(
                   20.8,
                   weight: FontWeight.w800,
-                  color: AppColors.amarillo,
+                  color: AppColors.of(context).amarillo,
                 ),
               ),
             ],
@@ -93,23 +95,27 @@ class FooterInvitado extends StatelessWidget {
         Text(
           'La plataforma de intercambio de servicios entre estudiantes '
           'universitarios de Colombia.',
-          style: AppText.poppins(13.6, color: AppColors.texto2, height: 1.6),
+          style: AppText.poppins(
+            13.6,
+            color: AppColors.of(context).texto2,
+            height: 1.6,
+          ),
         ),
       ],
     );
 
-    final plataforma = _columna('Plataforma', [
+    final plataforma = _columna(context, 'Plataforma', [
       _link('Inicio', () => onAncla('inicio')),
       _link('Buscar servicios', () => onAncla('buscar')),
       _link('Publicar servicio', onLogin),
     ]);
     // Los enlaces de cuenta delegan en onLogin: no hay sesión que mostrar.
-    final cuenta = _columna('Mi cuenta', [
+    final cuenta = _columna(context, 'Mi cuenta', [
       _link('Mis servicios', onLogin),
       _link('Solicitudes', onLogin),
       _link('Perfil', onLogin),
     ]);
-    final categorias = _columna('Categorías', [
+    final categorias = _columna(context, 'Categorías', [
       for (final c in [
         'Tutorías',
         'Ensayos',
@@ -120,7 +126,7 @@ class FooterInvitado extends StatelessWidget {
         _link(c, () => onAncla('buscar')),
     ]);
     // Información pública: no requiere iniciar sesión.
-    final soporte = _columna('Soporte', [
+    final soporte = _columna(context, 'Soporte', [
       _link('Centro de ayuda', () => Navigator.of(context).pushNamed('/ayuda')),
       _link(
         'Términos de uso',
@@ -133,9 +139,9 @@ class FooterInvitado extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(0, 40, 0, 20),
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
-        border: Border(top: BorderSide(color: AppColors.borde)),
+      decoration: BoxDecoration(
+        color: AppColors.of(context).bg,
+        border: Border(top: BorderSide(color: AppColors.of(context).borde)),
       ),
       child: Center(
         child: ConstrainedBox(
@@ -175,7 +181,7 @@ class FooterInvitado extends StatelessWidget {
                     ],
                   ),
                 const SizedBox(height: 24),
-                const Divider(color: AppColors.borde, height: 1),
+                Divider(color: AppColors.of(context).borde, height: 1),
                 const SizedBox(height: 16),
                 Wrap(
                   alignment: WrapAlignment.center,
@@ -185,9 +191,16 @@ class FooterInvitado extends StatelessWidget {
                     Text(
                       '© 2026 UniService — Hecho por y para estudiantes',
                       textAlign: TextAlign.center,
-                      style: AppText.poppins(13, color: AppColors.texto3),
+                      style: AppText.poppins(
+                        13,
+                        color: AppColors.of(context).texto3,
+                      ),
                     ),
-                    const Icon(Icons.school, size: 15, color: AppColors.texto3),
+                    Icon(
+                      Icons.school,
+                      size: 15,
+                      color: AppColors.of(context).texto3,
+                    ),
                   ],
                 ),
               ],

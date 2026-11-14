@@ -68,9 +68,9 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     final vence = _repo.vence;
 
     return Scaffold(
-      backgroundColor: AppColors.bg,
+      backgroundColor: AppColors.of(context).bg,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: AppColors.of(context).bg,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         titleSpacing: 20,
@@ -81,7 +81,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             child: TextButton.icon(
               onPressed: _salir,
               style: TextButton.styleFrom(
-                foregroundColor: AppColors.texto2,
+                foregroundColor: AppColors.of(context).texto2,
                 minimumSize: const Size(48, 44),
               ),
               icon: const Icon(Icons.logout_rounded, size: 20),
@@ -90,7 +90,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 style: AppText.poppins(
                   14,
                   weight: FontWeight.w600,
-                  color: AppColors.texto2,
+                  color: AppColors.of(context).texto2,
                 ),
               ),
             ),
@@ -98,8 +98,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         ],
       ),
       body: RefreshIndicator(
-        color: AppColors.admin,
-        backgroundColor: AppColors.card,
+        color: AppColors.of(context).admin,
+        backgroundColor: AppColors.of(context).card,
         onRefresh: _cargar,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -123,7 +123,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         'Después te pediremos la contraseña otra vez.',
                         style: AppText.poppins(
                           14,
-                          color: AppColors.texto2,
+                          color: AppColors.of(context).texto2,
                           height: 1.5,
                         ),
                       ),
@@ -136,7 +136,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                         style: AppText.poppins(
                           13,
                           weight: FontWeight.w600,
-                          color: AppColors.texto2,
+                          color: AppColors.of(context).texto2,
                           spacing: 0.4,
                         ),
                       ),
@@ -162,8 +162,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           AuthAviso(mensaje: _error),
           AuthPrimaryButton(
             label: 'Reintentar',
-            color: AppColors.admin,
-            colorHover: AppColors.adminHover,
+            color: AppColors.of(context).admin,
+            colorHover: AppColors.of(context).adminHover,
             onTap: _cargar,
           ),
         ],
@@ -232,14 +232,14 @@ class _Dato extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: AppColors.of(context).card,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borde),
+          border: Border.all(color: AppColors.of(context).borde),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icono, size: 20, color: AppColors.texto2),
+            Icon(icono, size: 20, color: AppColors.of(context).texto2),
             const SizedBox(height: 12),
             SizedBox(
               height: 38,
@@ -250,7 +250,7 @@ class _Dato extends StatelessWidget {
                         width: 48,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: AppColors.bg3,
+                          color: AppColors.of(context).bg3,
                           borderRadius: BorderRadius.circular(6),
                         ),
                       ),
@@ -262,7 +262,7 @@ class _Dato extends StatelessWidget {
               label,
               style: AppText.poppins(
                 13.5,
-                color: AppColors.texto2,
+                color: AppColors.of(context).texto2,
                 height: 1.3,
               ),
             ),

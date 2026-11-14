@@ -35,7 +35,7 @@ class HeroPresentacion extends StatelessWidget {
       constraints: BoxConstraints(minHeight: size.height * (movil ? 0.7 : 1.0)),
       child: Stack(
         children: [
-          const Positioned.fill(child: ColoredBox(color: AppColors.bg)),
+          Positioned.fill(child: ColoredBox(color: AppColors.of(context).bg)),
           // Capas decorativas: tesseract 4D e iconos flotantes.
           const Positioned.fill(
             child: AnimacionAmbiental(child: TesseractBackground()),
@@ -53,9 +53,9 @@ class HeroPresentacion extends StatelessWidget {
                     end: Alignment.bottomCenter,
                     stops: const [0, 0.6, 1],
                     colors: [
-                      AppColors.a(AppColors.bg, 0),
-                      AppColors.a(AppColors.bg, 0.3),
-                      AppColors.a(AppColors.bg, 0.8),
+                      AppColors.a(AppColors.of(context).bg, 0),
+                      AppColors.a(AppColors.of(context).bg, 0.3),
+                      AppColors.a(AppColors.of(context).bg, 0.8),
                     ],
                   ),
                 ),
@@ -93,7 +93,10 @@ class HeroPresentacion extends StatelessWidget {
                               ? null
                               : [
                                   Shadow(
-                                    color: AppColors.a(AppColors.teal, 0.08),
+                                    color: AppColors.a(
+                                      AppColors.of(context).teal,
+                                      0.08,
+                                    ),
                                     blurRadius: 60,
                                   ),
                                 ],
@@ -120,7 +123,7 @@ class HeroPresentacion extends StatelessWidget {
                           'habitaciones — todo para la comunidad universitaria en Colombia.',
                           style: AppText.poppins(
                             16,
-                            color: AppColors.texto2,
+                            color: AppColors.of(context).texto2,
                             height: 1.7,
                           ),
                         ),

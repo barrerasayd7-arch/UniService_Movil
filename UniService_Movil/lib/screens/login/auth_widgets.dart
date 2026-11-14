@@ -72,16 +72,18 @@ class _AuthFieldState extends State<AuthField> {
   Widget build(BuildContext context) {
     final focused = _focus.hasFocus;
     final borde = _hayError
-        ? AppColors.errorTexto
+        ? AppColors.of(context).errorTexto
         : focused
-        ? AppColors.teal
-        : AppColors.bordeCampo;
-    final colorIcono = focused ? AppColors.teal : AppColors.placeholder;
+        ? AppColors.of(context).teal
+        : AppColors.of(context).bordeCampo;
+    final colorIcono = focused
+        ? AppColors.of(context).teal
+        : AppColors.of(context).placeholder;
 
     final input = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       decoration: BoxDecoration(
-        color: focused ? AppColors.bg3 : AppColors.bg2,
+        color: focused ? AppColors.of(context).bg3 : AppColors.of(context).bg2,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: borde, width: focused ? 1.6 : 1.2),
       ),
@@ -99,16 +101,21 @@ class _AuthFieldState extends State<AuthField> {
             !widget.obscure &&
             widget.keyboardType != TextInputType.emailAddress,
         enableSuggestions: !widget.obscure,
-        cursorColor: AppColors.teal,
+        cursorColor: AppColors.of(context).teal,
         style: AppText.poppins(
           15,
-          color: widget.enabled ? AppColors.texto : AppColors.texto2,
+          color: widget.enabled
+              ? AppColors.of(context).texto
+              : AppColors.of(context).texto2,
         ),
         decoration: InputDecoration(
           isDense: true,
           border: InputBorder.none,
           hintText: widget.hint,
-          hintStyle: AppText.poppins(15, color: AppColors.placeholder),
+          hintStyle: AppText.poppins(
+            15,
+            color: AppColors.of(context).placeholder,
+          ),
           contentPadding: EdgeInsets.fromLTRB(
             widget.icon == null ? 14 : 0,
             14,
@@ -133,7 +140,7 @@ class _AuthFieldState extends State<AuthField> {
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
                     size: 20,
-                    color: AppColors.placeholder,
+                    color: AppColors.of(context).placeholder,
                   ),
                 )
               : null,
@@ -153,7 +160,7 @@ class _AuthFieldState extends State<AuthField> {
               style: AppText.poppins(
                 13,
                 weight: FontWeight.w500,
-                color: AppColors.texto2,
+                color: AppColors.of(context).texto2,
               ),
             ),
           ),
@@ -172,7 +179,10 @@ class _AuthFieldState extends State<AuthField> {
               padding: const EdgeInsets.only(top: 6, left: 2),
               child: Text(
                 widget.errorText!,
-                style: AppText.poppins(12.5, color: AppColors.errorTexto),
+                style: AppText.poppins(
+                  12.5,
+                  color: AppColors.of(context).errorTexto,
+                ),
               ),
             ),
         ],
@@ -209,7 +219,9 @@ class AuthTabs extends StatelessWidget {
                 height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: activo ? AppColors.teal : Colors.transparent,
+                  color: activo
+                      ? AppColors.of(context).teal
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(9),
                 ),
                 child: Text(
@@ -217,7 +229,9 @@ class AuthTabs extends StatelessWidget {
                   style: AppText.poppins(
                     14,
                     weight: FontWeight.w600,
-                    color: activo ? AppColors.bg : AppColors.texto2,
+                    color: activo
+                        ? AppColors.of(context).bg
+                        : AppColors.of(context).texto2,
                   ),
                 ),
               ),
@@ -231,8 +245,8 @@ class AuthTabs extends StatelessWidget {
       padding: const EdgeInsets.all(4),
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: AppColors.bg2,
-        border: Border.all(color: AppColors.borde),
+        color: AppColors.of(context).bg2,
+        border: Border.all(color: AppColors.of(context).borde),
         borderRadius: BorderRadius.circular(13),
       ),
       child: Row(
@@ -257,20 +271,22 @@ class AuthPrimaryButton extends StatelessWidget {
   final bool cargando;
 
   /// Fondo del botón (teal por defecto; ámbar en el acceso de administrador).
-  final Color color;
-  final Color colorHover;
+  final Color? color;
+  final Color? colorHover;
   const AuthPrimaryButton({
     super.key,
     required this.label,
     this.onTap,
     this.cargando = false,
-    this.color = AppColors.teal,
-    this.colorHover = AppColors.teal2,
+    this.color,
+    this.colorHover,
   });
 
   @override
   Widget build(BuildContext context) {
     final deshabilitado = onTap == null || cargando;
+    final color = this.color ?? AppColors.of(context).teal;
+    final colorHover = this.colorHover ?? AppColors.of(context).teal2;
     return Semantics(
       button: true,
       enabled: !deshabilitado,
@@ -300,12 +316,12 @@ class AuthPrimaryButton extends StatelessWidget {
                     : const [],
               ),
               child: cargando
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.4,
-                        color: AppColors.bg,
+                        color: AppColors.of(context).bg,
                       ),
                     )
                   : Text(
@@ -313,7 +329,7 @@ class AuthPrimaryButton extends StatelessWidget {
                       style: AppText.poppins(
                         15,
                         weight: FontWeight.w700,
-                        color: AppColors.bg,
+                        color: AppColors.of(context).bg,
                       ),
                     ),
             ),
@@ -331,16 +347,17 @@ class AuthPrimaryButton extends StatelessWidget {
 class AuthTextButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? color;
   const AuthTextButton({
     super.key,
     required this.label,
     this.onTap,
-    this.color = AppColors.teal,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = this.color ?? AppColors.of(context).teal;
     return TextButton(
       onPressed: onTap,
       style: TextButton.styleFrom(
@@ -369,7 +386,9 @@ class AuthAviso extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = exito ? AppColors.verificado : AppColors.errorTexto;
+    final color = exito
+        ? AppColors.of(context).verificado
+        : AppColors.of(context).errorTexto;
     return AnimatedSize(
       duration: const Duration(milliseconds: 180),
       alignment: Alignment.topCenter,
@@ -403,7 +422,7 @@ class AuthAviso extends StatelessWidget {
                         mensaje!,
                         style: AppText.poppins(
                           13,
-                          color: AppColors.texto,
+                          color: AppColors.of(context).texto,
                           height: 1.4,
                         ),
                       ),
@@ -426,7 +445,9 @@ Future<void> mostrarNotificacion(
   String mensaje, {
   bool exito = false,
 }) {
-  final color = exito ? AppColors.verificado : AppColors.errorTexto;
+  final color = exito
+      ? AppColors.of(context).verificado
+      : AppColors.of(context).errorTexto;
   return showDialog<void>(
     context: context,
     barrierColor: const Color(0x99000000),
@@ -438,9 +459,9 @@ Future<void> mostrarNotificacion(
           margin: const EdgeInsets.symmetric(horizontal: 24),
           padding: const EdgeInsets.fromLTRB(22, 22, 22, 12),
           decoration: BoxDecoration(
-            color: AppColors.card,
+            color: AppColors.of(context).card,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.borde2),
+            border: Border.all(color: AppColors.of(context).borde2),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -456,7 +477,7 @@ Future<void> mostrarNotificacion(
                 textAlign: TextAlign.center,
                 style: AppText.poppins(
                   14.5,
-                  color: AppColors.texto,
+                  color: AppColors.of(context).texto,
                   height: 1.45,
                 ),
               ),

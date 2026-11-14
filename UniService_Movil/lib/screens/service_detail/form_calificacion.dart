@@ -125,11 +125,16 @@ class _FormCalificacionState extends State<FormCalificacion> {
                   width: 48,
                   height: 48,
                   child: Icon(
-                    n <= _estrellas ? Icons.star_rounded : Icons.star_outline_rounded,
+                    n <= _estrellas
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     size: 34,
                     color: n <= _estrellas
-                        ? AppColors.estrella
-                        : const Color(0xFF374151),
+                        ? AppColors.of(context).estrella
+                        : AppColors.of(context).elegir(
+                            const Color(0xFF374151),
+                            const Color(0xFFD1D5DB),
+                          ),
                   ),
                 ),
               ),
@@ -153,7 +158,7 @@ class _FormCalificacionState extends State<FormCalificacion> {
           buildCounter:
               (_, {required currentLength, required isFocused, maxLength}) =>
                   null,
-          cursorColor: AppColors.teal,
+          cursorColor: AppColors.of(context).teal,
           style: AppText.poppins(14.08, height: 1.6),
           decoration: InputDecoration(
             isDense: true,
@@ -161,7 +166,10 @@ class _FormCalificacionState extends State<FormCalificacion> {
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
             hintText: 'Cuéntanos tu experiencia... (opcional)',
-            hintStyle: AppText.poppins(14.08, color: AppColors.texto3),
+            hintStyle: AppText.poppins(
+              14.08,
+              color: AppColors.of(context).texto3,
+            ),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -186,16 +194,19 @@ class _FormCalificacionState extends State<FormCalificacion> {
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check_circle,
                         size: 16,
-                        color: AppColors.teal,
+                        color: AppColors.of(context).teal,
                       ),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           'Ya calificaste este servicio',
-                          style: AppText.poppins(14.4, color: AppColors.teal),
+                          style: AppText.poppins(
+                            14.4,
+                            color: AppColors.of(context).teal,
+                          ),
                         ),
                       ),
                     ],
@@ -208,8 +219,11 @@ class _FormCalificacionState extends State<FormCalificacion> {
                           Icons.star_rounded,
                           size: 20,
                           color: n <= e.puntuacion
-                              ? AppColors.estrella
-                              : const Color(0xFF374151),
+                              ? AppColors.of(context).estrella
+                              : AppColors.of(context).elegir(
+                                  const Color(0xFF374151),
+                                  const Color(0xFFD1D5DB),
+                                ),
                         ),
                     ],
                   ),
@@ -218,7 +232,10 @@ class _FormCalificacionState extends State<FormCalificacion> {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         e.comentario,
-                        style: AppText.poppins(14, color: AppColors.texto2),
+                        style: AppText.poppins(
+                          14,
+                          color: AppColors.of(context).texto2,
+                        ),
                       ),
                     ),
                   if (e.fecha != null)
@@ -226,7 +243,10 @@ class _FormCalificacionState extends State<FormCalificacion> {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         'Publicada el ${formatearFecha(e.fecha)}',
-                        style: AppText.poppins(12, color: AppColors.texto3),
+                        style: AppText.poppins(
+                          12,
+                          color: AppColors.of(context).texto3,
+                        ),
                       ),
                     ),
                 ],

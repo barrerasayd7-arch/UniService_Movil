@@ -23,7 +23,7 @@ Future<void> mostrarRecuperarPassword(
     isScrollControlled: true,
     useSafeArea: true,
     showDragHandle: true,
-    backgroundColor: AppColors.card,
+    backgroundColor: AppColors.of(context).card,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -146,7 +146,11 @@ class _RecuperarPasswordState extends State<_RecuperarPassword> {
               verificado
                   ? 'Correo verificado. Elige una contraseña nueva.'
                   : 'Te enviaremos un código a tu correo institucional.',
-              style: AppText.poppins(14, color: AppColors.texto2, height: 1.45),
+              style: AppText.poppins(
+                14,
+                color: AppColors.of(context).texto2,
+                height: 1.45,
+              ),
             ),
             const SizedBox(height: 20),
             AnimatedSwitcher(
