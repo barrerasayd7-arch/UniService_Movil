@@ -22,7 +22,6 @@ namespace UniserviceAPI.Migrations
                 .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 #pragma warning restore 612, 618
         }
     }
