@@ -1,4 +1,4 @@
-package com.example.app_uniservice
+package edu.upc.uniservice
 
 import io.flutter.embedding.android.FlutterActivity
 
