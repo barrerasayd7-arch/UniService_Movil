@@ -101,14 +101,25 @@ class NavbarPerfil extends StatelessWidget {
                     ),
                     // En móvil el icono alterna entre menú y cerrar.
                     if (movil)
-                      GestureDetector(
-                        onTap: onToggleMenu,
-                        child: Padding(
-                          padding: const EdgeInsets.all(5),
-                          child: Icon(
-                            menuAbierto ? Icons.close : Icons.menu,
-                            color: AppColors.of(context).texto,
-                            size: 28,
+                      Semantics(
+                        button: true,
+                        label: menuAbierto ? 'Cerrar menú' : 'Abrir menú',
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: onToggleMenu,
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Center(
+                                child: Icon(
+                                  menuAbierto ? Icons.close : Icons.menu,
+                                  color: AppColors.of(context).texto,
+                                  size: 28,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       )

@@ -335,19 +335,30 @@ class _Hamburguesa extends StatelessWidget {
       );
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(5),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            barra(giro: activo ? 0.785398 : 0, dy: activo ? 7 : 0),
-            const SizedBox(height: 5),
-            barra(opacidad: activo ? 0 : 1),
-            const SizedBox(height: 5),
-            barra(giro: activo ? -0.785398 : 0, dy: activo ? -7 : 0),
-          ],
+    return Semantics(
+      button: true,
+      label: activo ? 'Cerrar menú' : 'Abrir menú',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  barra(giro: activo ? 0.785398 : 0, dy: activo ? 7 : 0),
+                  const SizedBox(height: 5),
+                  barra(opacidad: activo ? 0 : 1),
+                  const SizedBox(height: 5),
+                  barra(giro: activo ? -0.785398 : 0, dy: activo ? -7 : 0),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
