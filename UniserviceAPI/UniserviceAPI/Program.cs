@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -275,7 +276,9 @@ builder.Services.AddControllers
         };
     });
 
-builder.Services.AddSignalR();
+builder.Services.AddSingleton<ChatSessionGuard>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<ChatSessionGuard>());
+builder.Services.AddSignalR().AddHubOptions<ChatHub>(options => options.AddFilter<ChatSessionGuard>());
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
@@ -430,7 +433,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.MapHub<ChatHub>("/chathub");
+app.MapHub<ChatHub>("/chathub", options => options.CloseOnAuthenticationExpiration = true);
 
 app.Run();
 

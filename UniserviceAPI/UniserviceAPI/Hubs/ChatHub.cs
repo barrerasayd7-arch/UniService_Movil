@@ -9,7 +9,7 @@ namespace UniserviceAPI.Hubs;
 // nunca de un parámetro. Cada conexión entra sola al grupo de su usuario; los mensajes se envían
 // por REST (ChatController), que los guarda y los reenvía aquí sólo a los dos participantes.
 [Authorize]
-public sealed class ChatHub(IConfiguration config, AccountStatus cuentas) : Hub
+public sealed class ChatHub(IConfiguration config) : Hub
 {
     public static string GrupoUsuario(int id) => $"usuario_{id}";
     public static string GrupoChat(int id) => $"chat_{id}";
@@ -17,12 +17,7 @@ public sealed class ChatHub(IConfiguration config, AccountStatus cuentas) : Hub
 
     public override async Task OnConnectedAsync()
     {
-        // Las cuentas suspendidas no reciben nada en tiempo real.
-        if (await cuentas.Get(Yo, Context.ConnectionAborted) is not { Activa: true })
-        {
-            Context.Abort();
-            return;
-        }
+        // ChatSessionGuard valida la sesión antes de entrar y durante toda la conexión.
         await Groups.AddToGroupAsync(Context.ConnectionId, GrupoUsuario(Yo));
         await base.OnConnectedAsync();
     }

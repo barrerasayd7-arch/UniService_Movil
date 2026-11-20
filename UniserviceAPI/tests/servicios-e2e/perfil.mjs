@@ -94,21 +94,29 @@ const archivo = (campo, datos, nombre, tipo = 'image/png') => { const f = new Fo
 
 // ── Cliente SignalR mínimo (protocolo JSON sobre WebSocket, sin negociación) ──
 const esperar = async (fn, ms = 3000) => { const fin = Date.now() + ms; while (Date.now() < fin) { const v = fn(); if (v) return v; await sleep(40); } return null; };
+const hubsAbiertos = new Set();
 function conectarHub(tok) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://localhost:5197/chathub${tok ? `?access_token=${tok}` : ''}`);
-    let n = 0, listo = false;
+    let n = 0, listo = false, ping;
     const cliente = {
       recibidos: [], cerrado: false,
       invocar(target, ...args) {
+        if (cliente.cerrado) return Promise.resolve({ error: 'conexión cerrada' });
         const id = String(++n);
         ws.send(JSON.stringify({ type: 1, invocationId: id, target, arguments: args }) + '\x1e');
-        return esperar(() => cliente.recibidos.find((m) => m.type === 3 && m.invocationId === id));
+        return esperar(() => cliente.recibidos.find((m) => m.type === 3 && m.invocationId === id)
+          ?? (cliente.cerrado ? { error: 'conexión cerrada' } : null));
       },
       eventos: (target) => cliente.recibidos.filter((m) => m.type === 1 && m.target === target).map((m) => m.arguments[0]),
       cerrar: () => ws.close()
     };
-    ws.onopen = () => ws.send(JSON.stringify({ protocol: 'json', version: 1 }) + '\x1e');
+    hubsAbiertos.add(cliente);
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ protocol: 'json', version: 1 }) + '\x1e');
+      // Mantener la conexión sin invocar métodos: la vigilancia debe cubrir clientes ociosos.
+      ping = setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send('{"type":6}\x1e'); }, 5000);
+    };
     ws.onmessage = (e) => {
       for (const parte of String(e.data).split('\x1e').filter(Boolean)) {
         const m = JSON.parse(parte);
@@ -116,7 +124,11 @@ function conectarHub(tok) {
       }
     };
     ws.onerror = () => { if (!listo) { listo = true; reject(new Error('rechazada')); } };
-    ws.onclose = () => { cliente.cerrado = true; if (!listo) { listo = true; reject(new Error('cerrada')); } };
+    ws.onclose = () => {
+      clearInterval(ping); hubsAbiertos.delete(cliente);
+      cliente.cerrado = true;
+      if (!listo) { listo = true; reject(new Error('cerrada')); }
+    };
   });
 }
 
@@ -307,6 +319,54 @@ try {
   ok((await esperar(() => hubLaura.eventos('UsuarioEscribiendo').find((e) => e.id_usuario === 20))), '"Escribiendo" le llega a Laura con el id real');
   const hubSofia = await conectarHub(SOFIA).catch(() => ({ cerrado: true }));
   ok(await esperar(() => hubSofia.cerrado), 'Cuenta suspendida desconectada del tiempo real');
+
+  // Token que vence DESPUÉS de abrir el socket; no depende de una petición REST del cliente.
+  const hubCorto = await conectarHub(token(21, 2, { exp: ahora() + 3 }));
+  ok(!(await hubCorto.invocar('UnirseChat', C))?.error, 'Token corto funciona antes de vencer');
+  ok(await esperar(() => hubCorto.cerrado, 10000), 'Token vencido cierra el socket ya abierto');
+  const trasVencer = await expect(200, 'POST', `/api/chat/${C}/mensajes`, {
+    as: PEDRO, body: { mensaje: 'Sólo para sesiones vigentes' }
+  }, 'Envío después del vencimiento');
+  ok(await esperar(() => hubLaura.eventos('RecibirMensaje').some((m) => m.id_mensaje === trasVencer.id_mensaje)), 'Otra sesión válida sigue recibiendo');
+  ok(!hubCorto.eventos('RecibirMensaje').some((m) => m.id_mensaje === trasVencer.id_mensaje), 'El socket vencido no recibe mensajes nuevos');
+
+  // Suspensión desde la API: cierra todos los dispositivos del usuario y conserva los demás.
+  const admin = (await expect(200, 'POST', '/api/auth/login', {
+    body: { correo: 'admin@unicesar.edu.co', password: 'CuentaAdmin2026' }
+  }, 'Admin para suspensión en vivo')).token;
+  const elevacion = (await expect(200, 'POST', '/api/admin/acceso/verificar', {
+    as: admin, body: { clave: 'PanelNueva2027' }
+  }, 'Elevar admin para suspensión en vivo')).token;
+  const hubMarta2 = await conectarHub(MARTA);
+  await hubMarta2.invocar('SalirChat', C); // confirma que OnConnected terminó
+  await expect(200, 'PATCH', '/api/admin/usuarios/25/suspender', {
+    as: admin, headers: { 'X-Admin-Elevacion': elevacion }, body: { motivo: 'Prueba de suspensión de conexiones abiertas' }
+  }, 'Suspender a Marta con dos conexiones');
+  ok(await esperar(() => hubMarta.cerrado && hubMarta2.cerrado), 'Suspender cierra todos los sockets de Marta');
+  ok(!hubPedro.cerrado && !hubLaura.cerrado, 'Suspender no cierra sockets de otras cuentas');
+  await expect(200, 'PATCH', '/api/admin/usuarios/25/reactivar', {
+    as: admin, headers: { 'X-Admin-Elevacion': elevacion }
+  }, 'Reactivar cuenta de pruebas');
+
+  // Cambio externo (otra instancia/SQL): ni caché de 30 s ni ausencia de invocaciones lo ocultan.
+  sql('UPDATE usuarios SET estado = true WHERE id_usuario = 24');
+  const BRUNO = token(24);
+  const hubBruno = await conectarHub(BRUNO), hubBrunoOcioso = await conectarHub(BRUNO);
+  await hubBruno.invocar('UnirseChat', CB);
+  await hubBrunoOcioso.invocar('UnirseChat', CB);
+  const escribiendoAntes = hubPedro.eventos('UsuarioEscribiendo').length;
+  sql('UPDATE usuarios SET estado = false WHERE id_usuario = 24');
+  const intentoSuspendido = await hubBruno.invocar('EnviarEscribiendo', CB, true);
+  ok(intentoSuspendido?.error || hubBruno.cerrado, 'Se impide invocar con una cuenta suspendida después de conectar');
+  ok(await esperar(() => hubBrunoOcioso.cerrado, 10000), 'Se cierra también el socket suspendido que sólo escucha');
+  ok(hubPedro.eventos('UsuarioEscribiendo').length === escribiendoAntes, 'La invocación suspendida no emite eventos');
+
+  // Revocación externa sin suspender: comprueba iat contra sesiones_validas_desde.
+  sql('UPDATE usuarios SET estado = true WHERE id_usuario = 24');
+  const hubRevocado = await conectarHub(BRUNO);
+  await hubRevocado.invocar('UnirseChat', CB);
+  sql("UPDATE usuarios SET sesiones_validas_desde = now() + interval '1 second' WHERE id_usuario = 24");
+  ok(await esperar(() => hubRevocado.cerrado, 10000), 'Revocar en BD cierra una conexión ociosa sin invalidación local');
   [hubLaura, hubMarta, hubPedro].forEach((h) => h.cerrar());
 
   // ═══ 9. Reportes ═══
@@ -334,11 +394,22 @@ try {
   // ═══ 10. Sesiones: cerrar sesión y cambiar contraseña revocan los tokens ═══
   const s1 = (await api('POST', '/api/auth/login', { body: { correo: 'laura@unicesar.edu.co', password: 'Clave2026' } })).data.token;
   const s2 = (await api('POST', '/api/auth/login', { body: { correo: 'laura@unicesar.edu.co', password: 'Clave2026' } })).data.token;
+  const hubSesion1 = await conectarHub(s1), hubSesion2 = await conectarHub(s2);
+  await hubSesion1.invocar('UnirseChat', C);
+  await hubSesion2.invocar('UnirseChat', C);
   await sleep(1100); // iat va en segundos
   await expect(400, 'POST', '/api/auth/change-password', { as: s1, body: { ContrasenaActual: 'Mala1234', ContrasenaNueva: 'Nueva2027x' } }, 'Contraseña actual incorrecta');
   await expect(400, 'POST', '/api/auth/change-password', { as: s1, body: { ContrasenaActual: 'Clave2026', ContrasenaNueva: 'solotexto' } }, 'Contraseña débil');
   await expect(400, 'POST', '/api/auth/change-password', { as: s1, body: { ContrasenaActual: 'Clave2026', ContrasenaNueva: 'Clave2026' } }, 'Igual a la actual');
   const cambio = await expect(200, 'POST', '/api/auth/change-password', { as: s1, body: { ContrasenaActual: 'Clave2026', ContrasenaNueva: 'Nueva2027x' } }, 'Cambiar contraseña');
+  ok(await esperar(() => hubSesion1.cerrado && hubSesion2.cerrado), 'Cambiar contraseña cierra los dos sockets ya abiertos');
+  const hubTokenNuevo = await conectarHub(cambio.token);
+  ok(!(await hubTokenNuevo.invocar('UnirseChat', C))?.error, 'El token nuevo puede reconectar al chat');
+  const trasCambiar = await expect(200, 'POST', `/api/chat/${C}/mensajes`, {
+    as: PEDRO, body: { mensaje: 'Mensaje tras revocar las sesiones anteriores' }
+  }, 'Envío tras cambio de contraseña');
+  ok(await esperar(() => hubTokenNuevo.eventos('RecibirMensaje').some((m) => m.id_mensaje === trasCambiar.id_mensaje)), 'La sesión nueva recibe mensajes');
+  ok([hubSesion1, hubSesion2].every((h) => !h.eventos('RecibirMensaje').some((m) => m.id_mensaje === trasCambiar.id_mensaje)), 'Las sesiones revocadas no reciben el mensaje');
   await expect(401, 'GET', '/api/perfil/me', { as: s1 }, 'El token con el que se cambió queda revocado');
   await expect(401, 'GET', '/api/perfil/me', { as: s2 }, 'La otra sesión abierta queda revocada');
   await expect(401, 'GET', '/api/perfil/me', { as: LAURA }, 'Tokens antiguos revocados');
@@ -347,8 +418,13 @@ try {
   LAURA = (await expect(200, 'POST', '/api/auth/login', { body: { correo: 'laura@unicesar.edu.co', password: 'Nueva2027x' } }, 'Entra con la nueva')).token;
 
   const pedroSesion = (await api('POST', '/api/auth/login', { body: { correo: 'pedro@unicesar.edu.co', password: 'Clave2026' } })).data.token;
+  const hubLogout1 = await conectarHub(pedroSesion), hubLogout2 = await conectarHub(pedroSesion);
+  await hubLogout1.invocar('UnirseChat', C);
+  await hubLogout2.invocar('UnirseChat', C);
   await sleep(1100);
   await expect(200, 'POST', '/api/auth/logout', { as: pedroSesion, body: { id_usuario: 21 } }, 'Cerrar sesión');
+  ok(await esperar(() => hubLogout1.cerrado && hubLogout2.cerrado), 'Logout cierra todos los sockets abiertos del usuario');
+  ok(!hubTokenNuevo.cerrado, 'Logout de Pedro mantiene abierta la conexión de Laura');
   await expect(401, 'GET', '/api/perfil/me', { as: pedroSesion }, 'Tras cerrar sesión el token ya no sirve');
   await assert.rejects(conectarHub(pedroSesion), 'Ni para el tiempo real'); checks++;
   await expect(200, 'GET', '/api/perfil/me', { as: LAURA }, 'El logout de Pedro no cierra la sesión de Laura (id del cuerpo ignorado)');
@@ -365,6 +441,7 @@ try {
   console.error('--- Log de la API (últimas líneas) ---\n' + log.split('\n').slice(-40).join('\n'));
   process.exitCode = 1;
 } finally {
+  for (const hub of hubsAbiertos) hub.cerrar();
   proc.kill();
   storageServer.close();
 }

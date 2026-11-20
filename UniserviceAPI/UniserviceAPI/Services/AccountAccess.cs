@@ -13,12 +13,22 @@ public sealed record AccountState(bool Activa, int Rol, long SesionesDesde = 0);
 // de sesión aplica en segundos aunque el token del usuario siga vigente.
 public sealed class AccountStatus(IConfiguration config, IMemoryCache cache)
 {
+    // Los consumidores de conexiones persistentes deben cerrar las sesiones locales afectadas.
+    public event Action<int>? Invalidated;
     private static readonly TimeSpan Ttl = TimeSpan.FromSeconds(30);
     private static string Key(int id) => $"cuenta:{id}";
 
     public async Task<AccountState?> Get(int id, CancellationToken ct)
     {
         if (cache.TryGetValue(Key(id), out AccountState? cached)) return cached;
+        var state = await GetFresh(id, ct);
+        cache.Set(Key(id), state, Ttl);
+        return state;
+    }
+
+    // El chat no puede esperar los 30 segundos de caché para comprobar una sesión abierta.
+    public async Task<AccountState?> GetFresh(int id, CancellationToken ct)
+    {
         await using var conn = new NpgsqlConnection(config.GetConnectionString("DefaultConnection"));
         await conn.OpenAsync(ct);
         await using var cmd = new NpgsqlCommand(
@@ -31,11 +41,14 @@ public sealed class AccountStatus(IConfiguration config, IMemoryCache cache)
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         AccountState? state = await reader.ReadAsync(ct)
             ? new(reader.GetBoolean(0), reader.GetInt32(1), reader.GetInt64(2)) : null;
-        cache.Set(Key(id), state, Ttl);
         return state;
     }
 
-    public void Invalidate(int id) => cache.Remove(Key(id));
+    public void Invalidate(int id)
+    {
+        cache.Remove(Key(id));
+        Invalidated?.Invoke(id);
+    }
 }
 
 // Filtro global: rechaza peticiones autenticadas de cuentas suspendidas o eliminadas.

@@ -177,6 +177,15 @@ UPDATE usuarios SET id_rol = 1, estado = true WHERE correo = 'cuenta@unicesar.ed
 
 Los permisos se comprueban contra la base de datos en cada petición: quitar el rol o suspender una cuenta tiene efecto en segundos.
 
+El chat también controla las conexiones ya abiertas: cada invocación comprueba la cuenta y la
+revocación directamente en la base de datos, y el socket se cierra al vencer el JWT. Cerrar sesión,
+cambiar/restablecer la contraseña o suspender la cuenta desde esta instancia de la API cierra sus
+conexiones locales. Un supervisor revisa cada 5 segundos las cuentas conectadas para detectar
+cambios desde otra instancia o desde SQL, incluso si el cliente sólo está escuchando; la latencia
+depende de la consulta y de la carga del servidor. Si no puede validar la cuenta (consulta con
+timeout de 5 segundos), cierra la conexión. La app puede reconectar con una sesión válida y
+recuperar los mensajes por REST. No requiere migraciones adicionales.
+
 ## 5. Despliegue en la nube
 
 La imagen se construye con `UniserviceAPI/UniserviceAPI/Dockerfile` (contexto: esa carpeta) y escucha en el puerto **8080**.
